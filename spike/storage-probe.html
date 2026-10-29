@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RefractBio — localStorage probe for file:// (V17)</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      line-height: 1.5;
+      background: #f9fafb;
+      color: #111827;
+    }
+    h1 { margin-bottom: 0.5rem; }
+    .card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+    .badge-pass { background: #dcfce7; color: #166534; }
+    .badge-fail { background: #fee2e2; color: #991b1b; }
+    .badge-warn { background: #fef3c7; color: #92400e; }
+    pre {
+      background: #f3f4f6;
+      padding: 0.75rem;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 0.875rem;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      margin-right: 0.5rem;
+    }
+    button:hover { background: #1d4ed8; }
+    button.danger { background: #dc2626; }
+    button.danger:hover { background: #b91c1c; }
+    table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
+    th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid #e5e7eb; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <h1>RefractBio — localStorage Probe (V17)</h1>
+  <p>Tests <code>localStorage</code> availability and persistence, especially when running from a <code>file://</code> URL.</p>
+
+  <div class="card">
+    <h2>Environment</h2>
+    <table>
+      <tr><th>Property</th><th>Value</th></tr>
+      <tr><td>URL protocol</td><td id="env-proto">-</td></tr>
+      <tr><td>URL origin</td><td id="env-origin">-</td></tr>
+      <tr><td>href</td><td id="env-href" style="word-break: break-all;">-</td></tr>
+      <tr><td>User Agent</td><td id="env-ua" style="word-break: break-all;">-</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Automated Diagnostics</h2>
+    <div id="diagnostics-summary">Running...</div>
+    <pre id="diagnostics-log"></pre>
+  </div>
+
+  <div class="card">
+    <h2>Interactive Persistence Test</h2>
+    <p>Set a value, reload or open another <code>file://</code> document, and check if it persists.</p>
+    <div>
+      <input type="text" id="persist-key" value="refractbio_v17_test_key" style="padding: 0.4rem; width: 220px;" />
+      <input type="text" id="persist-val" placeholder="Test value" style="padding: 0.4rem; width: 220px;" />
+      <button id="btn-save">Save to localStorage</button>
+      <button id="btn-read">Read from localStorage</button>
+      <button id="btn-clear" class="danger">Clear Test Key</button>
+    </div>
+    <p id="persist-result" style="margin-top: 0.5rem; font-weight: 500;"></p>
+  </div>
+
+  <script>
+    (function() {
+      // Env
+      document.getElementById('env-proto').textContent = window.location.protocol;
+      document.getElementById('env-origin').textContent = window.location.origin;
+      document.getElementById('env-href').textContent = window.location.href;
+      document.getElementById('env-ua').textContent = navigator.userAgent;
+
+      const logEl = document.getElementById('diagnostics-log');
+      const summaryEl = document.getElementById('diagnostics-summary');
+      const lines = [];
+
+      function log(msg) {
+        lines.push(msg);
+        logEl.textContent = lines.join('\n');
+      }
+
+      let passed = true;
+
+      // 1. Check window.localStorage exists
+      try {
+        if (!('localStorage' in window)) {
+          log('[FAIL] window.localStorage is NOT defined in this environment.');
+          passed = false;
+        } else if (window.localStorage === null) {
+          log('[FAIL] window.localStorage is null.');
+          passed = false;
+        } else {
+          log('[PASS] window.localStorage is defined.');
+        }
+      } catch (e) {
+        log('[FAIL] Accessing window.localStorage threw: ' + e);
+        passed = false;
+      }
+
+      // 2. Test write/read/delete
+      const testKey = '__probe_v17_' + Math.random().toString(36).substring(2);
+      const testVal = 'probe_val_' + Date.now();
+
+      try {
+        window.localStorage.setItem(testKey, testVal);
+        log('[PASS] localStorage.setItem succeeded.');
+      } catch (e) {
+        log('[FAIL] localStorage.setItem threw: ' + e.name + ': ' + e.message);
+        passed = false;
+      }
+
+      try {
+        const readBack = window.localStorage.getItem(testKey);
+        if (readBack === testVal) {
+          log('[PASS] localStorage.getItem succeeded and matched.');
+        } else {
+          log('[FAIL] localStorage.getItem returned mismatch: ' + readBack);
+          passed = false;
+        }
+      } catch (e) {
+        log('[FAIL] localStorage.getItem threw: ' + e.name + ': ' + e.message);
+        passed = false;
+      }
+
+      try {
+        window.localStorage.removeItem(testKey);
+        const afterRemove = window.localStorage.getItem(testKey);
+        if (afterRemove === null) {
+          log('[PASS] localStorage.removeItem succeeded.');
+        } else {
+          log('[FAIL] localStorage.removeItem failed, key still present.');
+          passed = false;
+        }
+      } catch (e) {
+        log('[FAIL] localStorage.removeItem threw: ' + e.name + ': ' + e.message);
+        passed = false;
+      }
+
+      // Summary
+      if (passed) {
+        summaryEl.innerHTML = '<span class="badge badge-pass">PASSED</span> localStorage is fully functional in this browser session.';
+      } else {
+        summaryEl.innerHTML = '<span class="badge badge-fail">FAILED / BLOCKED</span> localStorage is not available or restricted on this origin/protocol.';
+      }
+
+      // Interactive
+      const persistKeyInput = document.getElementById('persist-key');
+      const persistValInput = document.getElementById('persist-val');
+      const persistResult = document.getElementById('persist-result');
+
+      document.getElementById('btn-save').addEventListener('click', function() {
+        try {
+          const k = persistKeyInput.value;
+          const v = persistValInput.value || ('value-' + new Date().toISOString());
+          window.localStorage.setItem(k, v);
+          persistResult.textContent = 'Saved key "' + k + '" with value: ' + v;
+          persistResult.style.color = '#166534';
+        } catch (e) {
+          persistResult.textContent = 'Error saving: ' + e.message;
+          persistResult.style.color = '#991b1b';
+        }
+      });
+
+      document.getElementById('btn-read').addEventListener('click', function() {
+        try {
+          const k = persistKeyInput.value;
+          const v = window.localStorage.getItem(k);
+          persistResult.textContent = 'Read key "' + k + '": ' + (v !== null ? JSON.stringify(v) : '(null / not found)');
+          persistResult.style.color = v !== null ? '#166534' : '#92400e';
+        } catch (e) {
+          persistResult.textContent = 'Error reading: ' + e.message;
+          persistResult.style.color = '#991b1b';
+        }
+      });
+
+      document.getElementById('btn-clear').addEventListener('click', function() {
+        try {
+          const k = persistKeyInput.value;
+          window.localStorage.removeItem(k);
+          persistResult.textContent = 'Removed key "' + k + '"';
+          persistResult.style.color = '#111827';
+        } catch (e) {
+          persistResult.textContent = 'Error clearing: ' + e.message;
+          persistResult.style.color = '#991b1b';
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
+

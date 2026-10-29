@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RefractBio — Provider Connectivity Spike (M1)</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --border: #e2e8f0;
+      --muted: #64748b;
+    }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      max-width: 960px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      line-height: 1.5;
+    }
+    h1 { margin-bottom: 0.25rem; }
+    .subtitle { color: var(--muted); margin-top: 0; margin-bottom: 1.5rem; }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.875rem;
+      margin-bottom: 0.25rem;
+    }
+    input[type="text"], input[type="password"], select {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.95rem;
+    }
+    input[type="text"]:focus, input[type="password"]:focus, select:focus {
+      outline: 2px solid var(--primary);
+      outline-offset: 1px;
+    }
+    .toggle-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--border);
+    }
+    .toggle-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+    }
+    .btn-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+    button {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.55rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 0.875rem;
+      transition: background 0.15s;
+    }
+    button:hover { background: var(--primary-hover); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 0.8rem;
+    }
+    .badge-ok { background: #dcfce7; color: #166534; }
+    .badge-err { background: #fee2e2; color: #991b1b; }
+    .badge-warn { background: #fef3c7; color: #92400e; }
+    .badge-info { background: #e0f2fe; color: #075985; }
+    pre {
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 0.85rem;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.85rem;
+      max-height: 380px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .stat-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 0.5rem;
+    }
+    .links-bar {
+      margin-top: 1.5rem;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>RefractBio — Provider Connectivity Spike (M1)</h1>
+  <p class="subtitle">Verifies browser-direct calls to Anthropic and Gemini (CORS, streaming, multimodal, truncation).</p>
+
+  <div class="card">
+    <div class="form-grid">
+      <div>
+        <label for="provider">Provider</label>
+        <select id="provider">
+          <option value="anthropic">Anthropic</option>
+          <option value="gemini">Google Gemini</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="apiKey">API Key (in memory only, never saved or logged)</label>
+        <input type="password" id="apiKey" placeholder="sk-ant-... or AIza..." autocomplete="off" />
+      </div>
+
+      <div>
+        <label for="modelId">Model ID</label>
+        <input type="text" id="modelId" value="claude-3-5-sonnet-20241022" />
+      </div>
+    </div>
+
+    <!-- Provider-specific options -->
+    <div id="anthropic-options" class="toggle-group">
+      <div class="toggle-item">
+        <input type="checkbox" id="anthropic-browser-header" checked />
+        <label for="anthropic-browser-header" style="margin:0; font-weight: normal;">
+          Send <code>anthropic-dangerous-direct-browser-access: true</code> (V1)
+        </label>
+      </div>
+      <div class="toggle-item">
+        <label for="anthropic-version" style="margin:0; font-weight: normal;">API Version:</label>
+        <input type="text" id="anthropic-version" value="2023-06-01" style="width: 140px; padding: 0.25rem 0.5rem;" />
+      </div>
+    </div>
+
+    <div id="gemini-options" class="toggle-group" style="display: none;">
+      <div class="toggle-item">
+        <label for="gemini-auth-mode" style="margin:0; font-weight: normal;">Auth Mode (V5):</label>
+        <select id="gemini-auth-mode" style="width: 240px; padding: 0.25rem 0.5rem;">
+          <option value="header">Header (x-goog-api-key)</option>
+          <option value="query">Query parameter (?key=...)</option>
+        </select>
+      </div>
+      <div class="toggle-item">
+        <label for="gemini-api-version" style="margin:0; font-weight: normal;">API Version:</label>
+        <input type="text" id="gemini-api-version" value="v1beta" style="width: 100px; padding: 0.25rem 0.5rem;" />
+      </div>
+    </div>
+
+    <div class="btn-bar">
+      <button id="btn-list-models">1. List models</button>
+      <button id="btn-non-streaming">2. Non-streaming call</button>
+      <button id="btn-streaming">3. Streaming call</button>
+      <button id="btn-image">4. Call with image (posting.png)</button>
+      <button id="btn-pdf">5. Call with PDF (posting.pdf)</button>
+      <button id="btn-truncation">6. Truncation check (V14)</button>
+      <button id="btn-clear" style="background: #64748b; margin-left: auto;">Clear output</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Spike Output</h2>
+
+    <div class="stat-row">
+      <strong>Status:</strong> <span id="out-status"><span class="badge badge-info">Idle</span></span>
+      <strong>Finish / Stop reason:</strong> <span id="out-finish-reason">-</span>
+    </div>
+
+    <div id="cors-notice" style="display: none; margin-bottom: 0.75rem;">
+      <span class="badge badge-err">CORS / TypeError Detected</span>
+      <span id="cors-message" style="margin-left: 0.5rem; font-size: 0.9rem; color: #991b1b;"></span>
+    </div>
+
+    <label>Headers visible to JavaScript (CORS exposed headers):</label>
+    <pre id="out-headers">(no response yet)</pre>
+
+    <label>First 2 KB of Body / Stream Output:</label>
+    <pre id="out-body">(no response yet)</pre>
+  </div>
+
+  <div class="links-bar">
+    <p>Related links: <a href="./storage-probe.html">localStorage probe page for file:// (V17)</a></p>
+  </div>
+
+  <script type="module" src="./spike.ts"></script>
+</body>
+</html>
+
