@@ -1,0 +1,18 @@
+Title: Senior Freight Data Analyst
+Company: Fictional Logistics Inc.
+Location: Remote
+Contact: careers@example.com
+
+About the Role:
+We are seeking a Senior Freight Data Analyst to optimize routing, carrier allocation, and operational efficiency across our shipping network.
+
+Key Responsibilities:
+- Design and maintain SQL models and data pipelines for logistics metrics.
+- Build executive and operational dashboards in Tableau.
+- Collaborate with dispatch and warehouse teams to identify supply chain bottlenecks.
+
+Requirements:
+- 4+ years of data analytics experience in freight, supply chain, or retail logistics.
+- Expert proficiency in SQL and Python.
+- Proven experience with business intelligence tools (Tableau, Looker, or PowerBI).
+- Hands-on experience with Kubernetes cluster management for data workflows (Required).
