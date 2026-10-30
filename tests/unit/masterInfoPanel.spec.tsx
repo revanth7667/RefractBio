@@ -233,6 +233,40 @@ describe('Master Info Panel & State (§10.4, §10.5, §17.4)', () => {
         ),
       ).toBeTruthy();
     });
+
+    it('shows inline notice and confirmed reset action when storage has schema_mismatch (§9.2)', async () => {
+      localStorage.setItem(
+        'refractbio:v1:masterInfo',
+        JSON.stringify({ schemaVersion: 99, savedAt: new Date().toISOString(), data: { text: 'old' } }),
+      );
+
+      render(<TestPanel />);
+
+      expect(
+        screen.getByText(
+          'Your saved Master Info could not be loaded because the stored data is invalid or has an incompatible version. Generation is blocked until this is resolved.',
+        ),
+      ).toBeTruthy();
+
+      const resetBtn = screen.getByRole('button', { name: 'Reset Master Info' });
+      fireEvent.click(resetBtn);
+
+      const confirmBtn = await screen.findByRole('button', { name: 'Reset Master Info' });
+      act(() => {
+        fireEvent.click(confirmBtn);
+      });
+
+      expect(
+        screen.queryByText(
+          'Your saved Master Info could not be loaded because the stored data is invalid or has an incompatible version. Generation is blocked until this is resolved.',
+        ),
+      ).toBeNull();
+      expect(
+        screen.getByText(
+          'Your Master Info still contains the sample marker on its first line. Replace the sample with your own information and delete that first line, then try again.',
+        ),
+      ).toBeTruthy();
+    });
   });
 
   describe('Reset to sample (§10.4)', () => {

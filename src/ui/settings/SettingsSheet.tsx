@@ -22,8 +22,10 @@ import {
 } from '../components/ui/alert-dialog';
 import { ProvidersPanel } from './ProvidersPanel';
 import { MasterInfoPanel } from './MasterInfoPanel';
+import { InstructionsPanel } from './InstructionsPanel';
 import { useSettings } from '../../state/SettingsContext';
 import { useMasterInfo } from '../../state/MasterInfoContext';
+import { useInstructions } from '../../state/InstructionsContext';
 import * as storage from '../../storage/storage';
 import { APP_NAME } from '../../config';
 import type { Theme, PaperSize } from '../../types';
@@ -36,15 +38,25 @@ interface SettingsSheetProps {
 export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
   const { settings, setTheme, setPaperSize, resetAllData } = useSettings();
   const {
-    hasUnsavedChanges,
+    hasUnsavedChanges: hasUnsavedMasterInfo,
     saveMasterInfo,
-    discardDraft,
+    discardDraft: discardMasterInfoDraft,
     clearMasterInfo,
-    editorDraft,
+    editorDraft: masterInfoEditorDraft,
   } = useMasterInfo();
+  const {
+    hasUnsavedChanges: hasUnsavedInstructions,
+    saveInstructions,
+    discardDraft: discardInstructionsDraft,
+    clearInstructions,
+    editorDraft: instructionsEditorDraft,
+  } = useInstructions();
 
   const [approxBytes, setApproxBytes] = useState(0);
   const [showUnsavedCloseConfirm, setShowUnsavedCloseConfirm] = useState(false);
+  const [saveAllError, setSaveAllError] = useState<string | null>(null);
+
+  const hasAnyUnsavedChanges = hasUnsavedMasterInfo || hasUnsavedInstructions;
 
   useEffect(() => {
     if (open) {
@@ -55,7 +67,8 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
   const kbUsed = Math.round(approxBytes / 1024);
 
   const handleSheetOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen && hasUnsavedChanges) {
+    if (!nextOpen && hasAnyUnsavedChanges) {
+      setSaveAllError(null);
       setShowUnsavedCloseConfirm(true);
       return;
     }
@@ -63,13 +76,44 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
   };
 
   const handleSaveAndClose = () => {
-    saveMasterInfo();
+    setSaveAllError(null);
+    let masterOk = true;
+    let instOk = true;
+    let errorMsg = '';
+
+    if (hasUnsavedMasterInfo) {
+      const res = saveMasterInfo();
+      if (!res.ok) {
+        masterOk = false;
+        errorMsg = res.message || 'Failed to save Master Info.';
+      }
+    }
+
+    if (hasUnsavedInstructions) {
+      const res = saveInstructions();
+      if (!res.ok) {
+        instOk = false;
+        errorMsg = (errorMsg ? errorMsg + ' ' : '') + (res.message || 'Failed to save Instructions.');
+      }
+    }
+
+    if (!masterOk || !instOk) {
+      setSaveAllError(errorMsg);
+      // Keep sheet open and dialog open to show error
+      return;
+    }
+
     setShowUnsavedCloseConfirm(false);
     onOpenChange(false);
   };
 
   const handleDiscardAndClose = () => {
-    discardDraft();
+    if (hasUnsavedMasterInfo) {
+      discardMasterInfoDraft();
+    }
+    if (hasUnsavedInstructions) {
+      discardInstructionsDraft();
+    }
     setShowUnsavedCloseConfirm(false);
     onOpenChange(false);
   };
@@ -81,6 +125,7 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
   const handleDeleteAll = () => {
     resetAllData();
     clearMasterInfo();
+    clearInstructions();
     onOpenChange(false);
     try {
       if (typeof window !== 'undefined' && window.location && typeof window.location.reload === 'function') {
@@ -92,12 +137,28 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
   };
 
   const downloadMasterInfoCopy = () => {
-    const blob = new Blob([editorDraft], { type: 'text/markdown;charset=utf-8' });
+    const blob = new Blob([masterInfoEditorDraft], { type: 'text/markdown;charset=utf-8' });
     if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = 'master-info.md';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      if (typeof URL.revokeObjectURL === 'function') {
+        URL.revokeObjectURL(url);
+      }
+    }
+  };
+
+  const downloadInstructionsCopy = () => {
+    const blob = new Blob([instructionsEditorDraft], { type: 'text/markdown;charset=utf-8' });
+    if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'instructions.md';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -120,11 +181,17 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
 
           <div className="mt-6">
             <Tabs defaultValue="providers" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="providers">Providers</TabsTrigger>
                 <TabsTrigger value="masterInfo" className="relative">
                   Master Info
-                  {hasUnsavedChanges && (
+                  {hasUnsavedMasterInfo && (
+                    <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-amber-500" />
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="instructions" className="relative">
+                  Instructions
+                  {hasUnsavedInstructions && (
                     <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-amber-500" />
                   )}
                 </TabsTrigger>
@@ -138,6 +205,10 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
 
               <TabsContent value="masterInfo" className="mt-6">
                 <MasterInfoPanel />
+              </TabsContent>
+
+              <TabsContent value="instructions" className="mt-6">
+                <InstructionsPanel />
               </TabsContent>
 
               <TabsContent value="appearance" className="mt-6 space-y-6">
@@ -223,6 +294,13 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
                         >
                           Download Master Info
                         </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={downloadInstructionsCopy}
+                        >
+                          Download instructions
+                        </Button>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
                           onClick={handleDeleteAll}
@@ -246,9 +324,18 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Save changes?</AlertDialogTitle>
             <AlertDialogDescription>
-              You have unsaved changes in your Master Info.
+              {hasUnsavedMasterInfo && !hasUnsavedInstructions
+                ? 'You have unsaved changes in your Master Info.'
+                : !hasUnsavedMasterInfo && hasUnsavedInstructions
+                ? 'You have unsaved changes in your instructions.'
+                : 'You have unsaved changes in your Master Info and instructions.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {saveAllError && (
+            <p role="alert" className="text-xs text-destructive px-1">
+              {saveAllError}
+            </p>
+          )}
           <AlertDialogFooter className="gap-2 sm:gap-0">
             <Button
               type="button"
