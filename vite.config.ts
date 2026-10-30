@@ -1,8 +1,17 @@
+/// <reference types="vitest" />
 import { resolve } from 'path';
 import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import { cspPlugin } from './scripts/csp';
 
 export default defineConfig({
   base: './',
+  plugins: [react(), cspPlugin()],
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, './src'),
+    },
+  },
   build: {
     rollupOptions: {
       input: {
@@ -12,5 +21,8 @@ export default defineConfig({
       },
     },
   },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+  },
 });
-

@@ -10,6 +10,30 @@ export default tseslint.config(
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "JSXAttribute[name.name='dangerouslySetInnerHTML']",
+          message:
+            'dangerouslySetInnerHTML is forbidden except for markdown-it output in #print-root and HelpPage.',
+        },
+      ],
+    },
+  },
+  {
+    files: ['scripts/**', 'eslint.config.js', 'vite.config.ts'],
+    languageOptions: {
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+        __dirname: 'readonly',
+      },
+    },
+  },
+  {
+    files: ['src/export/print.*', 'src/ui/help/HelpPage.*'],
+    rules: {
+      'no-restricted-syntax': 'off',
     },
   },
   {
@@ -22,4 +46,3 @@ export default tseslint.config(
     ignores: ['dist/**', 'dist-single/**', 'node_modules/**', 'coverage/**'],
   }
 );
-
