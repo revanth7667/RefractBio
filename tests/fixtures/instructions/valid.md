@@ -106,4 +106,3 @@ Variant 2: Direct message
 - For "why this company / why this role" questions, use only facts from the job context and my Master Info. Do not invent knowledge about the company.
 - If my Master Info does not contain enough to answer a question truthfully, do not invent a story. Write one line starting with "Needs your input:" saying what is missing, and list the question in the Gaps note.
 - Keep numbers exactly as written in my Master Info.
-````

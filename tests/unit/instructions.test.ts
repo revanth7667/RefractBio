@@ -283,6 +283,18 @@ Custom resume
     }
   });
 
+  it('no line in the bundled default consists only of four or more backticks', () => {
+    const lines = defaultInstructionsRaw.split('\n').map((l) => l.trim());
+    const fourOrMoreBackticks = lines.filter((l) => /^`{4,}$/.test(l));
+    expect(fourOrMoreBackticks).toEqual([]);
+  });
+
+  it('the number of lines starting with three backticks in the bundled default is even', () => {
+    const lines = defaultInstructionsRaw.split('\n').map((l) => l.trim());
+    const tripleBacktickLines = lines.filter((l) => l.startsWith('```'));
+    expect(tripleBacktickLines.length % 2).toBe(0);
+  });
+
   it('splitInstructions, resolveInstructions, and resetSection never throw on 200 random strings', () => {
     const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 \n\r\t#`-<>';
     for (let i = 0; i < 200; i++) {

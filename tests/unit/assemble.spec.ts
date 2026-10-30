@@ -332,6 +332,20 @@ describe('Prompt assembly (§12.1, §12.3)', () => {
       expect(answersPartA).toContain('<questions>');
       expect(answersPartA).not.toContain('&lt;questions>');
     });
+
+    it('Part A for ANSWERS contains no line made only of four or more backticks', () => {
+      const answersPrompt = assemble(
+        'ANSWERS',
+        baseInputs,
+        sampleMasterInfoText,
+        instructions,
+        fakeDate,
+      );
+      const answersPartA = (answersPrompt.userParts[0] as { type: 'text'; text: string }).text;
+      const lines = answersPartA.split('\n').map((l) => l.trim());
+      const fourOrMoreBackticks = lines.filter((l) => /^`{4,}$/.test(l));
+      expect(fourOrMoreBackticks).toEqual([]);
+    });
   });
 
   describe('Master Info comments stripping and date injection', () => {
