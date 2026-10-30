@@ -1,4 +1,5 @@
 import { SettingsProvider } from './state/SettingsContext';
+import { MasterInfoProvider } from './state/MasterInfoContext';
 import { useHashRoute } from './state/useHashRoute';
 import { MainLayout } from './ui/layout/MainLayout';
 import { HelpPage } from './ui/help/HelpPage';
@@ -35,7 +36,9 @@ function AppContent() {
 export default function App() {
   return (
     <SettingsProvider>
-      <AppContent />
+      <MasterInfoProvider>
+        <AppContent />
+      </MasterInfoProvider>
     </SettingsProvider>
   );
 }
