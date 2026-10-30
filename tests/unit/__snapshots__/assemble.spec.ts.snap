@@ -1,0 +1,628 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Prompt assembly (§12.1, §12.3) > Snapshots of Part A and Part C for all five output kinds > matches Part A and Part C snapshots for ANSWERS > Part A - ANSWERS 1`] = `
+"<instructions>
+<global>
+- Write in clear, plain English. Prefer active voice and concrete verbs.
+- Match the job's language where it is truthful: reuse the employer's terms for skills and tools only when the same skill or tool is in my Master Info.
+- Prioritise the facts most relevant to the job context. It is fine to leave facts out.
+- Never use these words or phrases: "passionate", "rockstar", "ninja", "guru", "synergy", "results-driven", "dynamic self-starter".
+- No emojis. No exclamation marks unless quoting.
+- Use the date format "Mon YYYY" (e.g. Mar 2021) in documents, converting from however dates are written in my Master Info.
+- If the job context names a hiring manager, you may address them by name; otherwise do not guess a name.
+</global>
+<output_specific output="ANSWERS">
+- Answer every question in <questions>, in the order given, in the first person, as me. If <questions> has no typed questions, answer the questions you find in the attached files and say which file they came from in the Gaps note.
+- Format: for each question, a line starting with "### " followed by the question (shortened if very long), then the answer as plain paragraphs. No bullet lists unless the question asks for a list.
+- If a question states a limit (for example "max 150 words" or "500 characters"), obey it. Otherwise write 80–180 words per answer.
+- For "tell me about a time when..." questions, tell it as a short story (situation, what I did, result) and use only a matching story or experience from my Master Info.
+- For "why this company / why this role" questions, use only facts from the job context and my Master Info. Do not invent knowledge about the company.
+- If my Master Info does not contain enough to answer a question truthfully, do not invent a story. Write one line starting with "Needs your input:" saying what is missing, and list the question in the Gaps note.
+- Keep numbers exactly as written in my Master Info.
+\`\`\`\`
+</output_specific>
+</instructions>
+
+<master_info>
+# Master Info (SAMPLE: Jordan Sample is a fictional person)
+
+## Rules for the AI
+- Call me "Jordan".
+- Do not mention my graduation year.
+- I am a data analyst. Never describe me as a "data scientist".
+
+## About me
+- Name: Jordan Sample
+- Location: Springfield, Examplestate, USA
+- Email: jordan.sample@example.com
+- Phone: +1 555-0100
+- LinkedIn: https://www.linkedin.com/in/example-jordan-sample
+- Headline: Data analyst focused on logistics and operations reporting
+
+## Experience
+
+### Senior Data Analyst, Fictional Freight Co. (Remote), Apr 2022 – present
+- Supported 3 regional operations teams and owned the weekly KPI report.
+- Cut weekly report preparation from 6 hours to 1 hour by automating it in SQL and Python.
+- Found routing problems that saved about $120,000 per year in fuel (my estimate, based on 2023 fuel invoices).
+- Built the first shared on-time-delivery dashboard used by all regions.
+- Did not manage people. Did not own the data warehouse.
+
+### Data Analyst, Imaginary Retail Ltd. (Springfield), Jun 2019 – Mar 2022
+- Analyst on a 5-person merchandising analytics team.
+- Maintained 14 recurring sales reports used by store managers.
+- Wrote the data definitions the team adopted as its standard glossary.
+- Did not run A/B tests on my own.
+
+## Projects
+- Transit Delay Explorer (personal, open source), Jan–May 2023: built a data pipeline and charts for public transit delays using Python and a static web front end. Solo project.
+
+## Education
+- B.S. Statistics, Example State University, Springfield. Capstone: forecasting seasonal demand for a campus bookstore.
+
+## Skills
+- SQL: daily use since 2019.
+- Python (pandas): regular use since 2021.
+- Dashboards and reporting: built several at both jobs.
+
+## Certifications
+- Example Analytics Certificate, Example Learning Org, 2021.
+
+## Stories and examples
+
+- Fixing a broken weekly report: In 2023 the weekly KPI report started showing wrong delivery counts after a source system change. I traced it to a changed status code, rewrote the SQL, added a check that flags big week-over-week jumps, and told the three regional leads before they saw it. The report was correct the next week and the check has caught two later problems.
+- Disagreeing with a manager: A manager wanted a single "on-time" number for all regions. I showed that regions define "on time" differently, proposed a short shared definition, and ran both versions side by side for a month. We adopted the shared definition.
+
+## Not me / gaps
+- No machine learning model deployment experience.
+- No people-management experience.
+- Not fluent in any language other than English.
+</master_info>
+
+<job_context>
+<pasted_text>
+Title: Senior Freight Data Analyst
+Company: Fictional Logistics Inc.
+Location: Remote
+Contact: careers@example.com
+
+About the Role:
+We are seeking a Senior Freight Data Analyst to optimize routing, carrier allocation, and operational efficiency across our shipping network.
+
+Key Responsibilities:
+- Design and maintain SQL models and data pipelines for logistics metrics.
+- Build executive and operational dashboards in Tableau.
+- Collaborate with dispatch and warehouse teams to identify supply chain bottlenecks.
+
+Requirements:
+- 4+ years of data analytics experience in freight, supply chain, or retail logistics.
+- Expert proficiency in SQL and Python.
+- Proven experience with business intelligence tools (Tableau, Looker, or PowerBI).
+- Hands-on experience with Kubernetes cluster management for data workflows (Required).
+
+</pasted_text>
+</job_context>
+
+<questions>
+1. Tell me about a time you fixed a data problem (max 120 words).
+2. Why do you want to work at Fictional Logistics Inc.?
+3. How do you prioritize conflicting data requests from multiple stakeholders?
+
+</questions>"
+`;
+
+exports[`Prompt assembly (§12.1, §12.3) > Snapshots of Part A and Part C for all five output kinds > matches Part A and Part C snapshots for ANSWERS > Part C - ANSWERS 1`] = `
+"<custom_instructions>
+Highlight experience with Tableau and logistics.
+</custom_instructions>
+
+<today>2026-10-30</today>
+
+<task>
+Write the answers to the questions in <questions> now. Follow the HARD RULES and the OUTPUT FORMAT.
+</task>"
+`;
+
+exports[`Prompt assembly (§12.1, §12.3) > Snapshots of Part A and Part C for all five output kinds > matches Part A and Part C snapshots for COVER_LETTER > Part A - COVER_LETTER 1`] = `
+"<instructions>
+<global>
+- Write in clear, plain English. Prefer active voice and concrete verbs.
+- Match the job's language where it is truthful: reuse the employer's terms for skills and tools only when the same skill or tool is in my Master Info.
+- Prioritise the facts most relevant to the job context. It is fine to leave facts out.
+- Never use these words or phrases: "passionate", "rockstar", "ninja", "guru", "synergy", "results-driven", "dynamic self-starter".
+- No emojis. No exclamation marks unless quoting.
+- Use the date format "Mon YYYY" (e.g. Mar 2021) in documents, converting from however dates are written in my Master Info.
+- If the job context names a hiring manager, you may address them by name; otherwise do not guess a name.
+</global>
+<output_specific output="COVER_LETTER">
+## Structure (use exactly this Markdown structure)
+\`\`\`
+{Full name}
+{Location} · {Email} · {Phone}
+
+{Today's date from <today>, written as Month D, YYYY}
+
+Dear {Hiring manager's name if given in the job context, otherwise "Hiring Team"},
+
+{Paragraph 1: the role I'm applying for and one-sentence reason I fit.}
+
+{Paragraph 2: two or three specific, relevant achievements from Master Info.}
+
+{Paragraph 3 (optional): why this company, using only facts from the job context.}
+
+{Closing paragraph: one or two sentences, a clear next step.}
+
+Sincerely,
+{Full name}
+\`\`\`
+## Length and style
+- 250–350 words.
+- Warm and professional, not flattering. No clichés such as "I am writing to express my interest".
+- Do not repeat the resume line by line; tell a short story with two or three facts.
+</output_specific>
+</instructions>
+
+<master_info>
+# Master Info (SAMPLE: Jordan Sample is a fictional person)
+
+## Rules for the AI
+- Call me "Jordan".
+- Do not mention my graduation year.
+- I am a data analyst. Never describe me as a "data scientist".
+
+## About me
+- Name: Jordan Sample
+- Location: Springfield, Examplestate, USA
+- Email: jordan.sample@example.com
+- Phone: +1 555-0100
+- LinkedIn: https://www.linkedin.com/in/example-jordan-sample
+- Headline: Data analyst focused on logistics and operations reporting
+
+## Experience
+
+### Senior Data Analyst, Fictional Freight Co. (Remote), Apr 2022 – present
+- Supported 3 regional operations teams and owned the weekly KPI report.
+- Cut weekly report preparation from 6 hours to 1 hour by automating it in SQL and Python.
+- Found routing problems that saved about $120,000 per year in fuel (my estimate, based on 2023 fuel invoices).
+- Built the first shared on-time-delivery dashboard used by all regions.
+- Did not manage people. Did not own the data warehouse.
+
+### Data Analyst, Imaginary Retail Ltd. (Springfield), Jun 2019 – Mar 2022
+- Analyst on a 5-person merchandising analytics team.
+- Maintained 14 recurring sales reports used by store managers.
+- Wrote the data definitions the team adopted as its standard glossary.
+- Did not run A/B tests on my own.
+
+## Projects
+- Transit Delay Explorer (personal, open source), Jan–May 2023: built a data pipeline and charts for public transit delays using Python and a static web front end. Solo project.
+
+## Education
+- B.S. Statistics, Example State University, Springfield. Capstone: forecasting seasonal demand for a campus bookstore.
+
+## Skills
+- SQL: daily use since 2019.
+- Python (pandas): regular use since 2021.
+- Dashboards and reporting: built several at both jobs.
+
+## Certifications
+- Example Analytics Certificate, Example Learning Org, 2021.
+
+## Stories and examples
+
+- Fixing a broken weekly report: In 2023 the weekly KPI report started showing wrong delivery counts after a source system change. I traced it to a changed status code, rewrote the SQL, added a check that flags big week-over-week jumps, and told the three regional leads before they saw it. The report was correct the next week and the check has caught two later problems.
+- Disagreeing with a manager: A manager wanted a single "on-time" number for all regions. I showed that regions define "on time" differently, proposed a short shared definition, and ran both versions side by side for a month. We adopted the shared definition.
+
+## Not me / gaps
+- No machine learning model deployment experience.
+- No people-management experience.
+- Not fluent in any language other than English.
+</master_info>
+
+<job_context>
+<pasted_text>
+Title: Senior Freight Data Analyst
+Company: Fictional Logistics Inc.
+Location: Remote
+Contact: careers@example.com
+
+About the Role:
+We are seeking a Senior Freight Data Analyst to optimize routing, carrier allocation, and operational efficiency across our shipping network.
+
+Key Responsibilities:
+- Design and maintain SQL models and data pipelines for logistics metrics.
+- Build executive and operational dashboards in Tableau.
+- Collaborate with dispatch and warehouse teams to identify supply chain bottlenecks.
+
+Requirements:
+- 4+ years of data analytics experience in freight, supply chain, or retail logistics.
+- Expert proficiency in SQL and Python.
+- Proven experience with business intelligence tools (Tableau, Looker, or PowerBI).
+- Hands-on experience with Kubernetes cluster management for data workflows (Required).
+
+</pasted_text>
+</job_context>"
+`;
+
+exports[`Prompt assembly (§12.1, §12.3) > Snapshots of Part A and Part C for all five output kinds > matches Part A and Part C snapshots for COVER_LETTER > Part C - COVER_LETTER 1`] = `
+"<custom_instructions>
+Highlight experience with Tableau and logistics.
+</custom_instructions>
+
+<today>2026-10-30</today>
+
+<task>
+Write the cover letter now. Follow the HARD RULES and the OUTPUT FORMAT.
+</task>"
+`;
+
+exports[`Prompt assembly (§12.1, §12.3) > Snapshots of Part A and Part C for all five output kinds > matches Part A and Part C snapshots for EMAIL > Part A - EMAIL 1`] = `
+"<instructions>
+<global>
+- Write in clear, plain English. Prefer active voice and concrete verbs.
+- Match the job's language where it is truthful: reuse the employer's terms for skills and tools only when the same skill or tool is in my Master Info.
+- Prioritise the facts most relevant to the job context. It is fine to leave facts out.
+- Never use these words or phrases: "passionate", "rockstar", "ninja", "guru", "synergy", "results-driven", "dynamic self-starter".
+- No emojis. No exclamation marks unless quoting.
+- Use the date format "Mon YYYY" (e.g. Mar 2021) in documents, converting from however dates are written in my Master Info.
+- If the job context names a hiring manager, you may address them by name; otherwise do not guess a name.
+</global>
+<output_specific output="EMAIL">
+- The first line must be exactly: Subject: {subject}
+- Then one blank line, then the body.
+- Subject: under 9 words, specific to the role.
+- Body: plain text, 90–150 words, 2–3 short paragraphs, greeting and sign-off with my name.
+- Include one or two relevant facts from Master Info and one clear ask.
+- No attachments mentioned unless custom instructions say a resume is attached.
+</output_specific>
+</instructions>
+
+<master_info>
+# Master Info (SAMPLE: Jordan Sample is a fictional person)
+
+## Rules for the AI
+- Call me "Jordan".
+- Do not mention my graduation year.
+- I am a data analyst. Never describe me as a "data scientist".
+
+## About me
+- Name: Jordan Sample
+- Location: Springfield, Examplestate, USA
+- Email: jordan.sample@example.com
+- Phone: +1 555-0100
+- LinkedIn: https://www.linkedin.com/in/example-jordan-sample
+- Headline: Data analyst focused on logistics and operations reporting
+
+## Experience
+
+### Senior Data Analyst, Fictional Freight Co. (Remote), Apr 2022 – present
+- Supported 3 regional operations teams and owned the weekly KPI report.
+- Cut weekly report preparation from 6 hours to 1 hour by automating it in SQL and Python.
+- Found routing problems that saved about $120,000 per year in fuel (my estimate, based on 2023 fuel invoices).
+- Built the first shared on-time-delivery dashboard used by all regions.
+- Did not manage people. Did not own the data warehouse.
+
+### Data Analyst, Imaginary Retail Ltd. (Springfield), Jun 2019 – Mar 2022
+- Analyst on a 5-person merchandising analytics team.
+- Maintained 14 recurring sales reports used by store managers.
+- Wrote the data definitions the team adopted as its standard glossary.
+- Did not run A/B tests on my own.
+
+## Projects
+- Transit Delay Explorer (personal, open source), Jan–May 2023: built a data pipeline and charts for public transit delays using Python and a static web front end. Solo project.
+
+## Education
+- B.S. Statistics, Example State University, Springfield. Capstone: forecasting seasonal demand for a campus bookstore.
+
+## Skills
+- SQL: daily use since 2019.
+- Python (pandas): regular use since 2021.
+- Dashboards and reporting: built several at both jobs.
+
+## Certifications
+- Example Analytics Certificate, Example Learning Org, 2021.
+
+## Stories and examples
+
+- Fixing a broken weekly report: In 2023 the weekly KPI report started showing wrong delivery counts after a source system change. I traced it to a changed status code, rewrote the SQL, added a check that flags big week-over-week jumps, and told the three regional leads before they saw it. The report was correct the next week and the check has caught two later problems.
+- Disagreeing with a manager: A manager wanted a single "on-time" number for all regions. I showed that regions define "on time" differently, proposed a short shared definition, and ran both versions side by side for a month. We adopted the shared definition.
+
+## Not me / gaps
+- No machine learning model deployment experience.
+- No people-management experience.
+- Not fluent in any language other than English.
+</master_info>
+
+<job_context>
+<pasted_text>
+Title: Senior Freight Data Analyst
+Company: Fictional Logistics Inc.
+Location: Remote
+Contact: careers@example.com
+
+About the Role:
+We are seeking a Senior Freight Data Analyst to optimize routing, carrier allocation, and operational efficiency across our shipping network.
+
+Key Responsibilities:
+- Design and maintain SQL models and data pipelines for logistics metrics.
+- Build executive and operational dashboards in Tableau.
+- Collaborate with dispatch and warehouse teams to identify supply chain bottlenecks.
+
+Requirements:
+- 4+ years of data analytics experience in freight, supply chain, or retail logistics.
+- Expert proficiency in SQL and Python.
+- Proven experience with business intelligence tools (Tableau, Looker, or PowerBI).
+- Hands-on experience with Kubernetes cluster management for data workflows (Required).
+
+</pasted_text>
+</job_context>"
+`;
+
+exports[`Prompt assembly (§12.1, §12.3) > Snapshots of Part A and Part C for all five output kinds > matches Part A and Part C snapshots for EMAIL > Part C - EMAIL 1`] = `
+"<custom_instructions>
+Highlight experience with Tableau and logistics.
+</custom_instructions>
+
+<today>2026-10-30</today>
+
+<task>
+Write the email now. Follow the HARD RULES and the OUTPUT FORMAT.
+</task>"
+`;
+
+exports[`Prompt assembly (§12.1, §12.3) > Snapshots of Part A and Part C for all five output kinds > matches Part A and Part C snapshots for LINKEDIN_MESSAGE > Part A - LINKEDIN_MESSAGE 1`] = `
+"<instructions>
+<global>
+- Write in clear, plain English. Prefer active voice and concrete verbs.
+- Match the job's language where it is truthful: reuse the employer's terms for skills and tools only when the same skill or tool is in my Master Info.
+- Prioritise the facts most relevant to the job context. It is fine to leave facts out.
+- Never use these words or phrases: "passionate", "rockstar", "ninja", "guru", "synergy", "results-driven", "dynamic self-starter".
+- No emojis. No exclamation marks unless quoting.
+- Use the date format "Mon YYYY" (e.g. Mar 2021) in documents, converting from however dates are written in my Master Info.
+- If the job context names a hiring manager, you may address them by name; otherwise do not guess a name.
+</global>
+<output_specific output="LINKEDIN_MESSAGE">
+- Plain text only. No Markdown, no bullet points, no subject line.
+- Write TWO variants. Start each with its label on its own line, exactly as written here, and put nothing else on that line:
+Variant 1: Connection request note
+Variant 2: Direct message
+- Variant 1: 1–2 sentences, under 200 characters in total including spaces. (Edit this number if LinkedIn's limit for connection notes changes.)
+- Variant 2: 3–5 sentences, 60–110 words.
+- Both variants: open with a specific reason for reaching out (the role or something concrete from the job context), mention one relevant fact from my Master Info, and end with a low-pressure question (e.g. whether they would be open to a short chat).
+- No links unless custom instructions ask for one.
+</output_specific>
+</instructions>
+
+<master_info>
+# Master Info (SAMPLE: Jordan Sample is a fictional person)
+
+## Rules for the AI
+- Call me "Jordan".
+- Do not mention my graduation year.
+- I am a data analyst. Never describe me as a "data scientist".
+
+## About me
+- Name: Jordan Sample
+- Location: Springfield, Examplestate, USA
+- Email: jordan.sample@example.com
+- Phone: +1 555-0100
+- LinkedIn: https://www.linkedin.com/in/example-jordan-sample
+- Headline: Data analyst focused on logistics and operations reporting
+
+## Experience
+
+### Senior Data Analyst, Fictional Freight Co. (Remote), Apr 2022 – present
+- Supported 3 regional operations teams and owned the weekly KPI report.
+- Cut weekly report preparation from 6 hours to 1 hour by automating it in SQL and Python.
+- Found routing problems that saved about $120,000 per year in fuel (my estimate, based on 2023 fuel invoices).
+- Built the first shared on-time-delivery dashboard used by all regions.
+- Did not manage people. Did not own the data warehouse.
+
+### Data Analyst, Imaginary Retail Ltd. (Springfield), Jun 2019 – Mar 2022
+- Analyst on a 5-person merchandising analytics team.
+- Maintained 14 recurring sales reports used by store managers.
+- Wrote the data definitions the team adopted as its standard glossary.
+- Did not run A/B tests on my own.
+
+## Projects
+- Transit Delay Explorer (personal, open source), Jan–May 2023: built a data pipeline and charts for public transit delays using Python and a static web front end. Solo project.
+
+## Education
+- B.S. Statistics, Example State University, Springfield. Capstone: forecasting seasonal demand for a campus bookstore.
+
+## Skills
+- SQL: daily use since 2019.
+- Python (pandas): regular use since 2021.
+- Dashboards and reporting: built several at both jobs.
+
+## Certifications
+- Example Analytics Certificate, Example Learning Org, 2021.
+
+## Stories and examples
+
+- Fixing a broken weekly report: In 2023 the weekly KPI report started showing wrong delivery counts after a source system change. I traced it to a changed status code, rewrote the SQL, added a check that flags big week-over-week jumps, and told the three regional leads before they saw it. The report was correct the next week and the check has caught two later problems.
+- Disagreeing with a manager: A manager wanted a single "on-time" number for all regions. I showed that regions define "on time" differently, proposed a short shared definition, and ran both versions side by side for a month. We adopted the shared definition.
+
+## Not me / gaps
+- No machine learning model deployment experience.
+- No people-management experience.
+- Not fluent in any language other than English.
+</master_info>
+
+<job_context>
+<pasted_text>
+Title: Senior Freight Data Analyst
+Company: Fictional Logistics Inc.
+Location: Remote
+Contact: careers@example.com
+
+About the Role:
+We are seeking a Senior Freight Data Analyst to optimize routing, carrier allocation, and operational efficiency across our shipping network.
+
+Key Responsibilities:
+- Design and maintain SQL models and data pipelines for logistics metrics.
+- Build executive and operational dashboards in Tableau.
+- Collaborate with dispatch and warehouse teams to identify supply chain bottlenecks.
+
+Requirements:
+- 4+ years of data analytics experience in freight, supply chain, or retail logistics.
+- Expert proficiency in SQL and Python.
+- Proven experience with business intelligence tools (Tableau, Looker, or PowerBI).
+- Hands-on experience with Kubernetes cluster management for data workflows (Required).
+
+</pasted_text>
+</job_context>"
+`;
+
+exports[`Prompt assembly (§12.1, §12.3) > Snapshots of Part A and Part C for all five output kinds > matches Part A and Part C snapshots for LINKEDIN_MESSAGE > Part C - LINKEDIN_MESSAGE 1`] = `
+"<custom_instructions>
+Highlight experience with Tableau and logistics.
+</custom_instructions>
+
+<today>2026-10-30</today>
+
+<task>
+Write the LinkedIn message now. Follow the HARD RULES and the OUTPUT FORMAT.
+</task>"
+`;
+
+exports[`Prompt assembly (§12.1, §12.3) > Snapshots of Part A and Part C for all five output kinds > matches Part A and Part C snapshots for RESUME > Part A - RESUME 1`] = `
+"<instructions>
+<global>
+- Write in clear, plain English. Prefer active voice and concrete verbs.
+- Match the job's language where it is truthful: reuse the employer's terms for skills and tools only when the same skill or tool is in my Master Info.
+- Prioritise the facts most relevant to the job context. It is fine to leave facts out.
+- Never use these words or phrases: "passionate", "rockstar", "ninja", "guru", "synergy", "results-driven", "dynamic self-starter".
+- No emojis. No exclamation marks unless quoting.
+- Use the date format "Mon YYYY" (e.g. Mar 2021) in documents, converting from however dates are written in my Master Info.
+- If the job context names a hiring manager, you may address them by name; otherwise do not guess a name.
+</global>
+<output_specific output="RESUME">
+## Structure (use exactly this Markdown structure; omit a section only if Master Info has nothing for it)
+\`\`\`
+# {Full name}
+{Location} · {Email} · {Phone} · {LinkedIn}
+
+## Summary
+{2–3 sentences}
+
+## Experience
+### {Job title} — {Employer}
+{Location} · {Mon YYYY} – {Mon YYYY or Present}
+- {bullet}
+
+## Projects
+### {Project name}
+{Context} · {Mon YYYY} – {Mon YYYY or Present}
+- {bullet}
+
+## Education
+### {Degree} — {Institution}
+{Mon YYYY} – {Mon YYYY}
+
+## Skills
+{Comma-separated list, grouped on up to 3 lines with bold group labels if helpful}
+
+## Certifications
+- {Name} — {Issuer}, {Mon YYYY}
+\`\`\`
+## Length and style
+- Aim for one page; never more than two pages.
+- 3–5 bullets per recent role, 1–3 for older roles. Each bullet one line where possible, at most two.
+- Start bullets with a strong past-tense verb (present tense for current role).
+- Keep numbers exactly as written in my Master Info (keep "about" when it says "about").
+- Do not include a photo, date of birth, marital status, or "References available on request".
+</output_specific>
+</instructions>
+
+<master_info>
+# Master Info (SAMPLE: Jordan Sample is a fictional person)
+
+## Rules for the AI
+- Call me "Jordan".
+- Do not mention my graduation year.
+- I am a data analyst. Never describe me as a "data scientist".
+
+## About me
+- Name: Jordan Sample
+- Location: Springfield, Examplestate, USA
+- Email: jordan.sample@example.com
+- Phone: +1 555-0100
+- LinkedIn: https://www.linkedin.com/in/example-jordan-sample
+- Headline: Data analyst focused on logistics and operations reporting
+
+## Experience
+
+### Senior Data Analyst, Fictional Freight Co. (Remote), Apr 2022 – present
+- Supported 3 regional operations teams and owned the weekly KPI report.
+- Cut weekly report preparation from 6 hours to 1 hour by automating it in SQL and Python.
+- Found routing problems that saved about $120,000 per year in fuel (my estimate, based on 2023 fuel invoices).
+- Built the first shared on-time-delivery dashboard used by all regions.
+- Did not manage people. Did not own the data warehouse.
+
+### Data Analyst, Imaginary Retail Ltd. (Springfield), Jun 2019 – Mar 2022
+- Analyst on a 5-person merchandising analytics team.
+- Maintained 14 recurring sales reports used by store managers.
+- Wrote the data definitions the team adopted as its standard glossary.
+- Did not run A/B tests on my own.
+
+## Projects
+- Transit Delay Explorer (personal, open source), Jan–May 2023: built a data pipeline and charts for public transit delays using Python and a static web front end. Solo project.
+
+## Education
+- B.S. Statistics, Example State University, Springfield. Capstone: forecasting seasonal demand for a campus bookstore.
+
+## Skills
+- SQL: daily use since 2019.
+- Python (pandas): regular use since 2021.
+- Dashboards and reporting: built several at both jobs.
+
+## Certifications
+- Example Analytics Certificate, Example Learning Org, 2021.
+
+## Stories and examples
+
+- Fixing a broken weekly report: In 2023 the weekly KPI report started showing wrong delivery counts after a source system change. I traced it to a changed status code, rewrote the SQL, added a check that flags big week-over-week jumps, and told the three regional leads before they saw it. The report was correct the next week and the check has caught two later problems.
+- Disagreeing with a manager: A manager wanted a single "on-time" number for all regions. I showed that regions define "on time" differently, proposed a short shared definition, and ran both versions side by side for a month. We adopted the shared definition.
+
+## Not me / gaps
+- No machine learning model deployment experience.
+- No people-management experience.
+- Not fluent in any language other than English.
+</master_info>
+
+<job_context>
+<pasted_text>
+Title: Senior Freight Data Analyst
+Company: Fictional Logistics Inc.
+Location: Remote
+Contact: careers@example.com
+
+About the Role:
+We are seeking a Senior Freight Data Analyst to optimize routing, carrier allocation, and operational efficiency across our shipping network.
+
+Key Responsibilities:
+- Design and maintain SQL models and data pipelines for logistics metrics.
+- Build executive and operational dashboards in Tableau.
+- Collaborate with dispatch and warehouse teams to identify supply chain bottlenecks.
+
+Requirements:
+- 4+ years of data analytics experience in freight, supply chain, or retail logistics.
+- Expert proficiency in SQL and Python.
+- Proven experience with business intelligence tools (Tableau, Looker, or PowerBI).
+- Hands-on experience with Kubernetes cluster management for data workflows (Required).
+
+</pasted_text>
+</job_context>"
+`;
+
+exports[`Prompt assembly (§12.1, §12.3) > Snapshots of Part A and Part C for all five output kinds > matches Part A and Part C snapshots for RESUME > Part C - RESUME 1`] = `
+"<custom_instructions>
+Highlight experience with Tableau and logistics.
+</custom_instructions>
+
+<today>2026-10-30</today>
+
+<task>
+Write the resume now. Follow the HARD RULES and the OUTPUT FORMAT.
+</task>"
+`;
