@@ -193,7 +193,7 @@ flowchart LR
 | `storage/` | The **only** code that touches `localStorage`. | `config`, `types/` | React, anything else |
 | `masterInfo/` | Four tiny pure helpers: marker check, comment stripping, effective-text rule (A27), length note. No parsing. | `config`, `types/`, `data/` | React, storage, providers |
 | `instructions/` | Split file into sections, fallback to defaults, produce warnings. Pure. | `types/`, `data/` | React, storage, providers |
-| `prompt/` | Build provider-neutral `AssembledPrompt`, token estimate, input snapshot hash. Pure. | `config`, `types/`, `masterInfo/`, `instructions/` | React, providers |
+| `prompt/` | Build provider-neutral `AssembledPrompt`, token estimate, input snapshot hash. Pure. | `config`, `types/`, `data/` (JSON only, e.g. `estimates.json`), `masterInfo/`, `instructions/` | React, providers |
 | `providers/` | Adapters: wire formats, SSE parsing, model listing, error mapping, test connection. | `config`, `types/`, `data/` | React, storage, prompt internals |
 | `generation/` | Concurrency queue, per-tab state transitions (reducer), abort handling, gaps splitting, LinkedIn variant splitting, tab visibility selector. | `config`, `types/`, `providers/`, `prompt/` | React components |
 | `files/` | Read files, classify, base64, DOCX extraction, size checks, paste handling. | `types/`, `data/` | React, providers |
@@ -707,9 +707,9 @@ All four are pure functions. Together they are the only file-specific logic in t
 
 - **Edit** in a monospace textarea, with a live character count beneath it.
 - **Save** (explicit; an unsaved-changes dot is shown while the editor differs from the saved text).
-- **Upload .md/.txt** (replaces the editor content after confirmation; text only, ≤ `masterInfoMaxBytes` from `limits.json`, initial 1 MB).
-- **Download** (`master-info.md`).
-- **Reset to sample** (AlertDialog: "Replace your Master Info with the sample? This cannot be undone. Download a copy first if you want to keep it." Buttons: "Download copy", "Cancel", "Reset"). Resetting restores the marker line, so generation is blocked again until the user replaces the sample.
+- **Upload .md/.txt** (replaces the editor content after confirmation, without saving; text only, ≤ `masterInfoMaxBytes` from `limits.json`, initial 1 MB; must decode as UTF-8; a leading byte-order mark is dropped, so a file with a BOM is not byte-identical after re-download).
+- **Download** (`master-info.md`), containing the current editor text (saved or not).
+- **Reset to sample** (AlertDialog: "Replace your Master Info with the sample? This cannot be undone. Download a copy first if you want to keep it." Buttons: "Download copy", "Cancel", "Reset"). Resetting puts the sample in the editor and saves it immediately, which restores the marker line, so generation is blocked again until the user replaces the sample.
 - **Length note** (non-blocking), shown under the editor and as a notice near Send when `lengthNote` is non-null: "Your Master Info is long (about {chars} characters). It is sent with every request, which raises cost and can reduce quality. Consider trimming it."
 - First run: if nothing is stored, the editor is pre-filled with the sample. Nothing is written to storage until the user presses Save, but the sample is still the **effective** Master Info (§10.5), so Send shows the sample-marker message.
 
@@ -737,7 +737,7 @@ Phase 2 slot: the panel header reserves a toolbar area where an "Import from my 
 
 No regular expressions are needed; lines are compared as whole strings.
 
-1. Normalize line endings. Scan lines, tracking whether the scanner is inside a fenced code block (a line whose trimmed text starts with three backticks toggles the state). Lines inside a fence are never headings and never produce heading warnings. Outside fences, a line is a section heading if `line.trimEnd()` equals `# ` + one of the six names exactly (A15).
+1. Strip HTML comments with the A9 pattern first (so a comment can never create or hide a heading), then normalize line endings. Scan lines, tracking whether the scanner is inside a fenced code block (a line whose trimmed text starts with three backticks toggles the state). Lines inside a fence are never headings and never produce heading warnings. Outside fences, a line is a section heading if `line.trimEnd()` equals `# ` + one of the six names exactly (A15).
 2. Text before the first recognised heading (e.g. the top comment) is ignored.
 3. If a name appears twice, the **first** occurrence wins; warning: "Section # {NAME} appears twice; using the first one."
 4. If a section is missing or its content (comments stripped, trimmed) is empty → use the bundled default for that section, add to `fallbacks`, warning: "Section # {NAME} was missing or empty, so the default was used. Check the heading spelling."
@@ -746,15 +746,15 @@ No regular expressions are needed; lines are compared as whole strings.
 7. Each call sends only `GLOBAL` + the section for that output.
 8. When nothing is stored under `instructions`, the bundled default file is used (same pattern as A27; no warning).
 
-Warnings appear as a small amber notice in Settings → Instructions and as a one-line badge near Send ("Instructions: 1 section using default").
+Warnings are ordered deterministically: unrecognised-heading and duplicate warnings in file order, then missing/empty warnings in the order GLOBAL, RESUME, COVER_LETTER, LINKEDIN_MESSAGE, EMAIL, ANSWERS. They appear as a small amber notice in Settings → Instructions, computed from the editor draft (labelled "unsaved draft" when it differs from the saved text), and as a one-line badge near Send ("Instructions: 1 section using default", M7), computed from the saved text, which is what generation uses. `instructions/` may not import `masterInfo/` (§5.2), so the one-line comment pattern is duplicated inside `split.ts`.
 
 ### 11.3 Actions (Settings → Instructions)
 
-Edit, Save, Upload, Download (`instructions.md`), **Reset this section** (select section with a native `<select>` → AlertDialog: "Replace the # {NAME} section with the default? Other sections are kept."), **Reset whole file** (AlertDialog with "Download copy" option). "Reset this section" rewrites the file by replacing that section's content or, if missing, appending the default heading + content at the end.
+Edit, Save, Upload, Download (`instructions.md`), **Reset this section** (select section with a native `<select>` → AlertDialog: "Replace the # {NAME} section with the default? Other sections are kept."), **Reset whole file** (AlertDialog with "Download copy" option). "Reset this section" rewrites the file by replacing that section's content or, if missing, appending the default heading + content at the end (line endings may be normalized to `\n`). Both resets change the editor draft only; the user presses Save. Upload uses the same validation as the Master Info upload (extension, `masterInfoMaxBytes`, UTF-8 check) and fills the editor without saving.
 
 ### 11.4 Full default content (`src/data/instructions.default.md`)
 
-The two LinkedIn label lines below MUST match `LINKEDIN_VARIANT_LABELS` in `src/config.ts` exactly (a unit test checks this). The 300-character figure is a platform fact to confirm (V21).
+The two LinkedIn label lines below MUST match `LINKEDIN_VARIANT_LABELS` in `src/config.ts` exactly (a unit test checks this). The 200-character figure was verified against LinkedIn's help article a563153 on 2026-10-29 (V21).
 
 ````markdown
 <!--
@@ -844,7 +844,7 @@ Sincerely,
 - Write TWO variants. Start each with its label on its own line, exactly as written here, and put nothing else on that line:
 Variant 1: Connection request note
 Variant 2: Direct message
-- Variant 1: 1–2 sentences, under 300 characters in total including spaces. (Edit this number if LinkedIn's limit for connection notes changes.)
+- Variant 1: 1–2 sentences, under 200 characters in total including spaces. (Edit this number if LinkedIn's limit for connection notes changes.)
 - Variant 2: 3–5 sentences, 60–110 words.
 - Both variants: open with a specific reason for reaching out (the role or something concrete from the job context), mention one relevant fact from my Master Info, and end with a low-pressure question (e.g. whether they would be open to a short chat).
 - No links unless custom instructions ask for one.
@@ -979,7 +979,7 @@ Part A and Part C are always separate text parts, even with no attachments, so b
 
 ### 12.4 Escaping (`src/prompt/escape.ts`)
 
-User-supplied text (Master Info, instructions, pasted text, questions, document text, custom instructions, file names) is processed by `neutralizeTags(s)`, which:
+User-supplied text (Master Info, pasted text, questions, document text, custom instructions, file names) is processed by `neutralizeTags(s)`. The instructions sections (GLOBAL and the section for the output) are **not** processed, because the bundled defaults legitimately refer to the `<today>` and `<questions>` tags and escaping them would break those references; the instructions file is the user's own configuration, not untrusted job content. `neutralizeTags(s)`:
 
 1. Replaces any occurrence (case-insensitive) of `<instructions`, `</instructions`, `<global`, `</global`, `<output_specific`, `</output_specific`, `<master_info`, `</master_info`, `<job_context`, `</job_context`, `<pasted_text`, `</pasted_text`, `<document`, `</document`, `<attachment`, `</attachment`, `<questions`, `</questions`, `<custom_instructions`, `</custom_instructions`, `<today`, `</today`, `<task`, `</task` with the same text where `<` becomes `&lt;`. The tag list is a constant array in `escape.ts`; a unit test checks that every tag used in §12.3 is in it.
 2. Replaces every case-insensitive occurrence of `GAPS_DELIMITER_TOKEN` (imported from config, never retyped) with the same text with each hyphen replaced by a space (default: `GAPS-NOTE` → `GAPS NOTE`), so job context can't fake the delimiter.
@@ -1392,7 +1392,7 @@ Sections are shown as shadcn **Tabs** inside the sheet (or, on narrow screens, a
 5. **Data**: storage used (§9.4), "Delete all app data" → AlertDialog: "Delete your Master Info, instructions file, saved API keys and settings from this browser? Download copies first if you want to keep them." Buttons: "Download Master Info", "Download instructions", "Cancel", "Delete everything". On confirm: `storage.removeAll()`, clear in-memory state, reload.
 6. **About**: version (from `package.json`), MIT license, source link, support link, privacy summary, link to Help.
 
-Unsaved changes in the Master Info or Instructions editors: closing the sheet prompts "Save changes?" (Save / Discard / Cancel).
+Unsaved changes in the Master Info or Instructions editors: closing the sheet shows one "Save changes?" prompt (Save / Discard / Cancel) that covers both editors. Save saves every unsaved editor (if any save fails the sheet stays open and shows the error); Discard reverts both drafts; Cancel keeps the sheet open.
 
 ### 17.5 Help page (`#/help`, content from `docs/help.md` imported raw and rendered with markdown-it)
 
@@ -1599,24 +1599,24 @@ The maintainer confirms the final project name (or accepts the working name) aft
 
 - **Goal:** edit, persist and use the free-form Master Info with the sample.
 - **Tasks:** `src/data/master-info.sample.md` (marker on line 1 only, A16); the four helpers in `masterInfo.ts` (§10.3) with tests; Master Info panel with all actions in §10.4 (edit, character count, save, upload, download, reset to sample, length note).
-- **Agent-verified acceptance:** helper unit tests pass (including the sample-marker tests in §19.3); on a fresh profile, the send bar shows the sample-marker message; upload/download round-trip is byte-identical; Reset to sample requires confirmation and restores the marker; the length note appears above the configured limit and never blocks Send.
+- **Agent-verified acceptance:** helper unit tests pass (including the sample-marker tests in §19.3); on a fresh profile, the Master Info panel shows the sample-marker notice (the Send blocker itself is wired in M7); upload/download round-trip is byte-identical; Reset to sample requires confirmation and restores the marker; the length note appears above the configured limit and never blocks Send.
 
 ### M5 — Instructions file
 
 - **Goal:** edit, persist and split the instructions file with fallbacks.
 - **Tasks:** default file (§11.4) with all six sections; splitter with fallback + warnings; panel with reset-section/reset-file; look up LinkedIn's current connection-note limit on LinkedIn's official help pages and update the default file if needed (V21).
-- **Agent-verified acceptance:** splitter unit tests pass (incl. fenced headings, the six-section split and the LinkedIn-label test); a misspelled heading shows a warning and generation input uses the default section (verified in a prompt-assembly test); V21 row filled with source URL and date, or marked `UNVERIFIED` with a note.
+- **Agent-verified acceptance:** splitter unit tests pass (incl. fenced headings, the six-section split and the LinkedIn-label test); a misspelled heading shows a warning and generation input uses the default section (verified in a test on the resolver output (the assembly-level test is added in M6)); V21 row filled with source URL and date, or marked `UNVERIFIED` with a note.
 
 ### M6 — Prompt assembly and token estimate
 
 - **Goal:** deterministic prompts.
-- **Tasks:** `fixedRules.ts` (delimiter from config), `assemble.ts` (takes the effective Master Info, `today` and, for Answers, the questions), `escape.ts`, `estimate.ts` (PDF by size), `snapshot.ts`; token estimate in the send bar; a dev-only "Show prompt" disclosure (shows Part A/C text, never the key; enabled only when `import.meta.env.DEV`, excluded from production) for debugging.
-- **Agent-verified acceptance:** snapshot tests pass for all five kinds; `<questions>` appears only for Answers; the date appears in Part C; estimate updates live in the UI.
+- **Tasks:** `fixedRules.ts` (delimiter from config), `assemble.ts` (takes the effective Master Info, `today` and, for Answers, the questions), `escape.ts`, `estimate.ts` (PDF by size), `snapshot.ts`; a pure `formatEstimate` helper for the estimate line (§12.6). The send-bar estimate and the dev-only "Show prompt" disclosure (shows Part A/C text, never the key; enabled only when `import.meta.env.DEV`, excluded from production) are built in M7, when the send bar exists.
+- **Agent-verified acceptance:** snapshot tests pass for all five kinds; `<questions>` appears only for Answers; the date appears in Part C; estimate and snapshot-hash unit tests pass (the live estimate in the UI is verified in M7).
 
 ### M7 — First end-to-end generation, right pane, Questions box
 
 - **Goal:** generate selected outputs end-to-end, including Application answers.
-- **Tasks:** left pane (context textarea, five output toggles, Questions box shown only with the Answers toggle, custom instructions, send bar); right pane tabs with streaming, Gaps split, editor, Copy, Download .md; LinkedIn variant split and per-variant copy (A29) with the two safety-net badges of §12.7; error callout + Retry; truncation notice; Send blockers (§14.6, including the questions blocker); right-pane empty state and `visibleTabs` selector (A26).
+- **Tasks:** also build what earlier milestones deferred: the token-estimate line and the dev-only "Show prompt" disclosure (§12.6, M6), the "Instructions: N section(s) using default" badge (§11.2, M5), the length notice and the "unsaved Master Info changes" notice near Send (§10.4, §10.5), and the Master Info Send blockers (§14.6). Left pane (context textarea, five output toggles, Questions box shown only with the Answers toggle, custom instructions, send bar); right pane tabs with streaming, Gaps split, editor, Copy, Download .md; LinkedIn variant split and per-variant copy (A29) with the two safety-net badges of §12.7; error callout + Retry; truncation notice; Send blockers (§14.6, including the questions blocker); right-pane empty state and `visibleTabs` selector (A26).
 - **Agent-verified acceptance:** with a mocked provider returning fixture streams, selecting Resume and pressing Send creates the Resume tab, streams text into it and shows the Gaps note; before the first Send the right pane shows the empty state even with outputs pre-selected; the Questions box appears only while Answers is on; Send is blocked for Answers with no questions and no attachments, and allowed with only an attachment; the Answers request contains `<questions>` and the others do not; a mocked 401 shows the auth message; a mocked truncated stream shows the truncation notice; Copy and Download work; the LinkedIn mock shows both per-variant Copy buttons and copied text excludes the labels; the no-labels LinkedIn fixture shows the "LinkedIn variant labels missing" badge and only "Copy all".
 - **Maintainer-verified acceptance:** the same flow with a real key for at least one provider; a real LinkedIn draft from each provider tested keeps the labels intact (if a model often breaks them, report it); a real Answers draft for a question with no matching story shows a "Needs your input:" line instead of an invented story.
 

@@ -298,3 +298,4 @@ Custom resume
     }
   });
 });
+
