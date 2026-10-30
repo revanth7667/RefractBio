@@ -31,7 +31,7 @@ describe('App & Hash Routing & Settings', () => {
 
     expect(
       screen.getByText(
-        `This browser isn't letting ${APP_NAME} save anything (common when opening the file directly from disk in some browsers, or in private mode). You can still use the app, but your Master Info and settings will be lost when you close the tab. Download your Master Info before leaving.`
+        `This browser isn't letting ${APP_NAME} save anything (this can happen when the page is opened directly from disk in some browsers, or when site data is blocked). You can still use the app, but your Master Info and settings will be lost when you close the tab. Download your Master Info before leaving.`
       )
     ).toBeTruthy();
   });
