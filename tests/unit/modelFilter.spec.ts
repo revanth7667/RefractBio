@@ -1,7 +1,10 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, it, expect } from 'vitest';
 import {
   filterAndEnrichModels,
   getDefaultModels,
+  compareModelFreshness,
   type RawModelInput,
   type ModelHints,
 } from '../../src/providers/modelFilter';
@@ -10,7 +13,7 @@ import type { ModelInfo } from '../../src/types';
 describe('Model Filter & Capability Inference (src/providers/modelFilter.ts)', () => {
   const customHints: ModelHints = {
     nonChatIdPatterns: ['embed', 'whisper', 'moderation'],
-    smallTierIdPatterns: ['haiku', 'flash', 'mini'],
+    smallTierIdPatterns: ['nano', 'lite', 'haiku', 'flash-8b', 'small'],
     imageCapableIdPatterns: ['vision-model'],
     noImageIdPatterns: ['text-only-model'],
     pdfCapableIdPatterns: ['pdf-pro'],
@@ -119,8 +122,8 @@ describe('Model Filter & Capability Inference (src/providers/modelFilter.ts)', (
         supportedGenerationMethods: ['embedContent'],
       },
       {
-        id: 'gemini-1.5-flash',
-        displayName: 'Gemini 1.5 Flash',
+        id: 'gemini-1.5-flash-8b',
+        displayName: 'Gemini 1.5 Flash 8B',
         provider: 'gemini',
         supportedGenerationMethods: ['generateContent'],
       },
@@ -138,9 +141,9 @@ describe('Model Filter & Capability Inference (src/providers/modelFilter.ts)', (
     const embed = result.find((m) => m.id === 'text-embedding-004')!;
     expect(embed.likelyChat).toBe(false); // does not have generateContent and matches 'embed'
 
-    const flash = result.find((m) => m.id === 'gemini-1.5-flash')!;
+    const flash = result.find((m) => m.id === 'gemini-1.5-flash-8b')!;
     expect(flash.likelyChat).toBe(true);
-    expect(flash.smallTierGuess).toBe(true); // matches 'flash'
+    expect(flash.smallTierGuess).toBe(true); // matches 'flash-8b'
   });
 
   it('places recommended models first', () => {
@@ -179,12 +182,11 @@ describe('Model Filter & Capability Inference (src/providers/modelFilter.ts)', (
     it('returns latest version of Sonnet, Haiku, and Opus for Anthropic with latest tag', () => {
       const models: ModelInfo[] = [
         { id: 'claude-3-5-sonnet-latest', displayName: 'Claude 3.5 Sonnet Latest', provider: 'anthropic', likelyChat: true, supportsImages: 'yes', supportsPdf: 'yes', capabilitySource: 'api-metadata', smallTierGuess: false },
-        { id: 'claude-3-5-sonnet-20241022', displayName: 'Claude 3.5 Sonnet Oct 2024', provider: 'anthropic', likelyChat: true, supportsImages: 'yes', supportsPdf: 'yes', capabilitySource: 'api-metadata', smallTierGuess: false },
         { id: 'claude-3-sonnet-20240229', displayName: 'Claude 3 Sonnet Feb 2024', provider: 'anthropic', likelyChat: true, supportsImages: 'yes', supportsPdf: 'yes', capabilitySource: 'api-metadata', smallTierGuess: false },
         { id: 'claude-3-5-haiku-latest', displayName: 'Claude 3.5 Haiku Latest', provider: 'anthropic', likelyChat: true, supportsImages: 'no', supportsPdf: 'no', capabilitySource: 'api-metadata', smallTierGuess: true },
         { id: 'claude-3-haiku-20240307', displayName: 'Claude 3 Haiku Mar 2024', provider: 'anthropic', likelyChat: true, supportsImages: 'no', supportsPdf: 'no', capabilitySource: 'api-metadata', smallTierGuess: true },
         { id: 'claude-3-opus-latest', displayName: 'Claude 3 Opus Latest', provider: 'anthropic', likelyChat: true, supportsImages: 'yes', supportsPdf: 'yes', capabilitySource: 'api-metadata', smallTierGuess: false },
-        { id: 'claude-3-opus-20240229', displayName: 'Claude 3 Opus Feb 2024', provider: 'anthropic', likelyChat: true, supportsImages: 'yes', supportsPdf: 'yes', capabilitySource: 'api-metadata', smallTierGuess: false },
+        { id: 'claude-3-opus', displayName: 'Claude 3 Opus', provider: 'anthropic', likelyChat: true, supportsImages: 'yes', supportsPdf: 'yes', capabilitySource: 'api-metadata', smallTierGuess: false },
         { id: 'claude-2.1', displayName: 'Claude 2.1', provider: 'anthropic', likelyChat: true, supportsImages: 'no', supportsPdf: 'no', capabilitySource: 'api-metadata', smallTierGuess: false },
       ];
 
@@ -241,21 +243,20 @@ describe('Model Filter & Capability Inference (src/providers/modelFilter.ts)', (
 
     it('returns latest tag version of Flash, Flash-lite, and Pro for Gemini', () => {
       const models: ModelInfo[] = [
-        { id: 'gemini-1.5-flash-latest', displayName: 'Gemini 1.5 Flash (Latest)', provider: 'gemini', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: true },
-        { id: 'gemini-1.5-flash-001', displayName: 'Gemini 1.5 Flash 001', provider: 'gemini', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: true },
-        { id: 'gemini-1.5-flash-8b-latest', displayName: 'Gemini 1.5 Flash 8B (Latest)', provider: 'gemini', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: true },
-        { id: 'gemini-1.5-flash-8b-001', displayName: 'Gemini 1.5 Flash 8B 001', provider: 'gemini', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: true },
-        { id: 'gemini-1.5-pro-latest', displayName: 'Gemini 1.5 Pro (Latest)', provider: 'gemini', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false },
-        { id: 'gemini-1.5-pro-001', displayName: 'Gemini 1.5 Pro 001', provider: 'gemini', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false },
-        { id: 'text-embedding-004', displayName: 'Text Embedding 004', provider: 'gemini', likelyChat: false, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false },
+        { id: 'models/gemini-flash-latest', displayName: 'Gemini Flash Latest', provider: 'gemini', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false },
+        { id: 'models/gemini-flash-lite-latest', displayName: 'Gemini Flash-Lite Latest', provider: 'gemini', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: true },
+        { id: 'models/gemini-pro-latest', displayName: 'Gemini Pro Latest', provider: 'gemini', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false },
+        { id: 'models/gemini-1.5-flash-001', displayName: 'Gemini 1.5 Flash 001', provider: 'gemini', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false },
+        { id: 'models/gemini-1.5-pro-001', displayName: 'Gemini 1.5 Pro 001', provider: 'gemini', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false },
+        { id: 'models/text-embedding-004', displayName: 'Text Embedding 004', provider: 'gemini', likelyChat: false, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false },
       ];
 
       const defaults = getDefaultModels(models, 'gemini');
       expect(defaults).toHaveLength(3);
       const ids = defaults.map((m) => m.id);
-      expect(ids).toContain('gemini-1.5-flash-latest');
-      expect(ids).toContain('gemini-1.5-flash-8b-latest');
-      expect(ids).toContain('gemini-1.5-pro-latest');
+      expect(ids).toContain('models/gemini-flash-latest');
+      expect(ids).toContain('models/gemini-flash-lite-latest');
+      expect(ids).toContain('models/gemini-pro-latest');
     });
 
     it('returns latest tag models matching user UI for Gemini (Gemini Flash Latest, Gemini Flash-Lite Latest, Gemini Pro Latest)', () => {
@@ -318,5 +319,277 @@ describe('Model Filter & Capability Inference (src/providers/modelFilter.ts)', (
       expect(defaults2[0].id).toBe('custom-chat-1');
     });
   });
+
+  describe('Model picker (§13.4, §19.3)', () => {
+    const fixtureHints: ModelHints = {
+      nonChatIdPatterns: ['embed', 'whisper'],
+      smallTierIdPatterns: ['nano', 'lite', 'haiku', 'flash-8b', 'small'],
+      imageCapableIdPatterns: [],
+      noImageIdPatterns: [],
+      pdfCapableIdPatterns: [],
+      recommended: {
+        anthropic: ['claude-3-opus'],
+        gemini: ['models/gemini-pro-latest'],
+      },
+      defaultPatterns: {
+        anthropic: ['opus', 'sonnet', 'haiku'],
+        gemini: ['gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-pro-latest'],
+      },
+    };
+
+    it('exact ID match with and without models/ prefix', () => {
+      const modelsWithPrefix: ModelInfo[] = [
+        { id: 'models/gemini-flash-latest', displayName: 'Flash', provider: 'gemini', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false },
+      ];
+      const resWith = getDefaultModels(modelsWithPrefix, 'gemini', fixtureHints);
+      expect(resWith).toHaveLength(1);
+      expect(resWith[0].id).toBe('models/gemini-flash-latest');
+
+      const modelsWithoutPrefix: ModelInfo[] = [
+        { id: 'gemini-flash-latest', displayName: 'Flash', provider: 'gemini', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false },
+      ];
+      const resWithout = getDefaultModels(modelsWithoutPrefix, 'gemini', fixtureHints);
+      expect(resWithout).toHaveLength(1);
+      expect(resWithout[0].id).toBe('gemini-flash-latest');
+    });
+
+    it('display-name match and hyphen-to-space display-name match', () => {
+      const models: ModelInfo[] = [
+        // Exact display name match
+        { id: 'custom-id-1', displayName: 'gemini-flash-latest', provider: 'gemini', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false },
+        // Hyphens in pattern match spaces in display name
+        { id: 'custom-id-2', displayName: 'Gemini Flash Lite Latest', provider: 'gemini', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: true },
+      ];
+      const defaults = getDefaultModels(models, 'gemini', fixtureHints);
+      expect(defaults.map((m) => m.id)).toEqual(['custom-id-1', 'custom-id-2']);
+    });
+
+    it('family pattern picks the freshest match', () => {
+      const models: ModelInfo[] = [
+        { id: 'claude-3-sonnet', displayName: 'Claude 3 Sonnet', provider: 'anthropic', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false },
+        { id: 'claude-3-5-sonnet', displayName: 'Claude 3.5 Sonnet', provider: 'anthropic', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false },
+        { id: 'claude-3-7-sonnet', displayName: 'Claude 3.7 Sonnet', provider: 'anthropic', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false },
+      ];
+      const hints: ModelHints = {
+        ...fixtureHints,
+        defaultPatterns: { anthropic: ['sonnet'] },
+      };
+      const defaults = getDefaultModels(models, 'anthropic', hints);
+      expect(defaults).toHaveLength(1);
+      expect(defaults[0].id).toBe('claude-3-7-sonnet');
+    });
+
+    it('pattern that matches nothing adds nothing', () => {
+      const models: ModelInfo[] = [
+        { id: 'claude-3-5-sonnet', displayName: 'Claude 3.5 Sonnet', provider: 'anthropic', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false },
+      ];
+      const hints: ModelHints = {
+        ...fixtureHints,
+        defaultPatterns: { anthropic: ['nonexistent-model', 'sonnet'] },
+      };
+      const defaults = getDefaultModels(models, 'anthropic', hints);
+      expect(defaults).toHaveLength(1);
+      expect(defaults[0].id).toBe('claude-3-5-sonnet');
+    });
+
+    it('empty or all-unmatched patterns fall back to all likelyChat models', () => {
+      const models: ModelInfo[] = [
+        { id: 'chat-1', displayName: 'Chat 1', provider: 'anthropic', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false },
+        { id: 'chat-2', displayName: 'Chat 2', provider: 'anthropic', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false },
+        { id: 'embed-1', displayName: 'Embed 1', provider: 'anthropic', likelyChat: false, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false },
+      ];
+
+      // Empty pattern array
+      const emptyDefaults = getDefaultModels(models, 'anthropic', { ...fixtureHints, defaultPatterns: { anthropic: [] } });
+      expect(emptyDefaults.map((m) => m.id)).toEqual(['chat-1', 'chat-2']);
+
+      // All unmatched patterns
+      const unmatchedDefaults = getDefaultModels(models, 'anthropic', { ...fixtureHints, defaultPatterns: { anthropic: ['no-match-1', 'no-match-2'] } });
+      expect(unmatchedDefaults.map((m) => m.id)).toEqual(['chat-1', 'chat-2']);
+    });
+
+    it('the default list keeps pattern order', () => {
+      const models: ModelInfo[] = [
+        { id: 'claude-3-haiku', displayName: 'Claude 3 Haiku', provider: 'anthropic', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: true },
+        { id: 'claude-3-opus', displayName: 'Claude 3 Opus', provider: 'anthropic', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false },
+        { id: 'claude-3-5-sonnet', displayName: 'Claude 3.5 Sonnet', provider: 'anthropic', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false },
+      ];
+      // pattern order is ['opus', 'sonnet', 'haiku']
+      const defaults = getDefaultModels(models, 'anthropic', fixtureHints);
+      expect(defaults.map((m) => m.id)).toEqual(['claude-3-opus', 'claude-3-5-sonnet', 'claude-3-haiku']);
+    });
+
+    it('the same model selected by two patterns appears once', () => {
+      const models: ModelInfo[] = [
+        { id: 'claude-multi-tag', displayName: 'Claude Fast Speedy', provider: 'anthropic', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false },
+      ];
+      const hints: ModelHints = {
+        ...fixtureHints,
+        defaultPatterns: { anthropic: ['fast', 'speedy'] },
+      };
+      const defaults = getDefaultModels(models, 'anthropic', hints);
+      expect(defaults).toHaveLength(1);
+      expect(defaults[0].id).toBe('claude-multi-tag');
+    });
+
+    it('a pattern matching only a non-chat model adds nothing', () => {
+      const models: ModelInfo[] = [
+        { id: 'claude-3-5-sonnet', displayName: 'Claude 3.5 Sonnet', provider: 'anthropic', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false },
+        { id: 'claude-embed-v1', displayName: 'Claude Embed V1', provider: 'anthropic', likelyChat: false, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false },
+      ];
+      const hints: ModelHints = {
+        ...fixtureHints,
+        defaultPatterns: { anthropic: ['embed', 'sonnet'] },
+      };
+      const defaults = getDefaultModels(models, 'anthropic', hints);
+      expect(defaults).toHaveLength(1);
+      expect(defaults[0].id).toBe('claude-3-5-sonnet');
+    });
+
+    it('an older model with a -latest alias does not beat a newer numbered model', () => {
+      const olderLatest: ModelInfo = {
+        id: 'gemini-1.0-pro-latest',
+        displayName: 'Gemini 1.0 Pro Latest',
+        provider: 'gemini',
+        likelyChat: true,
+        supportsImages: 'unknown',
+        supportsPdf: 'unknown',
+        capabilitySource: 'none',
+        smallTierGuess: false,
+      };
+      const newerNumbered: ModelInfo = {
+        id: 'gemini-1.5-pro',
+        displayName: 'Gemini 1.5 Pro',
+        provider: 'gemini',
+        likelyChat: true,
+        supportsImages: 'unknown',
+        supportsPdf: 'unknown',
+        capabilitySource: 'none',
+        smallTierGuess: false,
+      };
+
+      // Newer numbered model (1.5) must beat older model with -latest (1.0)
+      expect(compareModelFreshness(olderLatest, newerNumbered)).toBeGreaterThan(0);
+      expect(compareModelFreshness(newerNumbered, olderLatest)).toBeLessThan(0);
+
+      const unnumberedLatest: ModelInfo = {
+        id: 'gemini-pro-latest',
+        displayName: 'Gemini Pro Latest',
+        provider: 'gemini',
+        likelyChat: true,
+        supportsImages: 'unknown',
+        supportsPdf: 'unknown',
+        capabilitySource: 'none',
+        smallTierGuess: false,
+      };
+
+      // Numbered model (1.5) beats unnumbered -latest alias (0.0)
+      expect(compareModelFreshness(unnumberedLatest, newerNumbered)).toBeGreaterThan(0);
+      expect(compareModelFreshness(newerNumbered, unnumberedLatest)).toBeLessThan(0);
+
+      const hints: ModelHints = {
+        ...fixtureHints,
+        defaultPatterns: { gemini: ['pro'] },
+      };
+      const defaults = getDefaultModels([olderLatest, newerNumbered], 'gemini', hints);
+      expect(defaults[0].id).toBe('gemini-1.5-pro');
+    });
+
+    it('freshness order: major, minor, date, latest, reverse alphanumeric display name', () => {
+      // 1. Major version
+      const v2: ModelInfo = { id: 'm-2', displayName: 'Model 2.0', provider: 'anthropic', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false };
+      const v1Date: ModelInfo = { id: 'm-1-20250101-latest', displayName: 'Model 1.9 Latest', provider: 'anthropic', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false };
+      expect(compareModelFreshness(v2, v1Date)).toBeLessThan(0);
+
+      // 2. Minor version
+      const v35: ModelInfo = { id: 'm-3-5', displayName: 'Model 3.5', provider: 'anthropic', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false };
+      const v30: ModelInfo = { id: 'm-3-0', displayName: 'Model 3.0', provider: 'anthropic', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false };
+      expect(compareModelFreshness(v35, v30)).toBeLessThan(0);
+
+      // 3. 8-digit date in ID
+      const dNewer: ModelInfo = { id: 'm-3-5-20250101', displayName: 'Model 3.5', provider: 'anthropic', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false };
+      const dOlder: ModelInfo = { id: 'm-3-5-20241022', displayName: 'Model 3.5', provider: 'anthropic', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false };
+      expect(compareModelFreshness(dNewer, dOlder)).toBeLessThan(0);
+
+      // 4. "latest" tag when version and date match
+      const withLatest: ModelInfo = { id: 'm-3-5-latest', displayName: 'Model 3.5 Latest', provider: 'anthropic', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false };
+      const withoutLatest: ModelInfo = { id: 'm-3-5-plain', displayName: 'Model 3.5 Plain', provider: 'anthropic', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false };
+      expect(compareModelFreshness(withLatest, withoutLatest)).toBeLessThan(0);
+
+      // 5. Reverse alphanumeric order of display name
+      const nameZ: ModelInfo = { id: 'm-z', displayName: 'Model Z', provider: 'anthropic', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false };
+      const nameA: ModelInfo = { id: 'm-a', displayName: 'Model A', provider: 'anthropic', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false };
+      expect(compareModelFreshness(nameZ, nameA)).toBeLessThan(0);
+    });
+
+    it('Show all returns every model with recommended IDs first', () => {
+      const raw: RawModelInput[] = [
+        { id: 'claude-3-5-sonnet', displayName: 'Claude 3.5 Sonnet', provider: 'anthropic' },
+        { id: 'claude-3-opus', displayName: 'Claude 3 Opus', provider: 'anthropic' },
+        { id: 'claude-embed-v1', displayName: 'Claude Embed', provider: 'anthropic' },
+        { id: 'claude-3-haiku', displayName: 'Claude 3 Haiku', provider: 'anthropic' },
+      ];
+
+      const enriched = filterAndEnrichModels(raw, 'anthropic', fixtureHints);
+      // All 4 models returned, including non-chat embed
+      expect(enriched).toHaveLength(4);
+      // Recommended model (claude-3-opus) is first
+      expect(enriched[0].id).toBe('claude-3-opus');
+      // The rest are sorted alphabetically by displayName
+      expect(enriched.slice(1).map((m) => m.displayName)).toEqual([
+        'Claude 3 Haiku',
+        'Claude 3.5 Sonnet',
+        'Claude Embed',
+      ]);
+    });
+
+    it('asserts no entry of defaultPatterns or smallTierIdPatterns appears as a string literal in src/ outside src/data/ (rule 8)', () => {
+      const hintsPath = path.resolve(__dirname, '../../src/data/model-hints.json');
+      const hints = JSON.parse(fs.readFileSync(hintsPath, 'utf8'));
+      const patternsToCheck = new Set<string>([
+        ...hints.smallTierIdPatterns,
+        ...Object.values(hints.defaultPatterns as Record<string, string[]>).flat(),
+      ]);
+
+      function getSourceFiles(dir: string): string[] {
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        const files: string[] = [];
+        for (const entry of entries) {
+          const full = path.join(dir, entry.name);
+          if (entry.isDirectory()) {
+            if (entry.name !== 'data') {
+              files.push(...getSourceFiles(full));
+            }
+          } else if (/\.(ts|tsx|js|jsx)$/.test(entry.name)) {
+            files.push(full);
+          }
+        }
+        return files;
+      }
+
+      const srcDir = path.resolve(__dirname, '../../src');
+      const files = getSourceFiles(srcDir);
+      const stringLiteralRegex = /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`/g;
+
+      const violations: { file: string; literal: string; pattern: string }[] = [];
+
+      for (const file of files) {
+        const relFile = path.relative(srcDir, file);
+        const content = fs.readFileSync(file, 'utf8');
+        const literals = content.match(stringLiteralRegex) || [];
+        for (const lit of literals) {
+          const inner = lit.slice(1, -1).toLowerCase();
+          for (const pat of patternsToCheck) {
+            if (inner.includes(pat.toLowerCase())) {
+              violations.push({ file: relFile, literal: lit, pattern: pat });
+            }
+          }
+        }
+      }
+
+      expect(violations).toEqual([]);
+    });
+  });
 });
+
 

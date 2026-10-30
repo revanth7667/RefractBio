@@ -93,29 +93,29 @@ describe('ProvidersPanel & ModelPicker (UI Settings → Providers)', () => {
 
     it('shows default latest Flash, Flash-lite, and Pro models for Gemini when showAll is false', () => {
       const geminiModels: ModelInfo[] = [
-        { id: 'gemini-1.5-flash-latest', displayName: 'Gemini 1.5 Flash (Latest)', provider: 'gemini', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: true },
-        { id: 'gemini-1.5-flash-001', displayName: 'Gemini 1.5 Flash 001', provider: 'gemini', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: true },
-        { id: 'gemini-1.5-flash-8b-latest', displayName: 'Gemini 1.5 Flash 8B (Latest)', provider: 'gemini', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: true },
-        { id: 'gemini-1.5-pro-latest', displayName: 'Gemini 1.5 Pro (Latest)', provider: 'gemini', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false },
-        { id: 'gemini-1.5-pro-001', displayName: 'Gemini 1.5 Pro 001', provider: 'gemini', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false },
-        { id: 'text-embedding-004', displayName: 'Text Embedding 004', provider: 'gemini', likelyChat: false, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false },
+        { id: 'models/gemini-flash-latest', displayName: 'Gemini Flash Latest', provider: 'gemini', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false },
+        { id: 'models/gemini-flash-lite-latest', displayName: 'Gemini Flash-Lite Latest', provider: 'gemini', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: true },
+        { id: 'models/gemini-pro-latest', displayName: 'Gemini Pro Latest', provider: 'gemini', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false },
+        { id: 'models/gemini-1.5-flash-001', displayName: 'Gemini 1.5 Flash 001', provider: 'gemini', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false },
+        { id: 'models/gemini-1.5-pro-001', displayName: 'Gemini 1.5 Pro 001', provider: 'gemini', likelyChat: true, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false },
+        { id: 'models/text-embedding-004', displayName: 'Text Embedding 004', provider: 'gemini', likelyChat: false, supportsImages: 'unknown', supportsPdf: 'unknown', capabilitySource: 'none', smallTierGuess: false },
       ];
 
       const { rerender } = render(
         <ModelPicker
           provider="gemini"
           models={geminiModels}
-          selectedModel="gemini-1.5-flash-latest"
+          selectedModel="models/gemini-flash-latest"
           onSelectModel={vi.fn()}
           showAllModels={false}
           onToggleShowAll={vi.fn()}
         />
       );
 
-      // Default: only latest tag versions of Flash, Flash-lite, and Pro are shown
-      expect(screen.getByRole('option', { name: 'Gemini 1.5 Flash (Latest)' })).toBeTruthy();
-      expect(screen.getByRole('option', { name: 'Gemini 1.5 Flash 8B (Latest)' })).toBeTruthy();
-      expect(screen.getByRole('option', { name: 'Gemini 1.5 Pro (Latest)' })).toBeTruthy();
+      // Default: only Flash, Flash-lite, and Pro are shown
+      expect(screen.getByRole('option', { name: 'Gemini Flash Latest' })).toBeTruthy();
+      expect(screen.getByRole('option', { name: 'Gemini Flash-Lite Latest' })).toBeTruthy();
+      expect(screen.getByRole('option', { name: 'Gemini Pro Latest' })).toBeTruthy();
       expect(screen.queryByRole('option', { name: 'Gemini 1.5 Flash 001' })).toBeNull();
       expect(screen.queryByRole('option', { name: 'Gemini 1.5 Pro 001' })).toBeNull();
       expect(screen.queryByRole('option', { name: 'Text Embedding 004' })).toBeNull();
@@ -125,7 +125,7 @@ describe('ProvidersPanel & ModelPicker (UI Settings → Providers)', () => {
         <ModelPicker
           provider="gemini"
           models={geminiModels}
-          selectedModel="gemini-1.5-flash-latest"
+          selectedModel="models/gemini-flash-latest"
           onSelectModel={vi.fn()}
           showAllModels={true}
           onToggleShowAll={vi.fn()}
@@ -135,6 +135,39 @@ describe('ProvidersPanel & ModelPicker (UI Settings → Providers)', () => {
       expect(screen.getByRole('option', { name: 'Gemini 1.5 Flash 001' })).toBeTruthy();
       expect(screen.getByRole('option', { name: 'Gemini 1.5 Pro 001' })).toBeTruthy();
       expect(screen.getByRole('option', { name: 'Text Embedding 004' })).toBeTruthy();
+    });
+
+    it('appends selected model to options when Show all is false and selected model is in models but not in default list', () => {
+      const extraModel: ModelInfo = {
+        id: 'claude-2.1',
+        displayName: 'Claude 2.1',
+        provider: 'anthropic',
+        likelyChat: true,
+        supportsImages: 'no',
+        supportsPdf: 'no',
+        capabilitySource: 'none',
+        smallTierGuess: false,
+      };
+
+      const allModels = [...mockModels, extraModel];
+      const onSelect = vi.fn();
+
+      render(
+        <ModelPicker
+          provider="anthropic"
+          models={allModels}
+          selectedModel="claude-2.1"
+          onSelectModel={onSelect}
+          showAllModels={false}
+          onToggleShowAll={vi.fn()}
+        />
+      );
+
+      const select = screen.getByRole('combobox') as HTMLSelectElement;
+      expect(select.value).toBe('claude-2.1');
+      expect(screen.getByRole('option', { name: 'Claude 2.1' })).toBeTruthy();
+      expect(screen.getByRole('option', { name: 'Claude 3.5 Sonnet' })).toBeTruthy();
+      expect(screen.getByRole('option', { name: 'Claude 3 Haiku' })).toBeTruthy();
     });
 
     it('displays small-tier warning note when selected model is a small tier guess', () => {
