@@ -1,0 +1,7 @@
+{
+  "charsPerToken": 4,
+  "imageTokens": 1500,
+  "pdfTokensPerMB": 1500,
+  "pdfMinTokens": 500,
+  "_note": "Rough guesses, editable. PDF cost is estimated from file size because the app never parses PDFs; a scanned PDF and a text PDF of the same size can differ a lot."
+}

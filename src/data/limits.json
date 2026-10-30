@@ -1,0 +1,14 @@
+{
+  "perFileWarnBytes": 5242880,
+  "perFileMaxBytes": 20971520,
+  "totalWarnBytes": 15728640,
+  "maxAttachments": 10,
+  "pastedTextWarnChars": 100000,
+  "masterInfoMaxBytes": 1048576,
+  "masterInfoWarnChars": 20000,
+  "providerMaxRequestBytes": {
+    "gemini": null,
+    "anthropic": null
+  },
+  "_note": "Bytes unless named Chars. null = unknown until verified (V10). Base64 inflates binary size by about 4/3."
+}
