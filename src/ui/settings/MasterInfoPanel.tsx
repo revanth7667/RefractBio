@@ -14,18 +14,7 @@ import {
 import { useMasterInfo } from '../../state/MasterInfoContext';
 import { hasTemplateMarker, lengthNote } from '../../masterInfo/masterInfo';
 import limits from '../../data/limits.json';
-
-function readFileAsArrayBuffer(file: File): Promise<ArrayBuffer> {
-  if (typeof file.arrayBuffer === 'function') {
-    return file.arrayBuffer();
-  }
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as ArrayBuffer);
-    reader.onerror = () => reject(reader.error);
-    reader.readAsArrayBuffer(file);
-  });
-}
+import { validateTextUpload } from './uploadValidation';
 
 export function MasterInfoPanel() {
   const {
@@ -93,39 +82,14 @@ export function MasterInfoPanel() {
     // Reset input value so selecting the same file again triggers change
     e.target.value = '';
 
-    const lowerName = file.name.toLowerCase();
-    if (!lowerName.endsWith('.md') && !lowerName.endsWith('.txt')) {
-      setUploadError('Please upload a .md or .txt file.');
+    const res = await validateTextUpload(file, limits.masterInfoMaxBytes);
+    if (!res.ok) {
+      setUploadError(res.error || 'Failed to read the file.');
       return;
     }
 
-    if (file.size > limits.masterInfoMaxBytes) {
-      setUploadError(`File exceeds the size limit (${limits.masterInfoMaxBytes} bytes).`);
-      return;
-    }
-
-    try {
-      const buffer = await readFileAsArrayBuffer(file);
-      const decoder = new TextDecoder('utf-8', { fatal: false });
-      const decoded = decoder.decode(buffer);
-
-      let replacementCount = 0;
-      for (let i = 0; i < decoded.length; i++) {
-        if (decoded.charCodeAt(i) === 0xfffd) {
-          replacementCount++;
-        }
-      }
-
-      if (decoded.length > 0 && replacementCount / decoded.length > 0.01) {
-        setUploadError("This file doesn't look like plain text.");
-        return;
-      }
-
-      setPendingUploadText(decoded);
-      setShowUploadConfirm(true);
-    } catch {
-      setUploadError('Failed to read the file.');
-    }
+    setPendingUploadText(res.text ?? '');
+    setShowUploadConfirm(true);
   };
 
   const confirmUpload = () => {
