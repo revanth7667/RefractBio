@@ -25,6 +25,17 @@ describe('App & Hash Routing & Settings', () => {
     expect(screen.getByText('Your drafts will appear here')).toBeTruthy();
   });
 
+  it('renders persistent storage unavailable banner when storage is unavailable at startup (§9.4)', () => {
+    vi.spyOn(storage, 'isAvailable').mockReturnValue(false);
+    render(<App />);
+
+    expect(
+      screen.getByText(
+        `This browser isn't letting ${APP_NAME} save anything (common when opening the file directly from disk in some browsers, or in private mode). You can still use the app, but your Master Info and settings will be lost when you close the tab. Download your Master Info before leaving.`
+      )
+    ).toBeTruthy();
+  });
+
   it('renders HelpPage when hash is #/help', async () => {
     window.location.hash = '#/help';
     render(<App />);

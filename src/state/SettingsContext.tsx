@@ -14,6 +14,7 @@ const DEFAULT_SETTINGS: Settings = {
 interface SettingsContextValue {
   settings: Settings;
   apiKeys: Record<ProviderId, string>;
+  storageAvailable: boolean;
   setApiKey: (provider: ProviderId, key: string) => void;
   setRememberKeys: (remember: boolean) => void;
   setSelectedModel: (provider: ProviderId, model: string) => void;
@@ -28,6 +29,8 @@ interface SettingsContextValue {
 const SettingsContext = createContext<SettingsContextValue | undefined>(undefined);
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
+  const [storageAvailable] = useState(() => storage.isAvailable());
+
   const [settings, setSettingsState] = useState<Settings>(() => {
     const res = storage.get<Settings>('settings');
     if (res.ok) {
@@ -144,6 +147,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       value={{
         settings,
         apiKeys,
+        storageAvailable,
         setApiKey,
         setRememberKeys,
         setSelectedModel,
