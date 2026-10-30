@@ -57,7 +57,7 @@ export function MasterInfoPanel() {
       if (res.reason === 'quota_exceeded') {
         setSaveErrorMessage(
           res.message ||
-            "Couldn't save: browser storage is full. Download a copy now, then shorten the file or delete app data.",
+          "Couldn't save: browser storage is full. Download a copy now, then shorten the file or delete app data.",
         );
       } else {
         setSaveErrorMessage(res.message || 'Failed to save Master Info.');

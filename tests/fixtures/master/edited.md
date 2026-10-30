@@ -12,3 +12,4 @@
 
 ## Competencies
 - TypeScript, React, Node.js
+

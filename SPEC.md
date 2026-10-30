@@ -132,7 +132,7 @@ Each assumption below is a decision taken because the brief left it open. Each i
 | V6 | Gemini request shape | `systemInstruction.parts[].text`; `contents[].parts[]` with `text` and `inlineData { mimeType, data }`. Field casing accepted. Inline payload size limit. | `src/providers/gemini/wire.ts` | M1 |
 | V7 | Gemini streaming | SSE `data:` lines each holding a JSON chunk with `candidates[0].content.parts[].text`; `promptFeedback` / `finishReason` values for safety blocks. | `src/providers/gemini/stream.ts` | M1 |
 | V8 | Gemini model listing | `GET .../v1beta/models` with `pageToken` / `nextPageToken`; each model has `name` (`models/<id>`), `displayName`, `supportedGenerationMethods` including `generateContent`. Whether the `models/` prefix must be stripped for generate calls. | `src/providers/gemini/wire.ts` | M1 |
-| V9 | Model capability metadata | Whether either provider's model-list response states image/PDF input support. If not, capability comes from editable patterns in `src/data/model-hints.json` (which ship **empty** except for non-chat patterns, see §13.4). | `src/providers/*/models.ts` | M1 |
+| V9 | Model capability metadata | Whether either provider's model-list response states image/PDF input support. If not, capability comes from editable patterns in `src/data/model-hints.json` (capability pattern lists ship **empty**; the non-chat, small-tier and default-model patterns ship populated, see §13.4). | `src/providers/*/models.ts` | M1 |
 | V10 | Provider size limits | Max request/attachment size, max images per request, PDF page limits per provider. Fill `src/data/limits.json`. | `src/data/limits.json` | M1 |
 | V11 | Supported image MIME types per provider | Assumed PNG, JPEG, WEBP, GIF. | `src/data/limits.json` | M1 |
 | V12 | Rate-limit signalling | HTTP 429 and whether `Retry-After` is exposed to browser JS (CORS `Access-Control-Expose-Headers`). | `src/providers/errors.ts` | M1 |
@@ -270,7 +270,7 @@ refractbio/                           # directory name may change with the proje
 │  ├─ data/                           # editable data files, not code
 │  │  ├─ master-info.sample.md        # the ONE sample (template + example)
 │  │  ├─ instructions.default.md
-│  │  ├─ model-hints.json             # non-chat patterns, small-tier patterns, optional capability patterns, recommended list
+│  │  ├─ model-hints.json             # non-chat patterns, small-tier patterns, optional capability patterns, recommended list, default-model patterns
 │  │  ├─ limits.json                  # size limits (V10)
 │  │  ├─ estimates.json               # token-estimate constants
 │  │  ├─ generation-defaults.json     # e.g. Anthropic max_tokens
@@ -337,7 +337,7 @@ refractbio/                           # directory name may change with the proje
    │  ├─ questions/ { questions.txt }
    │  ├─ outputs/ { linkedin-two-variants.txt, linkedin-no-labels.txt, answers.txt }
    │  └─ sse/ { generic.txt, anthropic-ok.txt, anthropic-error.txt, anthropic-truncated.txt, gemini-ok.txt, gemini-blocked.txt, gemini-truncated.txt }
-   ├─ unit/      # masterInfo, split, assemble, estimate, sse, errors, redact, gaps, variants, storage, tabReducer, queue, visibleTabs, csp, secret-scan
+   ├─ unit/      # masterInfo, split, assemble, estimate, sse, errors, redact, modelFilter, gaps, variants, storage, tabReducer, queue, visibleTabs, csp, secret-scan
    ├─ adapters/  # mocked-fetch adapter tests
    └─ e2e/
       └─ smoke.spec.ts
@@ -372,8 +372,6 @@ export interface ModelInfo {
   capabilitySource: 'api-metadata' | 'pattern-guess' | 'none';
   /** Soft hint, from data/model-hints.json patterns. Always presented as a guess. */
   smallTierGuess: boolean;
-  /** true when typed manually by the user, not from the fetched list. */
-  manual?: boolean;
 }
 
 // ---------- Settings (persisted, small) ----------
@@ -1109,24 +1107,32 @@ Model-list pagination is capped at 20 pages to avoid loops.
 ```json
 {
   "nonChatIdPatterns": ["embed", "embedding", "whisper", "tts", "transcribe", "image", "moderation", "audio", "realtime", "aqa"],
-  "smallTierIdPatterns": ["mini", "nano", "lite", "haiku", "flash-8b", "small"],
+  "smallTierIdPatterns": ["nano", "lite", "haiku", "flash-8b", "small"],
   "imageCapableIdPatterns": [],
   "noImageIdPatterns": [],
   "pdfCapableIdPatterns": [],
   "recommended": { "gemini": [], "anthropic": [] },
-  "_note": "All patterns are case-insensitive substrings and are GUESSES. Capability pattern lists ship EMPTY on purpose: model names change faster than this file, so unknown capability must never block the user. Edit freely. 'recommended' lists exact model IDs and ships empty."
+  "defaultPatterns": {
+    "anthropic": ["sonnet", "haiku", "opus"],
+    "gemini": ["gemini-flash-latest", "gemini-flash-lite-latest", "gemini-pro-latest"]
+  },
+  "_note": "All patterns are case-insensitive and are GUESSES. Capability pattern lists ship EMPTY on purpose: model names change faster than this file, so unknown capability must never block the user. Edit freely. 'recommended' lists exact model IDs that sort first in the Show all list and ships empty. 'defaultPatterns' (per provider, in display order) chooses the short default list: each entry is either an exact model ID or display name, or a family word that matches by substring and then picks the freshest match."
 }
 ```
 
+> The shipped `defaultPatterns` values are data, not code, and are hypotheses until checked against a real model list from each provider. Record which entries were seen in a real list, and the date, in `docs/provider-findings.md` (V8 for Gemini, V3 for Anthropic).
+
 Rules:
-1. After a key is entered (debounced 800 ms) or on "Refresh models", fetch the list; cache it in memory for the session.
-2. `likelyChat = false` if API metadata says non-chat, or if the ID contains a `nonChatIdPatterns` entry. Hidden unless "Show all models" is checked.
+1. The list is fetched when the user presses "Test connection" and, if a key is already available (for example a remembered key), when the app starts. Pressing "Test connection" again refreshes it. It is cached in memory for the session. The app does not fetch while the user is still typing a key.
+2. **Default view and "Show all models".** `likelyChat = false` if API metadata says non-chat (for Gemini: `generateContent` is not supported), or if the ID contains a `nonChatIdPatterns` entry. With "Show all models" unchecked (the default; stored as `settings.showAllModels`), the picker shows only the short default list from rule 5. With it checked, the picker shows every model the provider returned, including those with `likelyChat = false`.
 3. Capability: use API metadata if the provider exposes it (V9) → `capabilitySource: 'api-metadata'`; else pattern lists → `'pattern-guess'`; else `'unknown'` / `'none'`.
 4. `smallTierGuess` from `smallTierIdPatterns`; UI shows a muted line under the picker: "This model's name suggests a smaller, faster tier that may write weaker resumes. This is a guess based on the name only."
-5. `recommended` entries, if any, are listed first in an `<optgroup label="Suggested">`.
-6. **The picker is a native `<select>`** (A25) with `<optgroup>`s (Suggested, Models). The last option is "Other (type a model ID)…", which reveals a text input; manual IDs are marked `manual: true` and saved as the selected model.
+5. **Default list** (replaces the former "recommended first" rule). The list for the current provider is built from `defaultPatterns[provider]`, an ordered array read purely as data. For each pattern, in order: only models with `likelyChat = true` are considered; (a) if a model's ID or display name equals the pattern (case-insensitive; a Gemini ID may carry a `models/` prefix, so `models/{pattern}` also counts; hyphens in the pattern also match spaces in the display name), that model is selected; (b) otherwise, among the models whose display name or ID contains the pattern as a case-insensitive substring, the freshest one (rule 9) is selected; (c) if nothing matches, the pattern adds nothing; (d) a model already selected by an earlier pattern is not added again. The default list is the selected models in pattern order. If the list ends up empty (no patterns, or none matched), the default view shows all `likelyChat` models instead. Patterns are editable data, so a new model family does not appear in the default view until its pattern is added to `defaultPatterns` or "Show all models" is checked.
+6. **The picker is a native `<select>`** (A25) with one `<optgroup label="Models">`. In the default view its options are the default list from rule 5; in the Show all view they are all models, with `recommended` IDs first and the rest sorted by display name. **The currently selected model is always present as an option**, even when it is not in the default list (it is appended to the default view), so the visible choice always equals the stored choice. The last option in both views is "Other (type a model ID)…", which reveals a text input. A typed ID is saved as the selected model string; any saved ID that is not in the fetched list is shown in that text input.
 7. If the list fails to load, the picker shows the mapped error and still allows manual entry.
-8. Model names are **never** hardcoded in code.
+8. **Model names are never hardcoded in code.** Model family names, version numbers and alias IDs (for example a Claude family word or a Gemini `-latest` alias) appear only in `model-hints.json` and in test fixtures, never in `src/` code. Matching is generic: whole-string equality or substring.
+9. **Freshness** (used only to choose one model when a pattern matches several). It is decided from the display name and ID only; the provider's creation date is not used. In this order: (1) higher major version; (2) higher minor version; (3) later 8-digit date in the ID; (4) a name containing "latest" before one without; (5) otherwise reverse alphanumeric order of the display name. A version is the first number of the form `5`, `5.5` or `5-5` found in the text. "latest" is deliberately not the first test: an old model's `-latest` alias must never beat a newer numbered model. This is a naming heuristic and may be wrong for a new naming scheme; "Show all models" and "Other" are the escape hatches.
+10. `recommended` (exact model IDs per provider, ships empty) only affects ordering in the Show all view (rule 6). It creates no separate group.
 
 ### 13.5 Error mapping (`src/providers/errors.ts`)
 
@@ -1511,6 +1517,7 @@ Job postings, questions and uploaded files may contain text like "ignore previou
 - **Master Info helpers (§10.3):** `hasTemplateMarker` is true for the sample and false for `edited.md`; the bundled sample contains the marker token exactly once, on its first line, and the guidance comment does not contain it (so deleting line 1 unblocks generation); `stripHtmlComments` removes single-line and multi-line comments and collapses blank-line runs; `resolveEffective` returns the sample when nothing is stored and the stored text (even empty) otherwise; `lengthNote` returns null at or below the limit and `{chars}` above it. Helpers never throw on random input (property-style test with 200 random strings).
 - **Send blockers (§14.6):** order of checks; first run → sample-marker message; saved empty file → "empty" message; Answers selected with no questions and no attachments → questions message; Answers selected with only an attachment → no questions blocker.
 - **Instructions:** exact-heading split for all six sections; first-duplicate wins; missing/empty/misspelled fallback + warnings; fenced `# ` lines ignored; leading comment ignored; "Reset this section" rewrite; nothing stored → bundled default; **the LinkedIn label lines in the default file equal `LINKEDIN_VARIANT_LABELS`**.
+- **Model picker (§13.4):** with fixture lists and a fixture `model-hints.json`: exact ID match (with and without a `models/` prefix) and exact display-name match; family pattern picks the freshest match; pattern that matches nothing adds nothing; empty or all-unmatched patterns fall back to all `likelyChat` models; the default list keeps pattern order; Show all returns every model including non-chat; `recommended` IDs sort first in the Show all view; freshness order ("latest", major, minor, date, alphabetical); the same model selected by two patterns appears once; a pattern that matches only a non-chat model adds nothing; an older model with a `-latest` alias does not beat a newer numbered model; the selected model is present in the options even when it is not in the default list; a grep-style test asserts that no entry of `defaultPatterns` or `smallTierIdPatterns` appears as a string literal in `src/` outside `src/data/` (rule 8).
 - **Prompt assembly:** snapshot test of Part A/C for each of the five output kinds with the fake fixtures; order of blocks; `<questions>` appears **only** for ANSWERS (with typed text, and with the "no typed questions" sentence when empty) and never for other kinds; custom instructions block omitted when empty; empty job context sentence; attachment numbering matches binary parts; tag neutralization (every tag in §12.3 is in the escape list) incl. the gaps delimiter token taken from config; only GLOBAL + one section included; `<today>` appears in Part C with the injected date; snapshot of `FIXED_RULES` (contains rules 3, 6, 8 and 9 and `GAPS_DELIMITER` from config).
 - **Estimate:** chars/4 math; images × constant; PDFs by size with the minimum floor; UI string mentions the size-based guess only when PDFs are present.
 - **Snapshot hash:** changes when any input changes; editing `questions` changes only the ANSWERS hash; does not include the API key; does not include today's date.
@@ -1584,7 +1591,7 @@ The maintainer confirms the final project name (or accepts the working name) aft
 ### M3 — Provider adapters, keys, model picker, Test connection
 
 - **Goal:** user can enter a key, test it, and pick a model for Anthropic and for Gemini.
-- **Tasks:** `sse.ts` with generic-fixture tests, `errors.ts`, `redact.ts`, two adapters (listModels, testConnection, generate **with normalized `truncated` flag**), `model-hints.json`, native-`<select>` model picker with Show all + "Other (type a model ID)" + small-tier note, remember-keys toggle + warning, links to where keys are created. Use the **verified** values recorded in M1. Look up Gemini's free-tier data-use terms on Google's official pages and record the plain result for the README and Help page (V22).
+- **Tasks:** `sse.ts` with generic-fixture tests, `errors.ts`, `redact.ts`, two adapters (listModels, testConnection, generate **with normalized `truncated` flag**), `model-hints.json`, native-`<select>` model picker (short default list from `defaultPatterns`, Show all, "Other (type a model ID)", small-tier note), remember-keys toggle + warning, links to where keys are created. Use the **verified** values recorded in M1. Look up Gemini's free-tier data-use terms on Google's official pages and record the plain result for the README and Help page (V22).
 - **Agent-verified acceptance:** SSE and adapter tests pass with mocked fetch, including truncated-stream fixtures; with a mocked provider (Playwright route or a dev-only mock), Test connection shows "Connected, N models found", and a simulated `TypeError` shows the plain-English network/extension message; with remember OFF, reload clears keys; with ON, keys persist; turning OFF deletes them; V22 row has a source URL and date.
 - **Maintainer-verified acceptance:** with real keys, Test connection succeeds for each provider path that M1 confirmed works.
 
