@@ -42,9 +42,16 @@ export function HelpPage() {
           <div className="rounded-lg border bg-card p-5 text-card-foreground shadow-sm">
             <h3 className="font-semibold text-base mb-2">Browser Storage</h3>
             <p className="text-sm text-muted-foreground">
-              Master Info and settings are stored locally in your browser. API keys are kept in memory only unless you explicitly toggle &quot;Remember my API key&quot;.
+              Master Info and settings are stored locally in your browser. API keys are kept in memory only unless you explicitly toggle &quot;Remember my API keys on this device&quot;.
             </p>
           </div>
+        </div>
+
+        <div className="rounded-lg border bg-card p-6 text-card-foreground shadow-sm space-y-3">
+          <h2 className="text-xl font-semibold">Gemini Free-Tier Data-Use Terms (V22)</h2>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Under Google&apos;s <a href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener noreferrer" className="text-primary underline">Gemini API Additional Terms of Service</a> (checked 2026-10-29), prompts, inputs, and generated content on the free/unpaid tier may be reviewed by human reviewers and used to improve Google products and AI models. Paid tiers (billing enabled) do not use your data for model training. Because resumes contain sensitive personal details, consider using a Paid Tier key or Anthropic.
+          </p>
         </div>
       </div>
     </div>

@@ -41,7 +41,10 @@ describe('App & Hash Routing & Settings', () => {
     expect(screen.getByRole('dialog')).toBeTruthy();
     expect(screen.getByText('Manage application appearance and local data.')).toBeTruthy();
 
-    const darkBtn = screen.getByRole('button', { name: /dark/i });
+    const appearanceTab = screen.getByRole('tab', { name: /appearance/i });
+    fireEvent.keyDown(appearanceTab, { key: 'Enter', code: 'Enter' });
+
+    const darkBtn = await screen.findByRole('button', { name: /dark/i });
     fireEvent.click(darkBtn);
     expect(document.documentElement.classList.contains('dark')).toBe(true);
 

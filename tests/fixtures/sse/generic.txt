@@ -1,0 +1,16 @@
+: this is a leading comment
+
+event: start
+data: {"type":"init","status":"ready"}
+
+: comment in between
+
+data: line 1
+data: line 2
+data: line 3
+
+event: unicode
+data: Hello 🌍 world!
+
+event: final
+data: {"done":true}

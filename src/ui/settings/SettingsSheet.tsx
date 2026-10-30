@@ -20,6 +20,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '../components/ui/alert-dialog';
+import { ProvidersPanel } from './ProvidersPanel';
 import { useSettings } from '../../state/SettingsContext';
 import * as storage from '../../storage/storage';
 import { APP_NAME } from '../../config';
@@ -65,11 +66,16 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
         </SheetHeader>
 
         <div className="mt-6">
-          <Tabs defaultValue="appearance" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+          <Tabs defaultValue="providers" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="providers">Providers</TabsTrigger>
               <TabsTrigger value="appearance">Appearance</TabsTrigger>
               <TabsTrigger value="data">Data</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="providers" className="mt-6">
+              <ProvidersPanel />
+            </TabsContent>
 
             <TabsContent value="appearance" className="mt-6 space-y-6">
               <div className="space-y-3">

@@ -5,6 +5,10 @@
   "noImageIdPatterns": [],
   "pdfCapableIdPatterns": [],
   "recommended": { "gemini": [], "anthropic": [] },
+  "defaultPatterns": {
+    "anthropic": ["sonnet", "haiku", "opus"],
+    "gemini": ["gemini-flash-latest", "gemini-flash-lite-latest", "gemini-pro-latest"]
+  },
   "_note": "All patterns are case-insensitive substrings and are GUESSES. Capability pattern lists ship EMPTY on purpose: model names change faster than this file, so unknown capability must never block the user. Edit freely. 'recommended' lists exact model IDs and ships empty."
 }
 
