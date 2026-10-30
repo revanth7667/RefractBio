@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { ModelInfo, AppError } from '../../types';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -34,19 +34,31 @@ export function ModelPicker({
   const [manualValue, setManualValue] = useState<string>(selectedModel);
 
   // Filter models based on showAllModels:
-  // When false: default choices (latest Sonnet, Haiku, Opus for Anthropic; latest Flash, Flash-lite, Pro for Gemini)
+  // When false: default choices from hints; if selectedModel is in models but not in default list, append it.
   // When true: all models
-  const visibleModels = showAllModels ? models : getDefaultModels(models, provider);
+  const baseModels = showAllModels ? models : getDefaultModels(models, provider);
+  const visibleModels = useMemo(() => {
+    if (showAllModels || !selectedModel) {
+      return baseModels;
+    }
+    const alreadyPresent = baseModels.some((m) => m.id === selectedModel);
+    if (!alreadyPresent) {
+      const match = models.find((m) => m.id === selectedModel);
+      if (match) {
+        return [...baseModels, match];
+      }
+    }
+    return baseModels;
+  }, [baseModels, showAllModels, selectedModel, models]);
 
-  // Group into recommended ("Suggested") and others ("Models")
-  // For UI grouping, recommended models are capabilitySource !== 'none' or pre-sorted
-  // In modelFilter, recommended entries are ordered first
   const currentModelInfo = models.find((m) => m.id === selectedModel);
 
   useEffect(() => {
     if (selectedModel && !models.some((m) => m.id === selectedModel)) {
       setIsManual(true);
       setManualValue(selectedModel);
+    } else if (selectedModel && models.some((m) => m.id === selectedModel)) {
+      setIsManual(false);
     }
   }, [selectedModel, models]);
 
@@ -124,7 +136,7 @@ export function ModelPicker({
       {isManual && (
         <div className="pt-1">
           <Input
-            placeholder="Type a model ID (e.g. claude-3-5-sonnet-20241022)"
+            placeholder="Type a model ID…"
             value={manualValue}
             onChange={handleManualChange}
             className="h-8 text-xs font-mono"

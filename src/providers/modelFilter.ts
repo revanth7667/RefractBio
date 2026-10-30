@@ -30,16 +30,7 @@ export interface RawModelInput {
 
 function matchesAnyPattern(id: string, patterns: string[]): boolean {
   const lower = id.toLowerCase();
-  return patterns.some((p) => {
-    if (!p) return false;
-    const patLower = p.toLowerCase();
-    if (patLower === 'mini') {
-      // Avoid matching 'mini' inside the provider name 'gemini'
-      const withoutGemini = lower.replace(/gemini/g, '');
-      return withoutGemini.includes('mini');
-    }
-    return lower.includes(patLower);
-  });
+  return patterns.some((p) => Boolean(p) && lower.includes(p.toLowerCase()));
 }
 
 export function filterAndEnrichModels(
@@ -151,9 +142,11 @@ export function extractModelVersion(text: string): {
   const dateMatch = lower.match(/\b(20\d{6})\b/);
   const date = dateMatch ? parseInt(dateMatch[1], 10) : 0;
 
-  // Generic pattern: word boundary or separator followed by version: e.g. "5.5", "5-5", "v5.5", "4.8", "3.5"
-  // Negative lookahead (?!\d) prevents 8-digit dates (e.g. 20241022) from matching as a 2-digit version
-  const verMatch = lower.match(/(?:^|[\s/_-])v?(\d{1,2})(?:[.-](\d{1,2}))?(?!\d)/);
+  // Strip 8-digit dates before matching version to avoid partial date matching
+  const textWithoutDate = lower.replace(/\b20\d{6}\b/g, '');
+
+  // First number of the form 5, 5.5 or 5-5 found in the text
+  const verMatch = textWithoutDate.match(/(?:^|[\s/_-])v?(\d{1,2})(?:[.-](\d{1,2}))?(?!\d)/);
   if (verMatch) {
     const major = parseInt(verMatch[1], 10);
     const minor = verMatch[2] ? parseInt(verMatch[2], 10) : 0;
@@ -167,20 +160,20 @@ export function compareModelFreshness(a: ModelInfo, b: ModelInfo): number {
   const vA = extractModelVersion(`${a.displayName} ${a.id}`);
   const vB = extractModelVersion(`${b.displayName} ${b.id}`);
 
-  // 1. Explicit 'latest' tag
+  // 1. Higher major version (descending)
+  if (vA.major !== vB.major) return vB.major - vA.major;
+
+  // 2. Higher minor version (descending)
+  if (vA.minor !== vB.minor) return vB.minor - vA.minor;
+
+  // 3. Release date (descending)
+  if (vA.date !== vB.date) return vB.date - vA.date;
+
+  // 4. Explicit 'latest' tag before one without
   if (vA.hasLatest && !vB.hasLatest) return -1;
   if (!vA.hasLatest && vB.hasLatest) return 1;
 
-  // 2. Major version (descending)
-  if (vA.major !== vB.major) return vB.major - vA.major;
-
-  // 3. Minor version (descending)
-  if (vA.minor !== vB.minor) return vB.minor - vA.minor;
-
-  // 4. Release date (descending)
-  if (vA.date !== vB.date) return vB.date - vA.date;
-
-  // 5. Fallback: localeCompare descending so higher alphanumeric sorts first
+  // 5. Fallback: reverse alphanumeric display-name order
   return b.displayName.localeCompare(a.displayName, undefined, { numeric: true });
 }
 
@@ -194,60 +187,58 @@ export function getDefaultModels(
   provider: ProviderId,
   hints: ModelHints = defaultModelHints as ModelHints
 ): ModelInfo[] {
+  // Consider only likelyChat models when building the default list
+  const chatModels = models.filter((m) => m.likelyChat);
+
   const patterns = (hints.defaultPatterns && hints.defaultPatterns[provider]) || [];
   if (patterns.length === 0) {
-    return models.filter((m) => m.likelyChat);
+    return chatModels;
   }
 
   const defaults: ModelInfo[] = [];
+  const seenIds = new Set<string>();
 
   for (const pat of patterns) {
+    if (!pat) continue;
     const patLower = pat.toLowerCase();
+    const patWithSpaces = patLower.replace(/-/g, ' ');
 
-    // 1. Exact match by ID or displayName (e.g. 'gemini-flash-latest', 'Gemini Flash Latest', 'models/gemini-flash-latest')
-    const exactMatch = models.find(
-      (m) =>
-        m.id.toLowerCase() === patLower ||
-        m.id.toLowerCase() === `models/${patLower}` ||
-        m.displayName.toLowerCase() === patLower ||
-        m.displayName.toLowerCase() === patLower.replace(/-/g, ' ')
-    );
-
-    if (exactMatch) {
-      defaults.push(exactMatch);
-      continue;
-    }
-
-    // 2. Family / pattern filter (e.g. 'sonnet', 'haiku', 'opus', 'gemini-flash-latest')
-    const matching = models.filter((m) => {
-      const text = (m.displayName + ' ' + m.id).toLowerCase();
-      if (text.includes(patLower)) return true;
-
-      const tokens = patLower.split('-').filter((t) => t !== 'gemini');
-      const requiresLite = tokens.includes('lite') || tokens.includes('8b');
-      const hasLite = text.includes('lite') || text.includes('8b');
-
-      if (requiresLite && !hasLite) return false;
-      if (!requiresLite && tokens.includes('flash') && hasLite) return false;
-
+    // (a) Exact match on ID, on models/{pattern}, on display name, or on display name with hyphens in the pattern read as spaces
+    let candidate = chatModels.find((m) => {
+      const idLower = m.id.toLowerCase();
+      const nameLower = m.displayName.toLowerCase();
       return (
-        tokens.length > 0 &&
-        tokens.every((t) => {
-          if (t === 'lite' || t === '8b') return true;
-          return text.includes(t);
-        })
+        idLower === patLower ||
+        idLower === `models/${patLower}` ||
+        nameLower === patLower ||
+        nameLower === patWithSpaces
       );
     });
 
-    if (matching.length > 0) {
-      const sorted = [...matching].sort(compareModelFreshness);
-      defaults.push(sorted[0]);
+    // (b) Otherwise the freshest substring match
+    if (!candidate) {
+      const substringMatches = chatModels.filter((m) => {
+        const idLower = m.id.toLowerCase();
+        const nameLower = m.displayName.toLowerCase();
+        return idLower.includes(patLower) || nameLower.includes(patLower);
+      });
+
+      if (substringMatches.length > 0) {
+        const sorted = [...substringMatches].sort(compareModelFreshness);
+        candidate = sorted[0];
+      }
+    }
+
+    // (c) Otherwise nothing
+    if (candidate && !seenIds.has(candidate.id)) {
+      seenIds.add(candidate.id);
+      defaults.push(candidate);
     }
   }
 
-  // If nothing matched, show all chat models
+  // Fall back to all likelyChat models when the result is empty
   if (defaults.length === 0) {
-    return models.filter((m) => m.likelyChat);
+    return chatModels;
   }
 
   return defaults;
