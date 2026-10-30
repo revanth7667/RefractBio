@@ -20,8 +20,6 @@ export interface ModelInfo {
   capabilitySource: 'api-metadata' | 'pattern-guess' | 'none';
   /** Soft hint, from data/model-hints.json patterns. Always presented as a guess. */
   smallTierGuess: boolean;
-  /** true when typed manually by the user, not from the fetched list. */
-  manual?: boolean;
 }
 
 // ---------- Settings (persisted, small) ----------

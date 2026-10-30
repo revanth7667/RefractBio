@@ -1,6 +1,6 @@
 {
   "nonChatIdPatterns": ["embed", "embedding", "whisper", "tts", "transcribe", "image", "moderation", "audio", "realtime", "aqa"],
-  "smallTierIdPatterns": ["mini", "nano", "lite", "haiku", "flash-8b", "small"],
+  "smallTierIdPatterns": ["nano", "lite", "haiku", "flash-8b", "small"],
   "imageCapableIdPatterns": [],
   "noImageIdPatterns": [],
   "pdfCapableIdPatterns": [],
@@ -9,6 +9,7 @@
     "anthropic": ["sonnet", "haiku", "opus"],
     "gemini": ["gemini-flash-latest", "gemini-flash-lite-latest", "gemini-pro-latest"]
   },
-  "_note": "All patterns are case-insensitive substrings and are GUESSES. Capability pattern lists ship EMPTY on purpose: model names change faster than this file, so unknown capability must never block the user. Edit freely. 'recommended' lists exact model IDs and ships empty."
+  "_note": "All patterns are case-insensitive and are GUESSES. Capability pattern lists ship EMPTY on purpose: model names change faster than this file, so unknown capability must never block the user. Edit freely. 'recommended' lists exact model IDs that sort first in the Show all list and ships empty. 'defaultPatterns' (per provider, in display order) chooses the short default list: each entry is either an exact model ID or display name, or a family word that matches by substring and then picks the freshest match."
 }
+
 
