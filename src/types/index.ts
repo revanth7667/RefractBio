@@ -194,3 +194,4 @@ export interface ProviderAdapter {
   testConnection(config: ProviderConfig): Promise<ConnectionTestResult>;
   generate(req: GenerateRequest): Promise<GenerateResult>;   // throws AppError
 }
+

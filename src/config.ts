@@ -9,3 +9,4 @@ export const LINKEDIN_VARIANT_LABELS = [
   'Variant 1: Connection request note',
   'Variant 2: Direct message',
 ] as const;
+

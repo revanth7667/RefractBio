@@ -18,3 +18,4 @@ export declare const PATTERNS: PatternRule[];
 export declare function scanText(text: string): Finding[];
 export declare function getTrackedFiles(repoRoot?: string): string[];
 export declare function scanRepository(repoRoot?: string): ScannedFileFinding[];
+

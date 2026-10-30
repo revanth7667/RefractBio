@@ -55,3 +55,4 @@ export function cspPlugin(options: CspPluginOptions = {}): Plugin {
     },
   };
 }
+

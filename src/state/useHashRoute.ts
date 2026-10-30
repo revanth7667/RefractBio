@@ -23,3 +23,4 @@ export function useHashRoute(): AppRoute {
 
   return route;
 }
+

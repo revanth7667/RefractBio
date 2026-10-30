@@ -2,3 +2,4 @@
   "anthropicMaxTokens": 4096,
   "_note": "Anthropic requires max_tokens on every messages request. 4096 is verified standard default."
 }
+

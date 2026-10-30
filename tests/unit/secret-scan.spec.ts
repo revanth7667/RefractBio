@@ -43,3 +43,4 @@ describe('Secret Scan', () => {
     expect(repoFindings).toEqual([]);
   });
 });
+
