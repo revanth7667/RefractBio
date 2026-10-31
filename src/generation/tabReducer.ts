@@ -16,6 +16,7 @@ export type TabAction =
   | { type: 'ABORT' }
   | { type: 'EDIT'; text: string }
   | { type: 'RESTORE_PREVIOUS' }
+  | { type: 'FOLD_EDIT' }
   | { type: 'CLEAR' };
 
 export type TabsAction =
@@ -26,6 +27,7 @@ export type TabsAction =
   | { type: 'ABORT'; kind: OutputKind }
   | { type: 'EDIT'; kind: OutputKind; text: string }
   | { type: 'RESTORE_PREVIOUS'; kind: OutputKind }
+  | { type: 'FOLD_EDIT'; kind: OutputKind }
   | { type: 'CLEAR'; kind: OutputKind }
   | { type: 'CLEAR_ALL' };
 
@@ -143,6 +145,19 @@ export function tabReducer(tab: OutputTab, action: TabAction): OutputTab {
         editorText: tab.previous.document,
         userEdited: false,
       };
+    }
+
+    case 'FOLD_EDIT': {
+      if (tab.current && tab.userEdited) {
+        return {
+          ...tab,
+          current: {
+            ...tab.current,
+            document: tab.editorText,
+          },
+        };
+      }
+      return tab;
     }
 
     case 'CLEAR': {

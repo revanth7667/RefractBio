@@ -224,4 +224,36 @@ describe('tabReducer (src/generation/tabReducer.ts, §14.1–§14.3)', () => {
     expect(tabs.RESUME.status).toBe('idle');
     expect(tabs.RESUME.current).toBeNull();
   });
+
+  it('folds edits on FOLD_EDIT (fold-on-confirm) so previous will hold edits after success (§14.3)', () => {
+    let tab = createInitialTab('RESUME');
+    tab = tabReducer(tab, {
+      type: 'SUCCESS',
+      fullText: 'Draft 1',
+      truncated: false,
+      snapshot: dummySnapshot,
+    });
+
+    tab = tabReducer(tab, {
+      type: 'EDIT',
+      text: 'Draft 1 manually edited by user',
+    });
+    expect(tab.userEdited).toBe(true);
+
+    // Confirm dialog Continue folds edits into current.document before generation starts
+    tab = tabReducer(tab, { type: 'FOLD_EDIT' });
+    expect(tab.current?.document).toBe('Draft 1 manually edited by user');
+
+    tab = tabReducer(tab, { type: 'START' });
+    tab = tabReducer(tab, {
+      type: 'SUCCESS',
+      fullText: 'Draft 2 from model',
+      truncated: false,
+      snapshot: dummySnapshot,
+    });
+
+    // Previous version holds the user-edited text, not the stale generated text
+    expect(tab.previous?.document).toBe('Draft 1 manually edited by user');
+    expect(tab.current?.document).toBe('Draft 2 from model');
+  });
 });
