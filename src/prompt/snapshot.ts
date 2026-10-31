@@ -23,11 +23,11 @@ export interface CreateSnapshotParams extends SnapshotParams {
 }
 
 /**
- * Standard 32-bit FNV-1a hash over UTF-8 bytes.
+ * Standard 32-bit FNV-1a hash over UTF-8 bytes or Uint8Array.
  * Returns an 8-character hex string.
  */
-export function fnv1a32(str: string): string {
-  const bytes = new TextEncoder().encode(str);
+export function fnv1a32(input: string | Uint8Array): string {
+  const bytes = typeof input === 'string' ? new TextEncoder().encode(input) : input;
   let hash = 0x811c9dc5;
   for (let i = 0; i < bytes.length; i++) {
     hash ^= bytes[i];
