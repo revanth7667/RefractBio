@@ -182,21 +182,21 @@ export function mapProviderError(opts: ErrorMappingOptions): AppError {
     };
   }
 
+  if (status === 400) {
+    return {
+      category: 'bad_request',
+      httpStatus: status,
+      message: detail ? `The provider rejected the request: ${detail}` : 'The provider rejected the request.',
+      detail,
+    };
+  }
+
   // Safety blocked
   if (detailLower.includes('safety') || detailLower.includes('blocked') || detailLower.includes('harm_category')) {
     return {
       category: 'safety_blocked',
       httpStatus: status,
       message: 'The provider blocked this response. Try rephrasing your custom instructions or check the job context.',
-      detail,
-    };
-  }
-
-  if (status === 400) {
-    return {
-      category: 'bad_request',
-      httpStatus: status,
-      message: detail ? `The provider rejected the request: ${detail}` : 'The provider rejected the request.',
       detail,
     };
   }

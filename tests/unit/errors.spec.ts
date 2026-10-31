@@ -211,5 +211,15 @@ describe('Error Mapping & Host Extraction (src/providers/errors.ts)', () => {
       expect(err.detail?.includes(fakeKey)).toBe(false);
       expect(err.detail).toContain('[redacted]');
     });
+
+    it('maps HTTP 400 containing the word blocked to bad_request, not safety_blocked (Task 9b)', () => {
+      const err = mapProviderError({
+        provider: 'Anthropic',
+        httpStatus: 400,
+        bodyText: JSON.stringify({ error: { message: 'Input was blocked by schema validation' } }),
+      });
+      expect(err.category).toBe('bad_request');
+      expect(err.message).toBe('The provider rejected the request: Input was blocked by schema validation');
+    });
   });
 });

@@ -784,16 +784,44 @@ describe('Milestone M7b Generation and Right Pane UI', () => {
       },
       {
         category: 'safety_blocked',
-        setup: () => {},
+        setup: () => {
+          storage.set('settings', {
+            selectedProvider: 'gemini',
+            selectedModel: { anthropic: 'claude-3-5-sonnet', gemini: 'gemini-1.5-flash' },
+            rememberKeys: true,
+            theme: 'system',
+            paperSize: 'letter',
+            showAllModels: false,
+          });
+        },
         mockHandler: () =>
           Promise.resolve(
-            new Response(
-              JSON.stringify({ error: { message: 'Prompt violated safety guardrails' } }),
-              {
-                status: 400,
-                headers: { 'content-type': 'application/json' },
-              },
-            ),
+            new Response('data: {"promptFeedback":{"blockReason":"SAFETY"}}\n\n', {
+              status: 200,
+              headers: { 'content-type': 'text/event-stream' },
+            }),
+          ),
+        expectedMessage:
+          'The provider blocked this response. Try rephrasing your custom instructions or check the job context.',
+      },
+      {
+        category: 'safety_blocked (Gemini stream finishReason)',
+        setup: () => {
+          storage.set('settings', {
+            selectedProvider: 'gemini',
+            selectedModel: { anthropic: 'claude-3-5-sonnet', gemini: 'gemini-1.5-flash' },
+            rememberKeys: true,
+            theme: 'system',
+            paperSize: 'letter',
+            showAllModels: false,
+          });
+        },
+        mockHandler: () =>
+          Promise.resolve(
+            new Response('data: {"candidates":[{"finishReason":"SAFETY"}]}\n\n', {
+              status: 200,
+              headers: { 'content-type': 'text/event-stream' },
+            }),
           ),
         expectedMessage:
           'The provider blocked this response. Try rephrasing your custom instructions or check the job context.',
@@ -822,16 +850,23 @@ describe('Milestone M7b Generation and Right Pane UI', () => {
           'fetch',
           vi.fn().mockImplementation(async (url: string | URL | Request) => {
             const urlStr = String(url);
+            if (urlStr.includes(':streamGenerateContent') || urlStr.includes('/messages')) {
+              return mockHandler();
+            }
             if (urlStr.includes('/models')) {
               return new Response(
                 JSON.stringify({
                   data: [{ id: 'claude-3-5-sonnet', display_name: 'Claude 3.5 Sonnet' }],
+                  models: [
+                    {
+                      name: 'models/gemini-1.5-flash',
+                      displayName: 'Gemini 1.5 Flash',
+                      supportedGenerationMethods: ['generateContent'],
+                    },
+                  ],
                 }),
                 { status: 200, headers: { 'content-type': 'application/json' } },
               );
-            }
-            if (urlStr.includes('/messages')) {
-              return mockHandler();
             }
             return Promise.reject(new Error(`Unhandled URL: ${urlStr}`));
           }),
