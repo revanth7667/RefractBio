@@ -1,5 +1,10 @@
 import limits from '../data/limits.json';
 import { hasTemplateMarker, lengthNote } from '../masterInfo/masterInfo';
+import {
+  calculateTotalBase64Bytes,
+  checkProviderRequestSize,
+  checkTotalAttachmentWarning,
+} from '../files/sizeChecks';
 import type {
   Attachment,
   EffectiveMasterInfo,
@@ -114,9 +119,27 @@ export function sendBlockers(params: SendBlockersParams): SendBlockersResult {
         'This model may not read images/PDFs; remove the file or pick another model.',
     };
   }
+  // Request size blocker (when providerMaxRequestBytes is non-null)
+  else {
+    const providerLimit = (limits.providerMaxRequestBytes as Record<string, number | null>)[provider] ?? null;
+    if (providerLimit !== null) {
+      const totalBase64 = calculateTotalBase64Bytes(attachments);
+      const estimatedBytes = pastedText.length + totalBase64 + masterInfoText.length;
+      const sizeBlocker = checkProviderRequestSize(provider, estimatedBytes, providerLimit);
+      if (sizeBlocker) {
+        blocker = sizeBlocker;
+      }
+    }
+  }
 
   // Notices (non-blocking)
   const notices: string[] = [];
+
+  // Total attachment size warning notice (§15.3)
+  const totalWarning = checkTotalAttachmentWarning(attachments);
+  if (totalWarning) {
+    notices.push(totalWarning);
+  }
 
   // Unknown capability notice
   const isBlockedByCapability = blocker !== null && blocker.message.includes('images/PDFs');
