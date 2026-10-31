@@ -132,3 +132,4 @@ describe('useBeforeUnload hook (§14.7, Task 8)', () => {
     ).toBe(1);
   });
 });
+
