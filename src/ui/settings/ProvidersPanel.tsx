@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Eye, EyeOff, ExternalLink, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -7,9 +7,8 @@ import { Switch } from '../components/ui/switch';
 import { ModelPicker } from '../inputs/ModelPicker';
 import { useSettings } from '../../state/SettingsContext';
 import { getAdapter } from '../../providers/registry';
-import { getDefaultModels } from '../../providers/modelFilter';
 import { APP_ID } from '../../config';
-import type { ProviderId, ModelInfo, ConnectionTestResult, AppError } from '../../types';
+import type { ProviderId, ConnectionTestResult } from '../../types';
 
 interface ProviderMeta {
   id: ProviderId;
