@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import App from '../../src/App';
 import * as storage from '../../src/storage/storage';
 import { APP_ID } from '../../src/config';
@@ -256,5 +256,98 @@ describe('Milestone M7a Inputs, SendBar, Blockers, and Estimates UI', () => {
         expect(val).not.toContain('Secret custom instructions');
       }
     }
+  });
+
+  it('triggers exactly one model-list request per provider with a stored key at startup, and Send bar shows loaded models (§13.4 rule 1)', async () => {
+    // Setup stored settings with rememberKeys on and stored keys for both providers
+    const initialSettings: Settings = {
+      theme: 'system',
+      paperSize: 'letter',
+      selectedProvider: 'anthropic',
+      selectedModel: { anthropic: '', gemini: '' },
+      showAllModels: false,
+      rememberKeys: true,
+    };
+    storage.set('settings', initialSettings);
+    storage.set('apiKeys', {
+      anthropic: fakeKey,
+      gemini: 'fake-gemini-key',
+    });
+
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const urlStr = String(input);
+      if (urlStr.includes('anthropic.com')) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              data: [
+                { id: 'claude-3-5-sonnet-20241022', display_name: 'Claude 3.5 Sonnet' },
+                { id: 'claude-3-haiku-20240307', display_name: 'Claude 3 Haiku' },
+              ],
+              has_more: false,
+            }),
+            { status: 200 }
+          )
+        );
+      }
+      if (urlStr.includes('googleapis.com')) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              models: [
+                {
+                  name: 'models/gemini-1.5-flash',
+                  displayName: 'Gemini 1.5 Flash',
+                  supportedGenerationMethods: ['generateContent'],
+                },
+              ],
+            }),
+            { status: 200 }
+          )
+        );
+      }
+      return Promise.reject(new Error(`Unhandled URL: ${urlStr}`));
+    });
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<App />);
+
+    // Send bar's model picker loads and displays the loaded models for the active provider (anthropic)
+    await waitFor(() => {
+      expect(screen.getByRole('option', { name: 'Claude 3.5 Sonnet' })).toBeTruthy();
+    });
+
+    // Exactly one model-list request per provider with a stored key (1 anthropic, 1 gemini)
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const requestedUrls = fetchMock.mock.calls.map((call) => String(call[0]));
+    expect(requestedUrls.some((u) => u.includes('anthropic.com'))).toBe(true);
+    expect(requestedUrls.some((u) => u.includes('googleapis.com'))).toBe(true);
+  });
+
+  it('triggers no model-list request when mounting with no key stored, nor while typing a key (§13.4 rule 1)', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<App />);
+
+    // With no key stored, mounting triggers no model-list request
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    // Open Settings dialog (defaults to providers tab)
+    const settingsBtn = screen.getByRole('button', { name: /settings/i });
+    fireEvent.click(settingsBtn);
+
+    // Typing into Anthropic key input triggers no model-list request
+    const anthropicInput = screen.getByPlaceholderText(/enter your anthropic api key/i);
+    fireEvent.change(anthropicInput, { target: { value: 'sk-' } });
+    fireEvent.change(anthropicInput, { target: { value: fakeKey } });
+
+    // Typing into Gemini key input triggers no model-list request
+    const geminiInput = screen.getByPlaceholderText(/enter your google gemini api key/i);
+    fireEvent.change(geminiInput, { target: { value: 'AIza' } });
+    fireEvent.change(geminiInput, { target: { value: 'fake-gemini-typing-key' } });
+
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
