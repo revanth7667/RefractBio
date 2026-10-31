@@ -18,6 +18,7 @@ import { useSettings } from '../../state/SettingsContext';
 import { useMasterInfo } from '../../state/MasterInfoContext';
 import { useInstructions } from '../../state/InstructionsContext';
 import { useJob } from '../../state/JobContext';
+import { useGeneration } from '../../state/GenerationContext';
 import { sendBlockers } from '../../prompt/sendBlockers';
 import { aggregateEstimates } from '../../prompt/estimate';
 import { formatLocalDate } from '../../prompt/formatDate';
@@ -43,6 +44,7 @@ export function SendBar({ onSend }: SendBarProps) {
   const { effectiveMasterInfo, hasUnsavedChanges: hasUnsavedMasterInfo } = useMasterInfo();
   const { resolvedSaved } = useInstructions();
   const { jobInputs, clearJob } = useJob();
+  const { isGenerating, generatingProgress, clearGeneration } = useGeneration();
 
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
   const [estimateLine, setEstimateLine] = useState('');
@@ -103,7 +105,7 @@ export function SendBar({ onSend }: SendBarProps) {
   };
 
   const handleConfirmClear = () => {
-    // M7b seam: abort requests and reset tabs
+    clearGeneration();
     clearJob();
     setClearDialogOpen(false);
   };
@@ -205,11 +207,15 @@ export function SendBar({ onSend }: SendBarProps) {
           <Button
             type="button"
             size="sm"
-            disabled={blocker !== null}
+            disabled={blocker !== null || isGenerating}
             onClick={handleSend}
             aria-describedby={blocker ? 'send-blocker-reason' : undefined}
           >
-            Send
+            {isGenerating
+              ? generatingProgress
+                ? `Sending… (${generatingProgress.current} of ${generatingProgress.total})`
+                : 'Sending…'
+              : 'Send'}
           </Button>
         </div>
       </div>

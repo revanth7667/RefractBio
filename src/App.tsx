@@ -2,6 +2,7 @@ import { SettingsProvider } from './state/SettingsContext';
 import { MasterInfoProvider } from './state/MasterInfoContext';
 import { InstructionsProvider } from './state/InstructionsContext';
 import { JobProvider } from './state/JobContext';
+import { GenerationProvider } from './state/GenerationContext';
 import { useHashRoute } from './state/useHashRoute';
 import { MainLayout } from './ui/layout/MainLayout';
 import { MainWorkspace } from './ui/layout/MainWorkspace';
@@ -31,7 +32,9 @@ export default function App() {
       <MasterInfoProvider>
         <InstructionsProvider>
           <JobProvider>
-            <AppContent />
+            <GenerationProvider>
+              <AppContent />
+            </GenerationProvider>
           </JobProvider>
         </InstructionsProvider>
       </MasterInfoProvider>

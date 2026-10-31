@@ -2,7 +2,11 @@ import { useMasterInfo } from '../../state/MasterInfoContext';
 import { useJob } from '../../state/JobContext';
 import { hasTemplateMarker } from '../../masterInfo/masterInfo';
 
-export function EmptyDraftsState() {
+interface EmptyDraftsStateProps {
+  step3Done?: boolean;
+}
+
+export function EmptyDraftsState({ step3Done = false }: EmptyDraftsStateProps) {
   const { effectiveMasterInfo } = useMasterInfo();
   const { jobInputs } = useJob();
 
@@ -10,8 +14,6 @@ export function EmptyDraftsState() {
     !hasTemplateMarker(effectiveMasterInfo.text) &&
     effectiveMasterInfo.text.trim().length > 0;
   const step2Done = jobInputs.pastedText.trim().length > 0;
-  // Spec-silent decision: step 3 never shows a check mark in the empty state (completes when first tab appears)
-  const step3Done = false;
 
   return (
     <div className="flex h-full min-h-[350px] items-center justify-center p-6 text-center">

@@ -5,27 +5,19 @@ import { QuestionsBox } from '../inputs/QuestionsBox';
 import { CustomInstructions } from '../inputs/CustomInstructions';
 import { SendBar } from '../inputs/SendBar';
 import { EmptyDraftsState } from '../outputs/EmptyDraftsState';
+import { OutputTabs } from '../outputs/OutputTabs';
 import { visibleTabs } from '../../generation/visibleTabs';
 import { sendBlockers } from '../../prompt/sendBlockers';
 import { useSettings } from '../../state/SettingsContext';
 import { useMasterInfo } from '../../state/MasterInfoContext';
 import { useJob } from '../../state/JobContext';
-import type { OutputTab } from '../../types';
-
-// In M7a, tabs are a constant idle set with no versions.
-// In M7b, this will be connected to the generation reducer/state machine.
-const IDLE_TABS: OutputTab[] = [
-  { kind: 'RESUME', status: 'idle', current: null, previous: null, editorText: '', userEdited: false, streamingText: '', error: null },
-  { kind: 'COVER_LETTER', status: 'idle', current: null, previous: null, editorText: '', userEdited: false, streamingText: '', error: null },
-  { kind: 'LINKEDIN_MESSAGE', status: 'idle', current: null, previous: null, editorText: '', userEdited: false, streamingText: '', error: null },
-  { kind: 'EMAIL', status: 'idle', current: null, previous: null, editorText: '', userEdited: false, streamingText: '', error: null },
-  { kind: 'ANSWERS', status: 'idle', current: null, previous: null, editorText: '', userEdited: false, streamingText: '', error: null },
-];
+import { useGeneration } from '../../state/GenerationContext';
 
 export function MainWorkspace() {
   const { settings, apiKeys, models } = useSettings();
   const { effectiveMasterInfo, hasUnsavedChanges: hasUnsavedMasterInfo } = useMasterInfo();
   const { jobInputs } = useJob();
+  const { tabs, isGenerating, sendRun } = useGeneration();
 
   // Active narrow screen tab (Inputs or Outputs)
   const [narrowTab, setNarrowTab] = useState<'inputs' | 'outputs'>('inputs');
@@ -54,22 +46,21 @@ export function MainWorkspace() {
   const canSend = blocker === null;
 
   const handleSend = () => {
-    if (!canSend) return;
-    // M7b seam: Send triggers the generation workflow
-    // M7b seam: auto-switch to narrowTab = 'outputs' on mobile
-    // setNarrowTab('outputs');
+    if (!canSend || isGenerating) return;
+    setNarrowTab('outputs');
+    sendRun();
   };
 
   const handleLeftPaneKeyDown = (e: React.KeyboardEvent) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-      if (canSend) {
+      if (canSend && !isGenerating) {
         e.preventDefault();
         handleSend();
       }
     }
   };
 
-  const displayedTabs = visibleTabs(IDLE_TABS);
+  const displayedTabs = visibleTabs(tabs);
 
   const leftPaneContent = (
     <div
@@ -90,7 +81,7 @@ export function MainWorkspace() {
       {displayedTabs.length === 0 ? (
         <EmptyDraftsState />
       ) : (
-        <div>{/* M7b seam: OutputTabs rendered here */}</div>
+        <OutputTabs />
       )}
     </div>
   );
@@ -124,8 +115,13 @@ export function MainWorkspace() {
                 : 'hover:text-foreground'
             }`}
           >
-            Outputs
-            {/* M7b seam: generating dot indicator when generating */}
+            <span>Outputs</span>
+            {isGenerating && (
+              <span
+                className="ml-1.5 h-2 w-2 rounded-full bg-primary"
+                aria-label="Generating"
+              />
+            )}
           </button>
         </div>
       </div>
