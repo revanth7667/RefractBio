@@ -50,6 +50,14 @@ export interface EffectiveMasterInfo {
 
 // ---------- Instructions file ----------
 export type OutputKind = 'RESUME' | 'COVER_LETTER' | 'LINKEDIN_MESSAGE' | 'EMAIL' | 'ANSWERS';
+
+export const OUTPUT_NAMES: Record<OutputKind, string> = {
+  RESUME: 'Resume',
+  COVER_LETTER: 'Cover Letter',
+  LINKEDIN_MESSAGE: 'LinkedIn',
+  EMAIL: 'Email',
+  ANSWERS: 'Answers',
+};
 export type InstructionSectionName = 'GLOBAL' | OutputKind;
 
 export interface InstructionsFile {

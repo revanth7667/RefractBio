@@ -40,8 +40,10 @@ export function OutputTabs() {
     activeTab,
     setActiveTab,
     retryTab,
+    restoreTab,
     editTab,
-    isGenerating,
+    isTabBusy,
+    isTabStale,
     statusMessage,
     announceStatus,
   } = useGeneration();
@@ -96,6 +98,7 @@ export function OutputTabs() {
       >
         <TabsList className="flex flex-wrap h-auto gap-1 bg-muted/60 p-1">
           {displayedTabs.map((tab) => {
+            const stale = isTabStale(tab.kind);
             return (
               <TabsTrigger
                 key={tab.kind}
@@ -103,6 +106,14 @@ export function OutputTabs() {
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm"
               >
                 <span>{OUTPUT_TAB_LABELS[tab.kind]}</span>
+                {stale && (
+                  <span
+                    data-testid={`stale-dot-${tab.kind}`}
+                    className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0"
+                    title="Inputs changed since this was generated"
+                    aria-label="Inputs changed"
+                  />
+                )}
                 {tab.status === 'generating' && (
                   <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" aria-label="Generating" />
                 )}
@@ -121,10 +132,12 @@ export function OutputTabs() {
           <TabsContent key={tab.kind} value={tab.kind} className="space-y-4 mt-4">
             <TabBody
               tab={tab}
-              isGenerating={isGenerating}
+              isBusy={isTabBusy(tab.kind)}
+              isStale={isTabStale(tab.kind)}
               copiedKey={copiedKey}
               onCopy={handleCopy}
               onRetry={() => retryTab(tab.kind)}
+              onRestore={() => restoreTab(tab.kind)}
               onEdit={(text) => editTab(tab.kind, text)}
             />
           </TabsContent>
@@ -136,19 +149,23 @@ export function OutputTabs() {
 
 interface TabBodyProps {
   tab: OutputTab;
-  isGenerating: boolean;
+  isBusy: boolean;
+  isStale: boolean;
   copiedKey: string | null;
   onCopy: (key: string, text: string) => void;
   onRetry: () => void;
+  onRestore: () => void;
   onEdit: (text: string) => void;
 }
 
 function TabBody({
   tab,
-  isGenerating,
+  isBusy,
+  isStale,
   copiedKey,
   onCopy,
   onRetry,
+  onRestore,
   onEdit,
 }: TabBodyProps) {
   const linkedInVariants =
@@ -171,7 +188,7 @@ function TabBody({
               type="button"
               size="sm"
               variant="default"
-              disabled={isGenerating}
+              disabled={isBusy}
               onClick={onRetry}
             >
               <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
@@ -182,7 +199,7 @@ function TabBody({
               type="button"
               size="sm"
               variant="outline"
-              disabled={isGenerating}
+              disabled={isBusy}
               onClick={onRetry}
             >
               <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
@@ -195,11 +212,9 @@ function TabBody({
               type="button"
               size="sm"
               variant="outline"
-              disabled={tab.previous === null || isGenerating}
+              disabled={tab.previous === null || isBusy}
               title={tab.previous ? 'Restore previous version' : 'No earlier version yet'}
-              onClick={() => {
-                // M8 hook for restore previous version
-              }}
+              onClick={onRestore}
             >
               <Undo2 className="mr-1.5 h-3.5 w-3.5" />
               Restore previous version
@@ -290,6 +305,15 @@ function TabBody({
               Edited
             </Badge>
           )}
+          {isStale && (
+            <Badge
+              variant="outline"
+              title={`Generated with ${formatProviderName(snapshot.provider)} · ${snapshot.model} · ${generatedTime}${snapshot.attachmentNames?.length ? ` · ${snapshot.attachmentNames.join(', ')}` : ''}`}
+              className="border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200 text-xs"
+            >
+              Inputs changed since this was generated
+            </Badge>
+          )}
         </div>
       )}
 
@@ -359,7 +383,7 @@ function TabBody({
               type="button"
               size="sm"
               variant="outline"
-              disabled={isGenerating}
+              disabled={isBusy}
               onClick={onRetry}
             >
               Retry
