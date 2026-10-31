@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Header } from './Header';
 import { Footer } from './Footer';
 import { SettingsSheet } from '../settings/SettingsSheet';
@@ -10,8 +10,7 @@ interface MainLayoutProps {
 }
 
 export function MainLayout({ children }: MainLayoutProps) {
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const { storageAvailable } = useSettings();
+  const { storageAvailable, settingsOpen, setSettingsOpen, openSettings } = useSettings();
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
@@ -25,7 +24,7 @@ export function MainLayout({ children }: MainLayoutProps) {
           </div>
         </div>
       )}
-      <Header onOpenSettings={() => setSettingsOpen(true)} />
+      <Header onOpenSettings={() => openSettings('providers')} />
       <main className="flex-1">{children}</main>
       <Footer />
       <SettingsSheet open={settingsOpen} onOpenChange={setSettingsOpen} />

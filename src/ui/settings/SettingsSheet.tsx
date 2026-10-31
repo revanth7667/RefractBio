@@ -33,10 +33,14 @@ import type { Theme, PaperSize } from '../../types';
 interface SettingsSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  tab?: string;
+  onTabChange?: (tab: string) => void;
 }
 
-export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
-  const { settings, setTheme, setPaperSize, resetAllData } = useSettings();
+export function SettingsSheet({ open, onOpenChange, tab, onTabChange }: SettingsSheetProps) {
+  const { settings, setTheme, setPaperSize, resetAllData, settingsTab, setSettingsTab } = useSettings();
+  const currentTab = tab ?? settingsTab;
+  const handleTabChange = onTabChange ?? setSettingsTab;
   const {
     hasUnsavedChanges: hasUnsavedMasterInfo,
     saveMasterInfo,
@@ -180,7 +184,7 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
           </SheetHeader>
 
           <div className="mt-6">
-            <Tabs defaultValue="providers" className="w-full">
+            <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
               <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="providers">Providers</TabsTrigger>
                 <TabsTrigger value="masterInfo" className="relative">

@@ -37,7 +37,18 @@ const PROVIDERS: ProviderMeta[] = [
 ];
 
 export function ProvidersPanel() {
-  const { settings, apiKeys, setApiKey, setRememberKeys, setSelectedModel, setShowAllModels } = useSettings();
+  const {
+    settings,
+    apiKeys,
+    setApiKey,
+    setRememberKeys,
+    setSelectedModel,
+    setShowAllModels,
+    models: sharedModels,
+    loadingModels,
+    modelErrors,
+    loadModels,
+  } = useSettings();
 
   const [showKeys, setShowKeys] = useState<Record<ProviderId, boolean>>({
     anthropic: false,
@@ -54,63 +65,9 @@ export function ProvidersPanel() {
     gemini: null,
   });
 
-  const [modelCache, setModelCache] = useState<Record<ProviderId, ModelInfo[]>>({
-    anthropic: [],
-    gemini: [],
-  });
-
-  const [loadingModels, setLoadingModels] = useState<Record<ProviderId, boolean>>({
-    anthropic: false,
-    gemini: false,
-  });
-
-  const [modelErrors, setModelErrors] = useState<Record<ProviderId, AppError | null>>({
-    anthropic: null,
-    gemini: null,
-  });
-
   const toggleShowKey = (id: ProviderId) => {
     setShowKeys((prev) => ({ ...prev, [id]: !prev[id] }));
   };
-
-  // Helper to load models for a provider
-  const loadModels = async (providerId: ProviderId, apiKey: string) => {
-    if (!apiKey.trim()) return;
-    setLoadingModels((prev) => ({ ...prev, [providerId]: true }));
-    setModelErrors((prev) => ({ ...prev, [providerId]: null }));
-
-    try {
-      const adapter = getAdapter(providerId);
-      const models = await adapter.listModels({ id: providerId, apiKey });
-      setModelCache((prev) => ({ ...prev, [providerId]: models }));
-
-      // If no model is currently selected, select the first default model or first available model
-      const currentSelected = settings.selectedModel[providerId];
-      if (!currentSelected && models.length > 0) {
-        const defaultList = getDefaultModels(models, providerId);
-        const firstDefault = defaultList[0] || models.find((m) => m.likelyChat) || models[0];
-        setSelectedModel(providerId, firstDefault.id);
-      }
-    } catch (err: unknown) {
-      const appErr =
-        typeof err === 'object' && err !== null && 'category' in err && 'message' in err
-          ? (err as AppError)
-          : null;
-      setModelErrors((prev) => ({ ...prev, [providerId]: appErr }));
-    } finally {
-      setLoadingModels((prev) => ({ ...prev, [providerId]: false }));
-    }
-  };
-
-  // Auto-fetch models on mount if API keys exist
-  useEffect(() => {
-    for (const p of PROVIDERS) {
-      const key = apiKeys[p.id];
-      if (key && modelCache[p.id].length === 0 && !loadingModels[p.id]) {
-        loadModels(p.id, key);
-      }
-    }
-  }, []);
 
   const handleTestConnection = async (providerId: ProviderId) => {
     const key = apiKeys[providerId];
@@ -125,8 +82,8 @@ export function ProvidersPanel() {
       setTestResults((prev) => ({ ...prev, [providerId]: res }));
 
       if (res.ok) {
-        // Also refresh models cache
-        loadModels(providerId, key);
+        // Refresh shared models cache
+        await loadModels(providerId, key);
       }
     } catch {
       // Should not throw as testConnection catches, but guard anyway
@@ -160,7 +117,7 @@ export function ProvidersPanel() {
         const isTesting = testing[provider.id];
         const testResult = testResults[provider.id];
         const currentModel = settings.selectedModel[provider.id] || '';
-        const models = modelCache[provider.id] || [];
+        const models = sharedModels[provider.id] || [];
         const isLoadingModels = loadingModels[provider.id];
         const modelError = modelErrors[provider.id];
 

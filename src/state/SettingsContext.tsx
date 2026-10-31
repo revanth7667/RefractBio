@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import type { Settings, Theme, PaperSize, ProviderId } from '../types';
+import type { Settings, Theme, PaperSize, ProviderId, ModelInfo, AppError } from '../types';
 import * as storage from '../storage/storage';
+import { getAdapter } from '../providers/registry';
+import { getDefaultModels } from '../providers/modelFilter';
 
 const DEFAULT_SETTINGS: Settings = {
   selectedProvider: 'anthropic',
@@ -15,6 +17,15 @@ interface SettingsContextValue {
   settings: Settings;
   apiKeys: Record<ProviderId, string>;
   storageAvailable: boolean;
+  models: Record<ProviderId, ModelInfo[]>;
+  loadingModels: Record<ProviderId, boolean>;
+  modelErrors: Record<ProviderId, AppError | null>;
+  loadModels: (providerId: ProviderId, explicitKey?: string) => Promise<void>;
+  settingsOpen: boolean;
+  setSettingsOpen: (open: boolean) => void;
+  settingsTab: string;
+  setSettingsTab: (tab: string) => void;
+  openSettings: (tab?: string) => void;
   setApiKey: (provider: ProviderId, key: string) => void;
   setRememberKeys: (remember: boolean) => void;
   setSelectedModel: (provider: ProviderId, model: string) => void;
@@ -30,6 +41,16 @@ const SettingsContext = createContext<SettingsContextValue | undefined>(undefine
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [storageAvailable] = useState(() => storage.isAvailable());
+
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<string>('providers');
+
+  const openSettings = (tab?: string) => {
+    if (tab) {
+      setSettingsTab(tab);
+    }
+    setSettingsOpen(true);
+  };
 
   const [settings, setSettingsState] = useState<Settings>(() => {
     const res = storage.get<Settings>('settings');
@@ -53,6 +74,70 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     }
     return { anthropic: '', gemini: '' };
   });
+
+  const [models, setModels] = useState<Record<ProviderId, ModelInfo[]>>({
+    anthropic: [],
+    gemini: [],
+  });
+
+  const [loadingModels, setLoadingModels] = useState<Record<ProviderId, boolean>>({
+    anthropic: false,
+    gemini: false,
+  });
+
+  const [modelErrors, setModelErrors] = useState<Record<ProviderId, AppError | null>>({
+    anthropic: null,
+    gemini: null,
+  });
+
+  const loadModels = async (providerId: ProviderId, explicitKey?: string) => {
+    const key = explicitKey !== undefined ? explicitKey : apiKeys[providerId];
+    if (!key || !key.trim()) return;
+
+    setLoadingModels((prev) => ({ ...prev, [providerId]: true }));
+    setModelErrors((prev) => ({ ...prev, [providerId]: null }));
+
+    try {
+      const adapter = getAdapter(providerId);
+      const fetchedModels = await adapter.listModels({ id: providerId, apiKey: key });
+      setModels((prev) => ({ ...prev, [providerId]: fetchedModels }));
+
+      // If no model is currently selected, select the first default model or first available model
+      setSettingsState((prevSettings) => {
+        const currentSelected = prevSettings.selectedModel[providerId];
+        if (!currentSelected && fetchedModels.length > 0) {
+          const defaultList = getDefaultModels(fetchedModels, providerId);
+          const firstDefault = defaultList[0] || fetchedModels.find((m) => m.likelyChat) || fetchedModels[0];
+          if (firstDefault) {
+            const nextSelected = { ...prevSettings.selectedModel, [providerId]: firstDefault.id };
+            const next = { ...prevSettings, selectedModel: nextSelected };
+            storage.set('settings', next);
+            return next;
+          }
+        }
+        return prevSettings;
+      });
+    } catch (err: unknown) {
+      const appErr =
+        typeof err === 'object' && err !== null && 'category' in err && 'message' in err
+          ? (err as AppError)
+          : null;
+      setModelErrors((prev) => ({ ...prev, [providerId]: appErr }));
+    } finally {
+      setLoadingModels((prev) => ({ ...prev, [providerId]: false }));
+    }
+  };
+
+  // Load models at startup if a key is already available (§13.4 rule 1)
+  useEffect(() => {
+    const providers: ProviderId[] = ['anthropic', 'gemini'];
+    for (const p of providers) {
+      const key = apiKeys[p];
+      if (key && key.trim()) {
+        loadModels(p, key);
+      }
+    }
+  }, []);
 
   const updateSettings = (updates: Partial<Settings>) => {
     setSettingsState((prev) => {
@@ -99,6 +184,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     storage.removeAll();
     setSettingsState(DEFAULT_SETTINGS);
     setApiKeysState({ anthropic: '', gemini: '' });
+    setModels({ anthropic: [], gemini: [] });
+    setModelErrors({ anthropic: null, gemini: null });
   };
 
   // Sync theme with document element
@@ -148,6 +235,15 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         settings,
         apiKeys,
         storageAvailable,
+        models,
+        loadingModels,
+        modelErrors,
+        loadModels,
+        settingsOpen,
+        setSettingsOpen,
+        settingsTab,
+        setSettingsTab,
+        openSettings,
         setApiKey,
         setRememberKeys,
         setSelectedModel,
