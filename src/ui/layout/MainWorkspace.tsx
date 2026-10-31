@@ -12,11 +12,12 @@ import { useSettings } from '../../state/SettingsContext';
 import { useMasterInfo } from '../../state/MasterInfoContext';
 import { useJob } from '../../state/JobContext';
 import { useGeneration } from '../../state/GenerationContext';
+import { extractPastedImageFiles } from '../../files/paste';
 
 export function MainWorkspace() {
   const { settings, apiKeys, models } = useSettings();
   const { effectiveMasterInfo, hasUnsavedChanges: hasUnsavedMasterInfo } = useMasterInfo();
-  const { jobInputs } = useJob();
+  const { jobInputs, addFiles } = useJob();
   const { tabs, isGenerating, sendRun } = useGeneration();
 
   // Active narrow screen tab (Inputs or Outputs)
@@ -60,11 +61,21 @@ export function MainWorkspace() {
     }
   };
 
+  const handleLeftPanePaste = (e: React.ClipboardEvent) => {
+    const existingNames = jobInputs.attachments.map((a) => a.name);
+    const pastedImages = extractPastedImageFiles(e.clipboardData, existingNames);
+    if (pastedImages.length > 0) {
+      e.preventDefault();
+      addFiles(pastedImages);
+    }
+  };
+
   const displayedTabs = visibleTabs(tabs);
 
   const leftPaneContent = (
     <div
       onKeyDown={handleLeftPaneKeyDown}
+      onPaste={handleLeftPanePaste}
       className="space-y-6"
       tabIndex={-1}
     >
