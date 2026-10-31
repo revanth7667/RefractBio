@@ -3,7 +3,7 @@
 > **Audience:** an agentic coding tool (Google Antigravity) building this project from scratch, and the humans reviewing its work.
 > **How to read this:** sections marked **MUST** are requirements. Anything about third-party APIs is a *hypothesis* until confirmed in the milestone named in §4. All names, employers, emails and phone numbers in this document are **fake sample data**.
 > **Working name:** "RefractBio" is a working name. Every place the name appears in code, storage keys, filenames or persisted content comes from `src/config.ts` (see §0 and A23), so a rename touches one file.
-> **Spec version:** 3.0 (simplified). Changes since 2.2: (1) **two providers only**, Anthropic and Gemini; OpenAI, OpenRouter, the Cloudflare Worker proxy and all custom-endpoint machinery are removed and deferred; (2) **Master Info is free-form**: one bundled sample file replaces the template, the separate example, the parser and the linter; the only file-specific code is a marker check, HTML-comment stripping, the effective-text rule and a length note; (3) **a fifth output, "Application answers"**, for interview-style and application-form questions, with a Questions box and an `# ANSWERS` instructions section; (4) the internal-ID safety-net badge, metric flags and IDs are gone; (5) verification items renumbered (V1–V22).
+> **Spec version:** 3.0 (simplified). Changes since 2.2: (1) **two providers only**, Anthropic and Gemini; OpenAI, OpenRouter, the Cloudflare Worker proxy and all custom-endpoint machinery are removed and deferred; (2) **Master Info is free-form**: one bundled sample file replaces the template, the separate example, the parser and the linter; the only file-specific code is a marker check, HTML-comment stripping, the effective-text rule and a length note; (3) **a fifth output, "Application answers"**, for interview-style and application-form questions, with a Questions box and an `# ANSWERS` instructions section; (4) the internal-ID safety-net badge, metric flags and IDs are gone; (5) verification items renumbered (V1–V22). **Post-M8 edits (no version bump):** §12.6 estimate rounding, §13.5 safety-detection order, §14.1–§14.3 `FOLD_EDIT` and the Send/Regenerate rules, §17.2 Send label, §17.3 empty-state step 3, file tree (§7), and decisions recorded under M7a, M7b and M8 in §20.
 
 ---
 
@@ -287,7 +287,9 @@ refractbio/                           # directory name may change with the proje
 │  │  ├─ assemble.ts
 │  │  ├─ escape.ts
 │  │  ├─ estimate.ts
-│  │  └─ snapshot.ts                  # input hash for stale badge
+│  │  ├─ snapshot.ts                  # input hash for stale badge
+│  │  ├─ sendBlockers.ts              # §14.6 blockers and notices (pure)
+│  │  └─ formatDate.ts                # formatLocalDate: local YYYY-MM-DD
 │  ├─ providers/
 │  │  ├─ types.ts                     # re-exports adapter types
 │  │  ├─ registry.ts                  # provider id -> adapter
@@ -311,20 +313,21 @@ refractbio/                           # directory name may change with the proje
 │  │  └─ sizeChecks.ts
 │  ├─ export/
 │  │  ├─ clipboard.ts
-│  │  ├─ download.ts
+│  │  ├─ markdown.ts                  # Download .md helper and filename (§16.1)
 │  │  ├─ print.ts
 │  │  └─ print.css
 │  ├─ state/
 │  │  ├─ SettingsContext.tsx
 │  │  ├─ JobContext.tsx
+│  │  ├─ GenerationContext.tsx        # queue, tabs, dialogs, stale tabs
 │  │  ├─ useBeforeUnload.ts
 │  │  └─ useHashRoute.ts
 │  └─ ui/
 │     ├─ components/ui/               # shadcn copies (only those listed in §6)
-│     ├─ layout/ { MainLayout.tsx, NarrowTabs.tsx, Footer.tsx }
+│     ├─ layout/ { MainLayout.tsx, MainWorkspace.tsx, Footer.tsx }
 │     ├─ inputs/ { ContextArea.tsx, AttachmentList.tsx, QuestionsBox.tsx, CustomInstructions.tsx,
-│     │            OutputToggles.tsx, ModelPicker.tsx, SendBar.tsx, TokenEstimate.tsx }
-│     ├─ outputs/{ OutputTabs.tsx, OutputTab.tsx, GapsNote.tsx, StaleBadge.tsx, TruncatedNotice.tsx }
+│     │            OutputToggles.tsx, ModelPicker.tsx, SendBar.tsx (includes the estimate line), DevPromptDisclosure.tsx }
+│     ├─ outputs/{ OutputTabs.tsx (tab bar, toolbar, Gaps note, badges, error callout, editor), EmptyDraftsState.tsx }
 │     ├─ settings/{ SettingsSheet.tsx, ProvidersPanel.tsx, MasterInfoPanel.tsx,
 │     │            InstructionsPanel.tsx, AppearancePanel.tsx, DataPanel.tsx, AboutPanel.tsx }
 │     ├─ help/HelpPage.tsx
@@ -1037,6 +1040,7 @@ Constants live in `src/data/estimates.json`:
 - `imageTokens = imageCount × estimates.imageTokens`.
 - `pdfTokens = Σ over PDFs of max(pdfMinTokens, ceil(sizeMB × pdfTokensPerMB))`, where `sizeMB = sizeBytes / (1024 × 1024)`.
 - UI (next to Send), without PDFs: `≈ 9,800 tokens per output × 3 outputs ≈ 29,400 tokens. Rough estimate; actual usage and cost depend on the provider and model.` With PDFs, append: ` Includes a size-based guess for {n} PDF(s).` Updates live (debounced 300 ms).
+- The total shown is the true sum of the per-output estimates; the per-output figure is `round(total / outputCount)`, so per-output × count can differ from the total by a few tokens.
 - No cost estimate (pricing changes; not invented).
 
 ### 12.7 Output post-processing (`src/generation/gaps.ts`, `src/generation/variants.ts`)
@@ -1152,6 +1156,8 @@ Rules:
 | `AbortError` | `aborted` | (not shown; tab reverts silently) |
 | Anything else | `unknown` | "Something went wrong: {detail}" |
 
+**Order of evaluation:** abort, network/CSP, then the status-based rows above. Safety blocks are normally reported in the response stream (Gemini `promptFeedback.blockReason` or a blocking `finishReason`, V7) and mapped there. The text heuristic (error detail containing "safety", "blocked" or "harm_category") applies only when no status-based row matched, so an ordinary HTTP 400 whose message merely contains the word "blocked" stays `bad_request`.
+
 `detail` = provider error message extracted from JSON (`error.message`) where possible, redacted, truncated to 500 characters. `{host}` is the hostname only (never a full URL, which could contain a key under the §13.1 exception).
 
 ### 13.6 Adding a provider later (Phase 2, not in the MVP)
@@ -1174,14 +1180,14 @@ stateDiagram-v2
   generating --> error: FAIL (revert editor, keep versions)
   generating --> idle: ABORT and no current version
   generating --> done: ABORT and current version exists
-  done --> done: EDIT / RESTORE_PREVIOUS
+  done --> done: EDIT / FOLD_EDIT / RESTORE_PREVIOUS
   error --> error: EDIT
   idle --> idle: CLEAR
   done --> idle: CLEAR
   error --> idle: CLEAR
 ```
 
-Reducer actions (`src/generation/tabReducer.ts`): `START`, `DELTA(text)`, `SUCCESS(fullText, truncated, snapshot)`, `FAIL(error)`, `ABORT`, `EDIT(text)`, `RESTORE_PREVIOUS`, `CLEAR`.
+Reducer actions (`src/generation/tabReducer.ts`): `START`, `DELTA(text)`, `SUCCESS(fullText, truncated, snapshot)`, `FAIL(error)`, `ABORT`, `EDIT(text)`, `FOLD_EDIT`, `RESTORE_PREVIOUS`, `CLEAR`. `FOLD_EDIT` copies the edited text into `current.document` and clears `userEdited`; it is dispatched when the user confirms the overwrite dialog (§14.3).
 
 ### 14.2 Send semantics and tab visibility
 
@@ -1189,8 +1195,8 @@ Reducer actions (`src/generation/tabReducer.ts`): `START`, `DELTA(text)`, `SUCCE
 - **Tab visibility rule (A26):** the pure selector `visibleTabs(tabs)` returns the tabs where `status !== 'idle' || current !== null`, in fixed order Resume, Cover Letter, LinkedIn, Email, Answers. A selected output that has never been sent has **no tab**; it exists only as a toggle on the left. A tab appears the moment its request starts. When `visibleTabs` is empty, the right pane shows the empty state (§17.3).
 - Each selected kind → one independent call. Never a combined call.
 - Queue: FIFO, concurrency 2 (A5). A failure in one call never cancels others.
-- **Per-tab Regenerate/Retry** button: regenerates only that tab with **current** inputs, even if that output is not selected.
-- If a kind is already `generating` when Send is pressed, its in-flight request is aborted and restarted.
+- **Per-tab Regenerate/Retry** button: regenerates only that tab with **current** inputs, even if that output is not selected. It joins the queue, may be pressed while other tabs are running, and is disabled for that tab while the tab is queued or generating.
+- **Send is disabled while any job is queued or generating**, so Send never restarts a running kind. The queue (`src/generation/queue.ts`) keeps one `AbortController` per job and, if the same kind is enqueued twice, aborts the earlier job and runs the new one (not reachable from the UI). Clear job aborts every queued and running job (§14.5).
 - The **Questions** box content is sent **only** with the Answers call (A31); other outputs ignore it.
 
 ### 14.3 Versions, edits and truncation
@@ -1200,7 +1206,7 @@ Reducer actions (`src/generation/tabReducer.ts`): `START`, `DELTA(text)`, `SUCCE
 - On `FAIL`/`ABORT`: `streamingText` discarded; `editorText`, `current`, `previous`, `userEdited` unchanged (A7).
 - On `EDIT`: `editorText = text`; `userEdited = (text !== current.document)`.
 - **Truncation notice (A21):** shown whenever `current.truncated` is true (it follows the current version, including after Restore previous version). Text: "This draft was cut off before the model finished. Press Regenerate, or choose a model or setting that allows longer output."
-- **Before overwriting edited tabs**: if any tab about to start has `userEdited === true`, show one AlertDialog: "You edited {Resume, Email}. Regenerating will replace your edits (you can still restore the previous version once). Continue?" Cancel → nothing starts. Continue → the edited text is first folded into `current.document` (so `previous` after success holds the user's edits, not the stale generated text).
+- **Before overwriting edited tabs**: if any tab about to start has `userEdited === true`, show one AlertDialog: "You edited {Resume, Email}. Regenerating will replace your edits (you can still restore the previous version once). Continue?" Cancel → nothing starts. Continue → the edited text is first folded into `current.document` (`FOLD_EDIT`, so `previous` after success holds the user's edits, not the stale generated text).
 - **Restore previous version** (enabled only when `previous !== null` and not generating): swaps `current` and `previous`; `editorText = current.document`; `userEdited = false`. If `userEdited` was true, confirm first: "Discard your unsaved edits to this tab?"
 
 ### 14.4 Snapshot and stale badge (`src/prompt/snapshot.ts`)
@@ -1365,11 +1371,11 @@ DOCX export, HTML export, multiple templates, custom fonts.
 2. **Outputs**: five toggle buttons (multi-select, `aria-pressed`), each with icon + label: Resume (FileText), Cover Letter (FileSignature), LinkedIn Message (MessageSquare), Email (Mail), Application Answers (HelpCircle). Default on first load: Resume and Cover Letter selected. (Selection alone never creates a right-pane tab, see A26.)
 3. **Application questions** (A31): a textarea that is **shown only while the Answers toggle is on**. Label "Application questions", helper "Paste the questions you need answered, one per line or numbered (for example 'Tell me about a time when…'). You can also attach a screenshot of them in the job context area above." Content is kept in memory when the toggle is switched off and on again, and is cleared by Clear job.
 4. **Custom instructions (this job only)**: collapsible (native `<details>`/`<summary>`), closed by default; textarea, placeholder "e.g. Emphasise reporting automation. Keep the cover letter under 250 words." Helper: "Applies to every output for this job. Cleared with Clear job."
-5. **Send bar**: compact provider `<select>` + model `<select>` with an "Other (type a model ID)…" option (§13.4) and the small-tier note, token estimate (§12.6), blockers/notices (§14.6, §10.4 length note), primary **Send** button (shows "Sending… (2 of 3)" while any selected tab generates), secondary **Clear job** button.
+5. **Send bar**: compact provider `<select>` + model `<select>` with an "Other (type a model ID)…" option (§13.4) and the small-tier note, token estimate (§12.6), blockers/notices (§14.6, §10.4 length note), primary **Send** button (shows "Sending… (n of m)" while any job is queued or generating, where m is the number of jobs in the run and n = min(completed + 1, m); Send is disabled during that time), secondary **Clear job** button.
 
 ### 17.3 Right pane
 
-- **Empty state** (shown whenever `visibleTabs` is empty, §14.2): plain text: "Your drafts will appear here. 1. Fill in your Master Info (Settings). 2. Add job context. 3. Pick outputs and press Send." Each step shows ✓ when done. This state returns after Clear job.
+- **Empty state** (shown whenever `visibleTabs` is empty, §14.2): plain text: "Your drafts will appear here. 1. Fill in your Master Info (Settings). 2. Add job context. 3. Pick outputs and press Send." Each step shows ✓ when done: step 1 when the effective Master Info has no sample marker and is not empty; step 2 when the pasted job context is not empty; step 3 never shows ✓ in the empty state (it completes when the first tab appears and the empty state is replaced). This state returns after Clear job.
 - **Tabs** (shadcn Tabs), one per visible tab (§14.2), in the order Resume, Cover Letter, LinkedIn, Email, Answers. Tab label = output name + status indicator: generating (spinner, `aria-label="Generating"`), done (check), error (alert icon). A small amber dot marks a stale tab.
 - **Tab body** (top to bottom):
   - Toolbar: **Regenerate** (or **Retry** in error state), **Restore previous version** (disabled when unavailable, with visible helper text "No earlier version yet" and a `title` attribute), **Copy** (labelled **Copy all** on the LinkedIn and Answers tabs), **Download .md**, and, for Resume/Cover Letter, **Print / Save as PDF** with paper `<select>`. Email adds Copy subject / Copy body. LinkedIn adds Copy connection note / Copy direct message (§16.2).
@@ -1619,6 +1625,7 @@ The maintainer confirms the final project name (or accepts the working name) aft
 - **Tasks:** `JobContext` state (in memory only; selected outputs default to Resume and Cover Letter); left pane: job context textarea (files arrive in M9), five output toggles, Questions box shown only while Answers is on, custom instructions `<details>`; one shared model-list state used by both the Providers panel and the send bar (the list loads at startup when a key is available, §13.4 rule 1); send bar with provider and model selects, token estimate (§12.6), notices, the Send blockers (§14.6, as a pure `sendBlockers` function), Send (a no-op seam until M7b) and Clear job (§14.5); the notices deferred from earlier milestones (the "Instructions: N section(s) using default" badge §11.2, the unsaved Master Info notice §10.5, the Master Info length note §10.4, the pasted-text length notice §15.3); the `visibleTabs` selector (A26) and the right-pane empty state (§17.3); narrow-screen Inputs/Outputs tabs (§17.1); the dev-only "Show prompt" disclosure (M6); Ctrl/Cmd+Enter.
 - **Agent-verified acceptance:** `sendBlockers` unit tests cover every blocker in §14.6, in order, with the exact messages and the first-wins rule (attachment cases use synthetic attachments); the Questions box appears only while Answers is on and keeps its text across toggles; Send is blocked for Answers with no questions and no attachments and allowed with only an attachment (pure-function test); on a fresh profile the Send blocker is the sample-marker message and "Open Master Info" opens Settings on that tab; with a saved Master Info, an API key and a model selected, Send is enabled and pressing it does nothing yet; the estimate updates (debounced 300 ms) when the context text or the selected outputs change; `visibleTabs` returns no tabs when every tab is idle with no content, so the empty state shows before the first Send even with outputs pre-selected; Clear job resets the inputs and the selection to the defaults; typing in any input writes nothing to localStorage; the production build contains no "Show prompt" text.
 - **Maintainer-verified acceptance:** in Chrome, Firefox and Safari: the layout at wide and narrow widths, keyboard operation of the toggles, Ctrl/Cmd+Enter, and the blocker messages in the first-run and fully configured states.
+- **Decisions recorded (post-M7a):** the model-list cache, loading and error state live in `SettingsContext` and are shared by the Providers panel and the send bar; Settings opens on a given tab through `openSettings(tab)` in `SettingsContext` (used by "Open Master Info"); `formatLocalDate(date)` (local getters, never `toISOString`) and `sendBlockers` live in `src/prompt/`; the narrow/wide layout renders one DOM tree per pane and toggles it with responsive classes; blocker 8 checks only `status === 'error'` until M9 enforces the hard limits when files are added; the empty-state step rules are in §17.3; the estimate rounding rule is in §12.6.
 
 ### M7b — Generation and right pane
 
@@ -1626,13 +1633,15 @@ The maintainer confirms the final project name (or accepts the working name) aft
 - **Tasks:** wire Send to `assemble()` and the adapters with one call per selected output (queue concurrency, regeneration and abort rules are completed in M8); `tabReducer`; right pane tabs with streaming, Gaps split, editor, Copy, Download .md; LinkedIn variant split and per-variant copy (A29) with the two safety-net badges of §12.7; error callout + Retry; truncation notice; the "Sending… (n of m)" label; auto-switch to the Outputs tab on narrow screens.
 - **Agent-verified acceptance:** with a mocked provider returning fixture streams, selecting Resume and pressing Send creates the Resume tab, streams text into it and shows the Gaps note; the Answers request contains `<questions>` and the others do not; a mocked 401 shows the auth message; a mocked truncated stream shows the truncation notice; Copy and Download work; the LinkedIn mock shows both per-variant Copy buttons and copied text excludes the labels; the no-labels LinkedIn fixture shows the "LinkedIn variant labels missing" badge and only "Copy all".
 - **Maintainer-verified acceptance:** the same flow with a real key for at least one provider; a real LinkedIn draft from each provider tested keeps the labels intact (if a model often breaks them, report it); a real Answers draft for a question with no matching story shows a "Needs your input:" line instead of an invented story.
+- **Decisions recorded (post-M7b):** in M7b the selected outputs ran one after another in the fixed tab order (the concurrency-2 queue arrived in M8); Copy and Download .md helpers live in `src/export/clipboard.ts` and `src/export/markdown.ts`; a safety block is verified through the Gemini stream path (§13.5 order of evaluation); a mount inside `React.StrictMode` is covered by a test.
 
 ### M8 — Multi-output, versions, stale badge, clear, leave warning
 
 - **Goal:** full generation behavior of §14.
 - **Tasks:** queue (concurrency 2), per-tab regenerate, edit-overwrite confirm, restore previous, snapshots + stale badge, Clear job (tabs and questions disappear, empty state returns), beforeunload hook.
-- **Agent-verified acceptance:** reducer, visibility and queue tests pass; with mocked providers: generate all five, unselect four, edit instructions, Send → only Resume regenerates and the other tabs show the stale badge; editing the Questions box marks only the Answers tab stale; restore toggles versions; a Playwright check confirms the `beforeunload` handler is registered while outputs exist and removed after Clear job.
+- **Agent-verified acceptance:** reducer, visibility and queue tests pass; with mocked providers: generate all five, unselect four, edit instructions, Send → only Resume regenerates and the other tabs show the stale badge; editing the Questions box marks only the Answers tab stale; restore toggles versions; a jsdom test (spies on `window.addEventListener`/`removeEventListener`) confirms the `beforeunload` handler is registered while outputs exist and removed after Clear job (Playwright is not installed until M10).
 - **Maintainer-verified acceptance:** reloading with outputs shows the browser's leave-site prompt in Chrome, Firefox and Safari.
+- **Decisions recorded (post-M8):** `queue.ts` is a pure promise-based FIFO queue with concurrency 2 and one `AbortController` per job; Send and per-tab Regenerate follow the rules in §14.2; one overwrite dialog covers every tab about to start (§14.3); stale hashes are computed per kind (that kind's instruction section, questions only for Answers) with a 300 ms debounce; `useBeforeUnload` registers its handler through one effect keyed on the registration condition.
 
 ### M9 — File handling
 
