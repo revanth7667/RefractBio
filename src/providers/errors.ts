@@ -8,6 +8,10 @@ import { redact } from './redact';
 
 const cspViolatedHosts = new Set<string>();
 
+export function clearCspViolations(): void {
+  cspViolatedHosts.clear();
+}
+
 export function recordCspViolation(blockedUri: string): void {
   try {
     const url = new URL(blockedUri);
@@ -178,6 +182,16 @@ export function mapProviderError(opts: ErrorMappingOptions): AppError {
     };
   }
 
+  // Safety blocked
+  if (detailLower.includes('safety') || detailLower.includes('blocked') || detailLower.includes('harm_category')) {
+    return {
+      category: 'safety_blocked',
+      httpStatus: status,
+      message: 'The provider blocked this response. Try rephrasing your custom instructions or check the job context.',
+      detail,
+    };
+  }
+
   if (status === 400) {
     return {
       category: 'bad_request',
@@ -211,17 +225,7 @@ export function mapProviderError(opts: ErrorMappingOptions): AppError {
     };
   }
 
-  // 4. Safety blocked
-  if (detailLower.includes('safety') || detailLower.includes('blocked') || detailLower.includes('harm_category')) {
-    return {
-      category: 'safety_blocked',
-      httpStatus: status,
-      message: 'The provider blocked this response. Try rephrasing your custom instructions or check the job context.',
-      detail,
-    };
-  }
-
-  // 5. Unknown / fallback
+  // 4. Unknown / fallback
   return {
     category: 'unknown',
     httpStatus: status,

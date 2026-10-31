@@ -1,3 +1,4 @@
+import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import fs from 'node:fs';
@@ -5,6 +6,7 @@ import path from 'node:path';
 import App from '../../src/App';
 import * as storage from '../../src/storage/storage';
 import { APP_ID, GAPS_DELIMITER } from '../../src/config';
+import { recordCspViolation, clearCspViolations } from '../../src/providers/errors';
 
 describe('Milestone M7b Generation and Right Pane UI', () => {
   const fakeKey = 'sk-' + 'test-fake-0000';
@@ -653,5 +655,375 @@ describe('Milestone M7b Generation and Right Pane UI', () => {
       const val = localStorage.getItem(key) || '';
       expect(val).not.toContain('Super secret drafted resume text');
     }
+  });
+
+  describe('Error categories mapping during generation (§13.5)', () => {
+    const errorCases = [
+      {
+        category: 'csp_blocked',
+        setup: () => recordCspViolation('https://api.anthropic.com/v1/messages'),
+        mockHandler: () => Promise.reject(new TypeError('Failed to fetch')),
+        expectedMessage:
+          "This app's security policy blocked the request to api.anthropic.com. The hosted app only allows the Anthropic and Gemini addresses.",
+      },
+      {
+        category: 'cors_or_network (offline)',
+        setup: () => vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false),
+        mockHandler: () => Promise.reject(new TypeError('Failed to fetch')),
+        expectedMessage: 'You appear to be offline. Check your connection and try again.',
+      },
+      {
+        category: 'cors_or_network (extensions/VPN/firewall)',
+        setup: () => vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true),
+        mockHandler: () => Promise.reject(new TypeError('Failed to fetch')),
+        expectedMessage:
+          'The request to api.anthropic.com was blocked before it reached the provider. This is usually caused by a browser extension (ad or privacy blocker), a VPN, a firewall or a work network. Try turning extensions off for this page, switching networks, or using the other provider. If it keeps happening, the provider may no longer allow requests from web pages; see Help.',
+      },
+      {
+        category: 'auth (403)',
+        setup: () => {},
+        mockHandler: () =>
+          Promise.resolve(
+            new Response(JSON.stringify({ error: { message: 'Forbidden key' } }), {
+              status: 403,
+              headers: { 'content-type': 'application/json' },
+            }),
+          ),
+        expectedMessage:
+          'The provider rejected your API key. Check that you pasted the whole key for Anthropic.',
+      },
+      {
+        category: 'model_not_found (404)',
+        setup: () => {},
+        mockHandler: () =>
+          Promise.resolve(
+            new Response(JSON.stringify({ error: { message: 'Model not found' } }), {
+              status: 404,
+              headers: { 'content-type': 'application/json' },
+            }),
+          ),
+        expectedMessage:
+          'The model "claude-3-5-sonnet" wasn\'t found or isn\'t available to your key. Pick another model or check the ID.',
+      },
+      {
+        category: 'too_large (413)',
+        setup: () => {},
+        mockHandler: () =>
+          Promise.resolve(
+            new Response(JSON.stringify({ error: { message: 'Payload Too Large' } }), {
+              status: 413,
+              headers: { 'content-type': 'application/json' },
+            }),
+          ),
+        expectedMessage:
+          'The request is too large for this provider. Remove or shrink attachments, or shorten your Master Info.',
+      },
+      {
+        category: 'unsupported_input (400 image/pdf)',
+        setup: () => {},
+        mockHandler: () =>
+          Promise.resolve(
+            new Response(
+              JSON.stringify({ error: { message: 'Image and PDF input not supported by model' } }),
+              {
+                status: 400,
+                headers: { 'content-type': 'application/json' },
+              },
+            ),
+          ),
+        expectedMessage:
+          'This model may not read images or PDFs. Remove the file or pick another model.',
+      },
+      {
+        category: 'bad_request (400 other)',
+        setup: () => {},
+        mockHandler: () =>
+          Promise.resolve(
+            new Response(JSON.stringify({ error: { message: 'Invalid prompt parameters' } }), {
+              status: 400,
+              headers: { 'content-type': 'application/json' },
+            }),
+          ),
+        expectedMessage: 'The provider rejected the request: Invalid prompt parameters',
+      },
+      {
+        category: 'rate_limit (429 with Retry-After)',
+        setup: () => {},
+        mockHandler: () =>
+          Promise.resolve(
+            new Response(JSON.stringify({ error: { message: 'Rate limit exceeded' } }), {
+              status: 429,
+              headers: { 'content-type': 'application/json', 'retry-after': '30' },
+            }),
+          ),
+        expectedMessage: 'Rate limit reached for Anthropic. Try again in 30 seconds.',
+      },
+      {
+        category: 'rate_limit (429 without Retry-After)',
+        setup: () => {},
+        mockHandler: () =>
+          Promise.resolve(
+            new Response(JSON.stringify({ error: { message: 'Rate limit exceeded' } }), {
+              status: 429,
+              headers: { 'content-type': 'application/json' },
+            }),
+          ),
+        expectedMessage: 'Rate limit reached for Anthropic. Wait a moment and press Retry.',
+      },
+      {
+        category: 'server (500)',
+        setup: () => {},
+        mockHandler: () =>
+          Promise.resolve(
+            new Response(JSON.stringify({ error: { message: 'Internal server error' } }), {
+              status: 500,
+              headers: { 'content-type': 'application/json' },
+            }),
+          ),
+        expectedMessage: 'Anthropic had a server problem. Press Retry in a moment.',
+      },
+      {
+        category: 'safety_blocked',
+        setup: () => {},
+        mockHandler: () =>
+          Promise.resolve(
+            new Response(
+              JSON.stringify({ error: { message: 'Prompt violated safety guardrails' } }),
+              {
+                status: 400,
+                headers: { 'content-type': 'application/json' },
+              },
+            ),
+          ),
+        expectedMessage:
+          'The provider blocked this response. Try rephrasing your custom instructions or check the job context.',
+      },
+      {
+        category: 'unknown (418)',
+        setup: () => {},
+        mockHandler: () =>
+          Promise.resolve(
+            new Response(JSON.stringify({ error: { message: "I'm a teapot" } }), {
+              status: 418,
+              headers: { 'content-type': 'application/json' },
+            }),
+          ),
+        expectedMessage: "Something went wrong: I'm a teapot",
+      },
+    ];
+
+    it.each(errorCases)(
+      'shows expected error message and Retry button for $category',
+      async ({ setup, mockHandler, expectedMessage }) => {
+        clearCspViolations();
+        setup();
+
+        vi.stubGlobal(
+          'fetch',
+          vi.fn().mockImplementation(async (url: string | URL | Request) => {
+            const urlStr = String(url);
+            if (urlStr.includes('/models')) {
+              return new Response(
+                JSON.stringify({
+                  data: [{ id: 'claude-3-5-sonnet', display_name: 'Claude 3.5 Sonnet' }],
+                }),
+                { status: 200, headers: { 'content-type': 'application/json' } },
+              );
+            }
+            if (urlStr.includes('/messages')) {
+              return mockHandler();
+            }
+            return Promise.reject(new Error(`Unhandled URL: ${urlStr}`));
+          }),
+        );
+
+        render(<App />);
+
+        // Only generate Resume
+        fireEvent.click(screen.getByRole('button', { name: /cover letter/i }));
+        fireEvent.click(screen.getByRole('button', { name: /^send$/i }));
+
+        await waitFor(() => {
+          expect(screen.getByText(expectedMessage)).toBeTruthy();
+          expect(screen.getAllByRole('button', { name: /^retry$/i }).length).toBeGreaterThan(0);
+        });
+      },
+    );
+  });
+
+  it('aborts active fetch request on Clear job, resets tabs to empty state, ignores post-abort stream text, and allows Send again (§14.5)', async () => {
+    let capturedSignal: AbortSignal | null = null;
+    let streamController: ReadableStreamDefaultController<Uint8Array> | null = null;
+    let messagesCallCount = 0;
+
+    const encoder = new TextEncoder();
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string | URL | Request, init?: RequestInit) => {
+        const urlStr = String(url);
+        if (urlStr.includes('/models')) {
+          return new Response(
+            JSON.stringify({
+              data: [{ id: 'claude-3-5-sonnet', display_name: 'Claude 3.5 Sonnet' }],
+            }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          );
+        }
+
+        if (urlStr.includes('/messages')) {
+          messagesCallCount++;
+          if (messagesCallCount === 1) {
+            capturedSignal = (init?.signal as AbortSignal) || null;
+
+            const stream = new ReadableStream<Uint8Array>({
+              start(controller) {
+                streamController = controller;
+                const chunk1 = [
+                  'event: message_start',
+                  'data: {"type":"message_start","message":{"id":"msg_1","type":"message","role":"assistant","content":[],"model":"claude-3-5-sonnet","stop_reason":null,"usage":{"input_tokens":10,"output_tokens":1}}}',
+                  '',
+                  'event: content_block_start',
+                  'data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}',
+                  '',
+                  'event: content_block_delta',
+                  'data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Initial draft text before clear."}}',
+                  '',
+                  '',
+                ].join('\n');
+                controller.enqueue(encoder.encode(chunk1));
+              },
+            });
+
+            return new Response(stream, {
+              status: 200,
+              headers: { 'content-type': 'text/event-stream' },
+            });
+          }
+
+          // Second run (after clear)
+          return new Response(makeAnthropicStream('Second run after clear succeeded!'), {
+            status: 200,
+            headers: { 'content-type': 'text/event-stream' },
+          });
+        }
+
+        return Promise.reject(new Error(`Unhandled URL: ${urlStr}`));
+      }),
+    );
+
+    render(<App />);
+
+    // Unselect Cover Letter to run only Resume
+    fireEvent.click(screen.getByRole('button', { name: /cover letter/i }));
+
+    const sendBtn = screen.getByRole('button', { name: /^send$/i });
+    fireEvent.click(sendBtn);
+
+    // Initial streaming text arrives
+    await waitFor(() => {
+      const editor = screen.getByLabelText(/resume draft/i) as HTMLTextAreaElement;
+      expect(editor.value).toContain('Initial draft text before clear.');
+    });
+
+    expect(capturedSignal).not.toBeNull();
+    expect(capturedSignal!.aborted).toBe(false);
+
+    // Click Clear job
+    const clearJobBtn = screen.getByRole('button', { name: /^clear job$/i });
+    fireEvent.click(clearJobBtn);
+
+    // Confirmation dialog appears
+    const confirmClearBtn = screen.getByRole('button', { name: /^clear job$/i });
+    fireEvent.click(confirmClearBtn);
+
+    // Assert AbortSignal was aborted
+    expect(capturedSignal!.aborted).toBe(true);
+
+    // Tabs reset to empty state
+    await waitFor(() => {
+      expect(screen.getByText('Your drafts will appear here')).toBeTruthy();
+      expect(screen.queryByRole('tab', { name: /resume/i })).toBeNull();
+    });
+
+    // Attempt to emit text from the aborted stream
+    if (streamController) {
+      try {
+        const postAbortChunk = [
+          'event: content_block_delta',
+          'data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":" Should never be seen!"}}',
+          '',
+          '',
+        ].join('\n');
+        (streamController as ReadableStreamDefaultController<Uint8Array>).enqueue(
+          encoder.encode(postAbortChunk),
+        );
+      } catch {
+        // Stream controller may be closed or in error state
+      }
+    }
+
+    // Wait a brief moment and verify text emitted after abort never appears
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByText(/should never be seen/i)).toBeNull();
+    expect(screen.getByText('Your drafts will appear here')).toBeTruthy();
+
+    // Now assert Send works again afterwards
+    // Clear job resets selected outputs to defaults (Resume and Cover Letter on)
+    fireEvent.click(screen.getByRole('button', { name: /cover letter/i }));
+
+    const sendAgainBtn = screen.getByRole('button', { name: /^send$/i });
+    expect(sendAgainBtn.hasAttribute('disabled')).toBe(false);
+    fireEvent.click(sendAgainBtn);
+
+    await waitFor(() => {
+      const editor = screen.getByLabelText(/resume draft/i) as HTMLTextAreaElement;
+      expect(editor.value).toBe('Second run after clear succeeded!');
+    });
+
+    expect(messagesCallCount).toBe(2);
+  });
+
+  it('completes request and displays text when mounted inside React.StrictMode', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string | URL | Request) => {
+        const urlStr = String(url);
+        if (urlStr.includes('/models')) {
+          return new Response(
+            JSON.stringify({
+              data: [
+                { id: 'claude-3-5-sonnet', display_name: 'Claude 3.5 Sonnet' },
+              ],
+            }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          );
+        }
+        if (urlStr.includes('/messages')) {
+          return new Response(makeAnthropicStream('StrictMode generated content!'), {
+            status: 200,
+            headers: { 'content-type': 'text/event-stream' },
+          });
+        }
+        return Promise.reject(new Error(`Unhandled URL: ${urlStr}`));
+      }),
+    );
+
+    render(
+      <React.StrictMode>
+        <App />
+      </React.StrictMode>,
+    );
+
+    // Unselect Cover Letter to run only Resume
+    fireEvent.click(screen.getByRole('button', { name: /cover letter/i }));
+
+    const sendBtn = screen.getByRole('button', { name: /^send$/i });
+    fireEvent.click(sendBtn);
+
+    await waitFor(() => {
+      const editor = screen.getByLabelText(/resume draft/i) as HTMLTextAreaElement;
+      expect(editor.value).toBe('StrictMode generated content!');
+    });
   });
 });
