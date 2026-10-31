@@ -418,7 +418,6 @@ describe('Milestone M8 Multi-output Queue, Versions, Stale Badge, and Clear', ()
   });
 
   it('Clear job aborts all in-flight and queued jobs, resets tabs to empty state, and ignores late arrivals', async () => {
-    let callIndex = 0;
     const fetchSignals: AbortSignal[] = [];
 
     vi.stubGlobal(
@@ -430,7 +429,6 @@ describe('Milestone M8 Multi-output Queue, Versions, Stale Badge, and Clear', ()
             headers: { 'content-type': 'application/json' },
           });
         }
-        callIndex++;
         if (opts.signal) {
           fetchSignals.push(opts.signal);
         }
