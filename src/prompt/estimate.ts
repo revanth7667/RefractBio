@@ -1,5 +1,13 @@
 import estimates from '../data/estimates.json';
-import type { Attachment, PromptPart, TokenEstimate } from '../types';
+import type {
+  Attachment,
+  JobInputs,
+  OutputKind,
+  PromptPart,
+  ResolvedInstructions,
+  TokenEstimate,
+} from '../types';
+import { assemble } from './assemble';
 
 export interface ComputeEstimateParams {
   system: string;
@@ -80,14 +88,16 @@ export const estimateTokens = computeEstimate;
  * Returns formatted estimate UI string per §12.6.
  * Formats numbers with thousands separators.
  * Includes the PDF sentence only when pdfCount > 0.
+ * If totalTokens is provided, it is used as the grand total, while perOutputTotal is the rounded average.
  */
 export function formatEstimate(
   perOutputTotal: number,
   outputCount: number,
   pdfCount: number,
+  totalTokens?: number,
 ): string {
   const perOutputStr = perOutputTotal.toLocaleString('en-US');
-  const grandTotal = perOutputTotal * outputCount;
+  const grandTotal = totalTokens !== undefined ? totalTokens : perOutputTotal * outputCount;
   const grandTotalStr = grandTotal.toLocaleString('en-US');
   const outputsWord = outputCount === 1 ? 'output' : 'outputs';
 
@@ -98,4 +108,56 @@ export function formatEstimate(
   }
 
   return result;
+}
+
+export interface AggregateEstimateResult {
+  perOutput: Partial<Record<OutputKind, TokenEstimate>>;
+  total: number;
+  perOutputAverage: number;
+  pdfCount: number;
+  formattedLine: string;
+}
+
+/**
+ * Builds prompts for selected outputs using assemble() and returns per-output estimates and the total.
+ * The formatted line uses the true sum as the total and round(sum/count) as the per-output figure.
+ */
+export function aggregateEstimates(
+  selectedOutputs: readonly OutputKind[],
+  inputs: JobInputs,
+  masterInfo: string,
+  instructions: ResolvedInstructions,
+  today: string,
+): AggregateEstimateResult {
+  if (selectedOutputs.length === 0) {
+    return {
+      perOutput: {},
+      total: 0,
+      perOutputAverage: 0,
+      pdfCount: 0,
+      formattedLine: '',
+    };
+  }
+
+  const perOutput: Partial<Record<OutputKind, TokenEstimate>> = {};
+  let total = 0;
+
+  for (const kind of selectedOutputs) {
+    const prompt = assemble(kind, inputs, masterInfo, instructions, today);
+    perOutput[kind] = prompt.estimate;
+    total += prompt.estimate.total;
+  }
+
+  const count = selectedOutputs.length;
+  const perOutputAverage = Math.round(total / count);
+  const pdfCount = (inputs.attachments ?? []).filter((a) => a.kind === 'pdf').length;
+  const formattedLine = formatEstimate(perOutputAverage, count, pdfCount, total);
+
+  return {
+    perOutput,
+    total,
+    perOutputAverage,
+    pdfCount,
+    formattedLine,
+  };
 }
