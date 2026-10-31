@@ -546,4 +546,54 @@ describe('Milestone M8 Multi-output Queue, Versions, Stale Badge, and Clear', ()
       expect(val).not.toContain('snapshot');
     }
   });
+
+  it('registers beforeunload handler while outputs exist and removes it after Clear job (§20 M8)', async () => {
+    const addListenerSpy = vi.spyOn(window, 'addEventListener');
+    const removeListenerSpy = vi.spyOn(window, 'removeEventListener');
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/models')) {
+          return new Response(JSON.stringify({ data: [{ id: 'claude-3-5-sonnet', display_name: 'Claude 3.5 Sonnet' }] }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          });
+        }
+        return new Response(makeAnthropicStream('Draft output for beforeunload test'), {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream' },
+        });
+      }),
+    );
+
+    render(<App />);
+
+    // Before generation: no beforeunload listener registered
+    const initialAdds = addListenerSpy.mock.calls.filter((c) => c[0] === 'beforeunload');
+    expect(initialAdds.length).toBe(0);
+
+    // Generate a draft (Resume is selected by default)
+    fireEvent.click(screen.getByRole('button', { name: /^send$/i }));
+
+    // Handler registered while outputs exist
+    await waitFor(() => {
+      const adds = addListenerSpy.mock.calls.filter((c) => c[0] === 'beforeunload');
+      expect(adds.length).toBeGreaterThan(0);
+      expect(screen.getByText('Draft output for beforeunload test')).toBeTruthy();
+    });
+
+    // Press Clear job and confirm
+    fireEvent.click(screen.getByRole('button', { name: /clear job/i }));
+    const confirmClearBtn = screen.getByRole('button', { name: /^clear job$/i });
+    fireEvent.click(confirmClearBtn);
+
+    // Handler removed after Clear job
+    await waitFor(() => {
+      const adds = addListenerSpy.mock.calls.filter((c) => c[0] === 'beforeunload');
+      const removes = removeListenerSpy.mock.calls.filter((c) => c[0] === 'beforeunload');
+      expect(removes.length).toBeGreaterThan(0);
+      expect(removes.length).toBe(adds.length);
+    });
+  });
 });
