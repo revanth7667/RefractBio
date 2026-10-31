@@ -89,6 +89,8 @@ export interface Attachment {
   fingerprint: string;
   status: 'ready' | 'reading' | 'error';
   error?: string;
+  /** Object URL for image thumbnail preview (§15.4), revoked on removal or clear. */
+  objectUrl?: string;
 }
 
 export interface JobInputs {
