@@ -3,7 +3,7 @@
 > **Audience:** an agentic coding tool (Google Antigravity) building this project from scratch, and the humans reviewing its work.
 > **How to read this:** sections marked **MUST** are requirements. Anything about third-party APIs is a *hypothesis* until confirmed in the milestone named in §4. All names, employers, emails and phone numbers in this document are **fake sample data**.
 > **Working name:** "RefractBio" is a working name. Every place the name appears in code, storage keys, filenames or persisted content comes from `src/config.ts` (see §0 and A23), so a rename touches one file.
-> **Spec version:** 3.0 (simplified). Changes since 2.2: (1) **two providers only**, Anthropic and Gemini; OpenAI, OpenRouter, the Cloudflare Worker proxy and all custom-endpoint machinery are removed and deferred; (2) **Master Info is free-form**: one bundled sample file replaces the template, the separate example, the parser and the linter; the only file-specific code is a marker check, HTML-comment stripping, the effective-text rule and a length note; (3) **a fifth output, "Application answers"**, for interview-style and application-form questions, with a Questions box and an `# ANSWERS` instructions section; (4) the internal-ID safety-net badge, metric flags and IDs are gone; (5) verification items renumbered (V1–V22). **Post-M8 edits (no version bump):** §12.6 estimate rounding, §13.5 safety-detection order, §14.1–§14.3 `FOLD_EDIT` and the Send/Regenerate rules, §17.2 Send label, §17.3 empty-state step 3, file tree (§7), and decisions recorded under M7a, M7b and M8 in §20.
+> **Spec version:** 3.0 (simplified). Changes since 2.2: (1) **two providers only**, Anthropic and Gemini; OpenAI, OpenRouter, the Cloudflare Worker proxy and all custom-endpoint machinery are removed and deferred; (2) **Master Info is free-form**: one bundled sample file replaces the template, the separate example, the parser and the linter; the only file-specific code is a marker check, HTML-comment stripping, the effective-text rule and a length note; (3) **a fifth output, "Application answers"**, for interview-style and application-form questions, with a Questions box and an `# ANSWERS` instructions section; (4) the internal-ID safety-net badge, metric flags and IDs are gone; (5) verification items renumbered (V1–V22). **Post-M8 edits (no version bump):** §12.6 estimate rounding, §13.5 safety-detection order, §14.1–§14.3 `FOLD_EDIT` and the Send/Regenerate rules, §17.2 Send label, §17.3 empty-state step 3, file tree (§7), and decisions recorded under M7a, M7b and M8 in §20. **Post-M9 edits (no version bump):** §8 `Attachment.objectUrl`, §17.7 local file-notices live region, decisions recorded under M9 and the status-region move under M11 in §20.
 
 ---
 
@@ -436,6 +436,8 @@ export interface Attachment {
   fingerprint: string;
   status: 'ready' | 'reading' | 'error';
   error?: string;
+  /** Object URL for the image thumbnail (§15.4). Revoked on removal and on Clear job. */
+  objectUrl?: string;
 }
 
 export interface JobInputs {
@@ -1420,7 +1422,7 @@ Sections: Quick start; Writing a good Master Info (free-form; the sample's habit
 - Every input has a `<label>`; icon-only buttons have `aria-label`.
 - Toggles use `aria-pressed`; tabs follow the WAI-ARIA tabs pattern (Radix provides this).
 - Dialogs trap focus and return it to the trigger on close (Radix).
-- One app-wide `aria-live="polite"` status region for: generation started/finished/failed per output, copied, saved.
+- One app-wide `aria-live="polite"` status region for: generation started/finished/failed per output, copied, saved. The file-notices list in the context area (rejected or capped files, §15.3) is a second, local polite live region; it is the only other one.
 - Color contrast meets WCAG 2.1 AA in both themes; status is never conveyed by color alone (icons + text).
 - Respect `prefers-reduced-motion` (no spinner animation → static "Generating…" text).
 - `lang="en"` on `<html>`.
@@ -1649,6 +1651,7 @@ The maintainer confirms the final project name (or accepts the working name) aft
 - **Tasks:** classify/read/docx/paste/size checks; attachment list; capability notices/blocks; prompt parts for images/PDFs in both adapters; verify mammoth's browser import against its official docs (V15).
 - **Agent-verified acceptance:** adapter tests include image and PDF parts; the fixture DOCX shows an extracted-text preview; a 25 MB generated test file is refused; a `.heic` is refused with the message; a synthetic `paste` event with an image file adds an attachment (jsdom/Playwright); with `questions.png` attached and the Questions box empty, the mocked Answers request includes the "no typed questions" sentence and the image part.
 - **Maintainer-verified acceptance:** a real pasted screenshot (including Safari, V19), a real screenshot of questions and a real PDF are read by a capable model with a real key.
+- **Decisions recorded (post-M9):** files over `perFileMaxBytes` and files beyond `maxAttachments` are never added, so blocker 8 only checks `status === 'error'`; rejected and capped files produce dismissible messages in a polite live region in the context area, cleared on the next add; a pasted image is named `pasted-image-{n}.{ext}` with n = the highest existing pasted-image number + 1 and the extension taken from the MIME type (png, jpg, webp, gif); image thumbnails use an object URL stored on `Attachment.objectUrl` and revoked on removal and on Clear job; the provider request-size blocker is checked after blocker 9, estimates `pastedText.length + masterInfo text length + base64 size of attachments` (characters, not bytes; it leaves out instructions, questions, custom instructions and prompt markup) and stays inactive while `providerMaxRequestBytes[provider]` is `null`; mammoth is pinned to an exact version and loaded as its own dynamic chunk, and Vitest aliases it to `mammoth/mammoth.browser.js` (test-only) so production code stays browser-only; the model-name test (§13.4 rule 8) matches patterns on token boundaries so ordinary words such as "polite" are not flagged.
 
 ### M10 — Export and print
 
@@ -1668,7 +1671,7 @@ The maintainer confirms the final project name (or accepts the working name) aft
 ### M11 — Responsive, accessibility, help, single-file build, release
 
 - **Goal:** v0.1.0 public release.
-- **Tasks:** narrow-screen tabs; a11y pass (§17.7) with axe in a component test; Help page content; `build:single` (single-file build with `script-src 'unsafe-inline'`, A24, configured to inline dynamic imports so mammoth is included, V16); README; release workflow attaching the single HTML file to GitHub Releases; e2e smoke test. **Stretch goal:** `scripts/csp-hash.mjs` to replace `'unsafe-inline'` with script hashes in the single-file build; skip it if it is unreliable, and document the trade-off.
+- **Tasks:** move the app-wide status region (§17.7) out of `OutputTabs.tsx` into the top-level layout so it is always mounted and never inside a `display: none` pane (found in M9); narrow-screen tabs; a11y pass (§17.7) with axe in a component test; Help page content; `build:single` (single-file build with `script-src 'unsafe-inline'`, A24, configured to inline dynamic imports so mammoth is included, V16); README; release workflow attaching the single HTML file to GitHub Releases; e2e smoke test. **Stretch goal:** `scripts/csp-hash.mjs` to replace `'unsafe-inline'` with script hashes in the single-file build; skip it if it is unreliable, and document the trade-off.
 - **Agent-verified acceptance:** e2e passes; axe reports no serious/critical violations on the main screen and Settings; the single HTML file is one self-contained file with no references to other local files (a test greps it for `src=`/`href=` pointing at local paths); the single file, loaded via Playwright from `file://`, renders the app and extracts text from the fixture DOCX.
 - **Maintainer-verified acceptance:** the single HTML file opened from disk in Chrome, Firefox and Safari loads and can generate (with a provider that allows its origin); pre-publication checklist (§22.3) completed.
 
