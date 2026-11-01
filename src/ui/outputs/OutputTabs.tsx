@@ -85,7 +85,7 @@ export function OutputTabs() {
       {/* App-wide aria-live region for announcements (§17.7) */}
       <div
         className="sr-only"
-        aria-live={['po', 'li', 'te'].join('') as React.ComponentProps<'div'>['aria-live']}
+        aria-live="polite"
         aria-atomic="true"
       >
         {statusMessage}

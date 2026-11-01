@@ -543,6 +543,12 @@ describe('Model Filter & Capability Inference (src/providers/modelFilter.ts)', (
       ]);
     });
 
+    function matchesTokenBoundary(text: string, pattern: string): boolean {
+      const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`(^|[^a-zA-Z0-9])${escaped}($|[^a-zA-Z0-9])`, 'i');
+      return regex.test(text);
+    }
+
     it('asserts no entry of defaultPatterns or smallTierIdPatterns appears as a string literal in src/ outside src/data/ (rule 8)', () => {
       const hintsPath = path.resolve(__dirname, '../../src/data/model-hints.json');
       const hints = JSON.parse(fs.readFileSync(hintsPath, 'utf8'));
@@ -578,9 +584,9 @@ describe('Model Filter & Capability Inference (src/providers/modelFilter.ts)', (
         const content = fs.readFileSync(file, 'utf8');
         const literals = content.match(stringLiteralRegex) || [];
         for (const lit of literals) {
-          const inner = lit.slice(1, -1).toLowerCase();
+          const inner = lit.slice(1, -1);
           for (const pat of patternsToCheck) {
-            if (inner.includes(pat.toLowerCase())) {
+            if (matchesTokenBoundary(inner, pat)) {
               violations.push({ file: relFile, literal: lit, pattern: pat });
             }
           }
@@ -588,6 +594,26 @@ describe('Model Filter & Capability Inference (src/providers/modelFilter.ts)', (
       }
 
       expect(violations).toEqual([]);
+    });
+
+    it('flags a literal built from a defaultPatterns entry plus a hyphen suffix (rule 8 token boundary)', () => {
+      const hintsPath = path.resolve(__dirname, '../../src/data/model-hints.json');
+      const hints = JSON.parse(fs.readFileSync(hintsPath, 'utf8'));
+      const defaultList = Object.values(hints.defaultPatterns as Record<string, string[]>).flat();
+      const firstEntry = defaultList[0];
+      const testLiteral = `${firstEntry}-suffix`;
+      expect(matchesTokenBoundary(testLiteral, firstEntry)).toBe(true);
+    });
+
+    it('does not flag the literal "polite" even though it contains "lite" (rule 8 token boundary)', () => {
+      const hintsPath = path.resolve(__dirname, '../../src/data/model-hints.json');
+      const hints = JSON.parse(fs.readFileSync(hintsPath, 'utf8'));
+      const patternsToCheck = new Set<string>([
+        ...hints.smallTierIdPatterns,
+        ...Object.values(hints.defaultPatterns as Record<string, string[]>).flat(),
+      ]);
+      const flagged = Array.from(patternsToCheck).some((pat) => matchesTokenBoundary('polite', pat));
+      expect(flagged).toBe(false);
     });
   });
 });

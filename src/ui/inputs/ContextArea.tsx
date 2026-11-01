@@ -132,7 +132,7 @@ export function ContextArea() {
       {attachmentErrors.length > 0 && (
         <div
           role="region"
-          aria-live={(['poli', 'te'].join('') as unknown as React.AriaAttributes['aria-live'])}
+          aria-live="polite"
           aria-label="File upload notices"
           className="space-y-1.5 pt-1"
         >
