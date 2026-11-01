@@ -16,11 +16,6 @@ export async function extractDocxText(file: Blob): Promise<string> {
     throw new Error('Could not load extractRawText from mammoth');
   }
 
-  const options: { arrayBuffer: ArrayBuffer; buffer?: Buffer } = { arrayBuffer };
-  if (typeof Buffer !== 'undefined') {
-    options.buffer = Buffer.from(arrayBuffer);
-  }
-
-  const result = await extractFn(options);
+  const result = await extractFn({ arrayBuffer });
   return result.value || '';
 }

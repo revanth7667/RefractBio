@@ -24,5 +24,8 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
+    alias: {
+      mammoth: 'mammoth/mammoth.browser.js',
+    },
   },
 });
