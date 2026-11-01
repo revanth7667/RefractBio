@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react';
-import { Loader2, Check, AlertCircle, Copy, Download, RefreshCw, Undo2 } from 'lucide-react';
+import { Loader2, Check, AlertCircle, Copy, Download, RefreshCw, Undo2, Printer } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Textarea } from '../components/ui/textarea';
 import { useGeneration } from '../../state/GenerationContext';
+import { useSettings } from '../../state/SettingsContext';
 import { visibleTabs } from '../../generation/visibleTabs';
 import { formatGapsNotice } from '../../generation/gaps';
 import { splitLinkedInVariants, hasEmailSubject } from '../../generation/variants';
 import { splitEmailDraft } from '../../export/email';
 import { copyToClipboard } from '../../export/clipboard';
 import { downloadMarkdown } from '../../export/markdown';
-import type { OutputKind, OutputTab } from '../../types';
+import { printDocument } from '../../export/print';
+import type { OutputKind, OutputTab, PaperSize } from '../../types';
 
 const OUTPUT_TAB_LABELS: Record<OutputKind, string> = {
   RESUME: 'Resume',
@@ -169,6 +171,7 @@ function TabBody({
   onRestore,
   onEdit,
 }: TabBodyProps) {
+  const { settings, setPaperSize } = useSettings();
   const linkedInVariants =
     tab.kind === 'LINKEDIN_MESSAGE' ? splitLinkedInVariants(tab.editorText) : null;
   const emailParts =
@@ -311,6 +314,39 @@ function TabBody({
             <Download className="mr-1.5 h-3.5 w-3.5" />
             Download .md
           </Button>
+
+          {/* Print / Save as PDF (§16.3, §17.3) */}
+          {(tab.kind === 'RESUME' || tab.kind === 'COVER_LETTER') && (
+            <div className="flex flex-wrap items-center gap-2">
+              <label htmlFor={`paper-size-${tab.kind}`} className="sr-only">
+                Paper size
+              </label>
+              <select
+                id={`paper-size-${tab.kind}`}
+                aria-label="Paper size"
+                value={settings.paperSize}
+                onChange={(e) => setPaperSize(e.target.value as PaperSize)}
+                title="US Letter 21.59 × 27.94 cm (8.5 × 11 in), A4 21.0 × 29.7 cm (8.27 × 11.69 in)"
+                className="h-8 rounded-md border border-input bg-background px-2 py-1 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="letter">US Letter</option>
+                <option value="a4">A4</option>
+              </select>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={isBusy || !tab.editorText.trim()}
+                onClick={() => printDocument(tab.editorText, settings.paperSize, tab.kind)}
+              >
+                <Printer className="mr-1.5 h-3.5 w-3.5" />
+                Print / Save as PDF
+              </Button>
+              <span className="text-xs text-muted-foreground hidden sm:inline">
+                In the print dialog, choose &apos;Save as PDF&apos;, and turn off &apos;Headers and footers&apos; for a clean page.
+              </span>
+            </div>
+          )}
         </div>
       </div>
 

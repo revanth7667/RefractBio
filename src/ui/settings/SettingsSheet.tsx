@@ -243,19 +243,18 @@ export function SettingsSheet({ open, onOpenChange, tab, onTabChange }: Settings
                   <Label htmlFor="paper-size-select" className="text-sm font-medium">
                     Default Paper Size
                   </Label>
-                  <div className="flex gap-2">
-                    {(['letter', 'a4'] as PaperSize[]).map((p) => (
-                      <Button
-                        key={p}
-                        type="button"
-                        variant={settings.paperSize === p ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setPaperSize(p)}
-                        className="uppercase"
-                      >
-                        {p === 'letter' ? 'US Letter' : 'A4'}
-                      </Button>
-                    ))}
+                  <div>
+                    <select
+                      id="paper-size-select"
+                      aria-label="Default Paper Size"
+                      value={settings.paperSize}
+                      onChange={(e) => setPaperSize(e.target.value as PaperSize)}
+                      title="US Letter 21.59 × 27.94 cm (8.5 × 11 in), A4 21.0 × 29.7 cm (8.27 × 11.69 in)"
+                      className="h-9 w-full sm:w-auto rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <option value="letter">US Letter 21.59 × 27.94 cm (8.5 × 11 in)</option>
+                      <option value="a4">A4 21.0 × 29.7 cm (8.27 × 11.69 in)</option>
+                    </select>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Used for printable outputs such as resumes and cover letters.
