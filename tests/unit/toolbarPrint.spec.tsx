@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import App from '../../src/App';
 import * as storage from '../../src/storage/storage';
 import { GAPS_DELIMITER, APP_ID } from '../../src/config';
+import type { Settings } from '../../src/types';
 
 function makeAnthropicStream(text: string): string {
   return [
@@ -212,7 +213,7 @@ describe('Toolbar UI print controls (§16.3, §17.3, §17.4)', () => {
     expect(paperSelect.value).toBe('a4');
 
     // Check localStorage persistence
-    const storedSettings = storage.get('settings');
+    const storedSettings = storage.get<Settings>('settings');
     expect(storedSettings.ok).toBe(true);
     if (storedSettings.ok) {
       expect(storedSettings.value.paperSize).toBe('a4');

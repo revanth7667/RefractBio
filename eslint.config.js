@@ -21,7 +21,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['scripts/**', 'eslint.config.js', 'vite.config.ts'],
+    files: ['scripts/**', 'eslint.config.js', 'vite.config.ts', 'playwright.config.ts'],
     languageOptions: {
       globals: {
         process: 'readonly',
@@ -31,7 +31,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['src/export/print.*', 'src/ui/help/HelpPage.*'],
+    files: ['src/export/print.ts', 'src/export/print.tsx', 'src/ui/help/HelpPage.tsx'],
     rules: {
       'no-restricted-syntax': 'off',
     },

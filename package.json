@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "e2e": "playwright test",
     "secret-scan": "node scripts/secret-scan.mjs"
   },
   "dependencies": {
