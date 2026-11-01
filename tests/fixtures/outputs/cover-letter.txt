@@ -1,0 +1,20 @@
+Jordan Sample
+Springfield, Examplestate, USA · jordan.sample@example.com · +1 555-0100
+
+October 31, 2026
+
+Dear Hiring Team,
+
+I am applying for the Logistics Data Analyst position. With over five years of analytics experience automating recurring reporting and delivering actionable operational insights across freight networks, I am confident in my ability to immediately contribute to your team.
+
+At Fictional Freight Co., I owned the weekly operational KPI reporting for three regional teams. By developing automated data pipelines using SQL and Python, I reduced weekly report preparation time from six hours to one hour, eliminating manual spreadsheet consolidation and catching data discrepancies early. Additionally, my analysis of vehicle routing inconsistencies identified recurring fuel consumption patterns that saved about $120,000 annually based on audited invoices. In my prior role at Imaginary Retail Ltd., I maintained fourteen distinct store performance reports and authored the standardized data dictionary adopted across the entire merchandising division.
+
+Your company's emphasis on reliable supply chain execution and real-time delivery visibility closely matches my practical background. I previously developed an open-source transit delay tracking tool and spearheaded the creation of a unified on-time-delivery dashboard used across all operational hubs. I enjoy transforming complex transportation data into reliable operational metrics that dispatchers, terminal supervisors, and leadership rely on every day.
+
+Thank you for your time and consideration. I would welcome the opportunity to discuss how my data automation experience and logistics reporting background can support your ongoing supply chain objectives.
+
+Sincerely,
+Jordan Sample
+
+<!-- GAPS-NOTE -->
+- Candidate lacks experience with Apache Kafka real-time streaming.

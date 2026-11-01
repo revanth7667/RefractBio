@@ -1,0 +1,36 @@
+# Jordan Sample
+Springfield, Examplestate, USA · jordan.sample@example.com · +1 555-0100 · https://www.linkedin.com/in/example-jordan-sample
+
+## Summary
+Data analyst focused on logistics and operations reporting with hands-on experience supporting regional operations teams. Skilled in SQL, Python, and reporting automation that reduced weekly report preparation by over 80%.
+
+## Experience
+### Senior Data Analyst — Fictional Freight Co.
+Springfield, Examplestate, USA · Apr 2022 – Present
+- Supported 3 regional operations teams and owned the weekly logistics KPI report.
+- Automated weekly KPI data extraction and reporting in SQL and Python, cutting preparation from 6 hours to 1 hour.
+- Identified routing inefficiencies, saving about $120,000 per year based on 2023 fuel invoices.
+- Designed and launched the first shared on-time-delivery dashboard adopted across all regions.
+
+### Data Analyst — Imaginary Retail Ltd.
+Springfield, Examplestate, USA · Jun 2019 – Mar 2022
+- Maintained 14 recurring store operations and merchandising sales reports.
+- Authored data definitions adopted as the team's standard analytics glossary.
+
+## Projects
+### Transit Delay Explorer
+Springfield, Examplestate, USA · Jan 2023 – May 2023
+- Built an open-source data pipeline and visual dashboard tracking public transit delays using Python.
+
+## Education
+### B.S. Statistics — Example State University
+Springfield, Examplestate, USA · Sep 2015 – May 2019
+
+## Skills
+- SQL (daily use since 2019), Python (pandas), Reporting & Dashboards
+
+## Certifications
+- Example Analytics Certificate — Example Learning Org, Mar 2021
+
+<!-- GAPS-NOTE -->
+- Candidate lacks experience with Kubernetes cluster management.
