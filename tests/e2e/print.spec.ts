@@ -5,6 +5,19 @@ import {
   loadFixture,
 } from './helpers';
 
+interface CspViolationReport {
+  blockedURI: string;
+  violatedDirective: string;
+  effectiveDirective?: string;
+}
+
+declare global {
+  interface Window {
+    __printCalls?: number;
+    __cspViolations?: CspViolationReport[];
+  }
+}
+
 test.describe('M10 Export and Print e2e check (§16.3, §20 M10)', () => {
   // Never write literal keys - construct at runtime (§19.3, §22.2)
   const fakeKey = 'sk-' + 'test-fake-0000';
@@ -14,15 +27,15 @@ test.describe('M10 Export and Print e2e check (§16.3, §20 M10)', () => {
   }) => {
     // 1. Stub window.print to a no-op so no native dialog appears and afterprint does not fire (§16.3)
     await page.addInitScript(() => {
-      (window as any).__printCalls = 0;
+      window.__printCalls = 0;
       window.print = () => {
-        (window as any).__printCalls = ((window as any).__printCalls || 0) + 1;
+        window.__printCalls = (window.__printCalls || 0) + 1;
       };
 
       // Track CSP violations
-      (window as any).__cspViolations = [];
+      window.__cspViolations = [];
       window.addEventListener('securitypolicyviolation', (e) => {
-        (window as any).__cspViolations.push({
+        window.__cspViolations?.push({
           blockedURI: e.blockedURI,
           violatedDirective: e.violatedDirective,
           effectiveDirective: e.effectiveDirective,
@@ -186,7 +199,7 @@ test.describe('M10 Export and Print e2e check (§16.3, §20 M10)', () => {
     expect(coverA4Info.text).not.toContain('Apache Kafka');
 
     // Assert zero security policy violations throughout the entire flow
-    const violations = await page.evaluate(() => (window as any).__cspViolations);
+    const violations = await page.evaluate(() => window.__cspViolations || []);
     expect(violations).toEqual([]);
   });
 });
