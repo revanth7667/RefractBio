@@ -8,6 +8,7 @@ import { useGeneration } from '../../state/GenerationContext';
 import { visibleTabs } from '../../generation/visibleTabs';
 import { formatGapsNotice } from '../../generation/gaps';
 import { splitLinkedInVariants, hasEmailSubject } from '../../generation/variants';
+import { splitEmailDraft } from '../../export/email';
 import { copyToClipboard } from '../../export/clipboard';
 import { downloadMarkdown } from '../../export/markdown';
 import type { OutputKind, OutputTab } from '../../types';
@@ -170,6 +171,8 @@ function TabBody({
 }: TabBodyProps) {
   const linkedInVariants =
     tab.kind === 'LINKEDIN_MESSAGE' ? splitLinkedInVariants(tab.editorText) : null;
+  const emailParts =
+    tab.kind === 'EMAIL' ? splitEmailDraft(tab.editorText) : null;
   const isEmailMissingSubject =
     tab.kind === 'EMAIL' && !hasEmailSubject(tab.editorText);
 
@@ -255,6 +258,30 @@ function TabBody({
               >
                 <Copy className="mr-1.5 h-3.5 w-3.5" />
                 {copiedKey === 'linkedin-dm' ? 'Copied' : 'Copy direct message'}
+              </Button>
+            </>
+          ) : null}
+
+          {/* Email per-part copy buttons (§16.2) */}
+          {tab.kind === 'EMAIL' && emailParts?.found ? (
+            <>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => onCopy('email-subject', emailParts.subject)}
+              >
+                <Copy className="mr-1.5 h-3.5 w-3.5" />
+                {copiedKey === 'email-subject' ? 'Copied' : 'Copy subject'}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => onCopy('email-body', emailParts.body)}
+              >
+                <Copy className="mr-1.5 h-3.5 w-3.5" />
+                {copiedKey === 'email-body' ? 'Copied' : 'Copy body'}
               </Button>
             </>
           ) : null}
