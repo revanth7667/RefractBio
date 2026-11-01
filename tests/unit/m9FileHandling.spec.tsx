@@ -251,6 +251,116 @@ describe('Milestone M9 File Handling Integration & UI Tests (§15, §20)', () =>
         expect(pre?.textContent).toContain('Project notes: Led migration of reporting database to Postgres.');
       });
     });
+
+    it('shows §15.2 rejection message for unsupported .heic file, allows dismissal, and clears on next add', async () => {
+      render(<App />);
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      const heicFile = new File(['fake-heic-content'], 'photo.heic', { type: 'image/heic' });
+
+      fireEvent.change(fileInput, { target: { files: [heicFile] } });
+
+      const expectedMsg =
+        "photo.heic: this file type isn't supported. Use PNG, JPEG, WEBP, GIF, PDF, DOCX, TXT or MD.";
+
+      await waitFor(() => {
+        const noticeRegion = screen.getByRole('region', { name: 'File upload notices' });
+        expect(noticeRegion).toBeTruthy();
+        expect(screen.getByText(expectedMsg)).toBeTruthy();
+      });
+
+      // Dismiss button removes the error notice
+      const dismissBtn = screen.getByRole('button', { name: 'Dismiss message' });
+      fireEvent.click(dismissBtn);
+
+      await waitFor(() => {
+        expect(screen.queryByText(expectedMsg)).toBeNull();
+      });
+
+      // Trigger the rejection notice again
+      fireEvent.change(fileInput, { target: { files: [heicFile] } });
+      await waitFor(() => {
+        expect(screen.getByText(expectedMsg)).toBeTruthy();
+      });
+
+      // Next add clears previous rejection notice
+      const validFile = new File(['valid content'], 'notes.txt', { type: 'text/plain' });
+      fireEvent.change(fileInput, { target: { files: [validFile] } });
+
+      await waitFor(() => {
+        expect(screen.getByText('notes.txt')).toBeTruthy();
+        expect(screen.queryByText(expectedMsg)).toBeNull();
+      });
+    });
+
+    it('shows over-count message when adding 11th file, allows dismissal, and clears on next add', async () => {
+      render(<App />);
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      const files11 = Array.from(
+        { length: 11 },
+        (_, i) => new File([`content-${i}`], `item${i}.txt`, { type: 'text/plain' }),
+      );
+
+      fireEvent.change(fileInput, { target: { files: files11 } });
+
+      const expectedCapMsg =
+        'Only up to 10 files can be attached. Extra files were not added.';
+
+      await waitFor(() => {
+        const noticeRegion = screen.getByRole('region', { name: 'File upload notices' });
+        expect(noticeRegion).toBeTruthy();
+        expect(screen.getByText(expectedCapMsg)).toBeTruthy();
+        // First 10 were added, 11th was not
+        expect(screen.getByText('item0.txt')).toBeTruthy();
+        expect(screen.getByText('item9.txt')).toBeTruthy();
+        expect(screen.queryByText('item10.txt')).toBeNull();
+      });
+
+      // Test dismiss control
+      const dismissBtn = screen.getByRole('button', { name: 'Dismiss message' });
+      fireEvent.click(dismissBtn);
+
+      await waitFor(() => {
+        expect(screen.queryByText(expectedCapMsg)).toBeNull();
+      });
+
+      // Remove one attachment so count drops to 9
+      const removeBtn = screen.getByRole('button', { name: 'Remove item0.txt' });
+      fireEvent.click(removeBtn);
+      await waitFor(() => {
+        expect(screen.queryByText('item0.txt')).toBeNull();
+      });
+
+      // Attempt to add 2 files when only 1 slot is open -> triggers cap notice again
+      const twoFiles = [
+        new File(['extra1'], 'extra1.txt', { type: 'text/plain' }),
+        new File(['extra2'], 'extra2.txt', { type: 'text/plain' }),
+      ];
+      fireEvent.change(fileInput, { target: { files: twoFiles } });
+
+      await waitFor(() => {
+        expect(screen.getByText(expectedCapMsg)).toBeTruthy();
+      });
+
+      // Remove another file so count is 9 again
+      const removeBtn2 = screen.getByRole('button', { name: 'Remove item1.txt' });
+      fireEvent.click(removeBtn2);
+      await waitFor(() => {
+        expect(screen.queryByText('item1.txt')).toBeNull();
+      });
+      // Cap message remains until next add
+      expect(screen.getByText(expectedCapMsg)).toBeTruthy();
+
+      // Next add clears the message
+      const singleFile = new File(['single-ok'], 'single.txt', { type: 'text/plain' });
+      fireEvent.change(fileInput, { target: { files: [singleFile] } });
+
+      await waitFor(() => {
+        expect(screen.getByText('single.txt')).toBeTruthy();
+        expect(screen.queryByText(expectedCapMsg)).toBeNull();
+      });
+    });
   });
 
   describe('End to end with mocked providers (§12, §14.6, §15, §20)', () => {
