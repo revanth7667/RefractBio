@@ -3,6 +3,7 @@ import { Header } from './Header';
 import { Footer } from './Footer';
 import { SettingsSheet } from '../settings/SettingsSheet';
 import { useSettings } from '../../state/SettingsContext';
+import { useGeneration } from '../../state/GenerationContext';
 import { APP_NAME } from '../../config';
 
 interface MainLayoutProps {
@@ -11,9 +12,18 @@ interface MainLayoutProps {
 
 export function MainLayout({ children }: MainLayoutProps) {
   const { storageAvailable, settingsOpen, setSettingsOpen, openSettings } = useSettings();
+  const { statusMessage } = useGeneration();
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
+      {/* App-wide aria-live region for announcements (§17.7) */}
+      <div
+        className="sr-only"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {statusMessage}
+      </div>
       {!storageAvailable && (
         <div
           role="alert"

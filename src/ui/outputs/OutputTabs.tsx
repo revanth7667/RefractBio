@@ -47,7 +47,6 @@ export function OutputTabs() {
     editTab,
     isTabBusy,
     isTabStale,
-    statusMessage,
     announceStatus,
   } = useGeneration();
 
@@ -85,15 +84,6 @@ export function OutputTabs() {
 
   return (
     <div className="space-y-4">
-      {/* App-wide aria-live region for announcements (§17.7) */}
-      <div
-        className="sr-only"
-        aria-live="polite"
-        aria-atomic="true"
-      >
-        {statusMessage}
-      </div>
-
       <Tabs
         value={currentTab.kind}
         onValueChange={(val) => setActiveTab(val as OutputKind)}
