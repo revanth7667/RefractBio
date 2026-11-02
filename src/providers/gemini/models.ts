@@ -9,7 +9,7 @@ import { mapProviderError } from '../errors';
 import { filterAndEnrichModels, type RawModelInput } from '../modelFilter';
 
 interface GeminiModelItem {
-  name: string; // e.g. "models/gemini-1.5-pro"
+  name: string; // Resource name prefixed with models/
   displayName?: string;
   description?: string;
   supportedGenerationMethods?: string[];
