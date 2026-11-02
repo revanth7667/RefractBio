@@ -198,4 +198,89 @@ describe('Email Copy subject and Copy body buttons (§16.2)', () => {
       expect(screen.getByRole('button', { name: /copy body/i })).toBeTruthy();
     });
   });
+
+  it('updates buttons and badge when Subject line is removed and restored via editor', async () => {
+    const emailDraft = `Subject: Initial Subject\n\nInitial Body\n${GAPS_DELIMITER}\n- None`;
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/models')) {
+          return new Response(
+            JSON.stringify({
+              data: [
+                {
+                  id: 'claude-3-5-sonnet-20241022',
+                  display_name: 'Claude 3.5 Sonnet',
+                },
+              ],
+            }),
+            { status: 200 },
+          );
+        }
+        return new Response(makeAnthropicStream(emailDraft), {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream' },
+        });
+      }),
+    );
+
+    render(<App />);
+
+    const contextInput = screen.getByLabelText(/job context/i);
+    fireEvent.change(contextInput, {
+      target: { value: 'Logistics company looking for data analyst.' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /resume/i }));
+    fireEvent.click(screen.getByRole('button', { name: /cover letter/i }));
+    fireEvent.click(screen.getByRole('button', { name: /email/i }));
+
+    const sendBtn = screen.getByRole('button', { name: /^send$/i });
+    fireEvent.click(sendBtn);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /copy subject/i })).toBeTruthy();
+      expect(screen.getByRole('button', { name: /copy body/i })).toBeTruthy();
+    });
+
+    const editor = screen.getByLabelText(/email draft/i);
+
+    // Edit editor text so Subject line is removed
+    fireEvent.change(editor, {
+      target: {
+        value: 'Initial Body without subject line',
+      },
+    });
+
+    // Copy subject and Copy body disappear, and "No Subject line" badge appears
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: /copy subject/i })).toBeNull();
+      expect(screen.queryByRole('button', { name: /copy body/i })).toBeNull();
+      expect(screen.getByText('No Subject line')).toBeTruthy();
+    });
+
+    // Type a Subject line back
+    fireEvent.change(editor, {
+      target: {
+        value: 'Subject: Brand New Subject\n\nBrand New Body Content',
+      },
+    });
+
+    // Buttons return and badge is gone
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /copy subject/i })).toBeTruthy();
+      expect(screen.getByRole('button', { name: /copy body/i })).toBeTruthy();
+      expect(screen.queryByText('No Subject line')).toBeNull();
+    });
+
+    // Verify they copy the NEW subject and NEW body
+    const copySubjectBtn = screen.getByRole('button', { name: /copy subject/i });
+    fireEvent.click(copySubjectBtn);
+    expect(clipboardWriteMock).toHaveBeenCalledWith('Brand New Subject');
+
+    const copyBodyBtn = screen.getByRole('button', { name: /copy body/i });
+    fireEvent.click(copyBodyBtn);
+    expect(clipboardWriteMock).toHaveBeenCalledWith('Brand New Body Content');
+  });
 });

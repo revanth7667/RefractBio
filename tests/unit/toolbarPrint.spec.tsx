@@ -346,4 +346,145 @@ describe('Toolbar UI print controls (§16.3, §17.3, §17.4)', () => {
     const printBtn = screen.getByRole('button', { name: /print \/ save as pdf/i });
     expect(printBtn.hasAttribute('disabled')).toBe(true);
   });
+
+  it('disables Print / Save as PDF while tab is generating and enables it when generation finishes', async () => {
+    let resolveStream: (res: Response) => void;
+    const streamPromise = new Promise<Response>((resolve) => {
+      resolveStream = resolve;
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/models')) {
+          return new Response(
+            JSON.stringify({
+              data: [
+                {
+                  id: 'claude-3-5-sonnet-20241022',
+                  display_name: 'Claude 3.5 Sonnet',
+                },
+              ],
+            }),
+            { status: 200 },
+          );
+        }
+        return streamPromise;
+      }),
+    );
+
+    render(<App />);
+
+    const contextInput = screen.getByLabelText(/job context/i);
+    fireEvent.change(contextInput, {
+      target: { value: 'Job posting context' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /cover letter/i }));
+
+    const sendBtn = screen.getByRole('button', { name: /^send$/i });
+    fireEvent.click(sendBtn);
+
+    // While generating, Print / Save as PDF button is disabled
+    await waitFor(() => {
+      const printBtn = screen.getByRole('button', { name: /print \/ save as pdf/i });
+      expect(printBtn.hasAttribute('disabled')).toBe(true);
+    });
+
+    // Complete the stream
+    resolveStream!(
+      new Response(makeAnthropicStream(`# Jordan Sample\nExperience here\n${GAPS_DELIMITER}\n- None`), {
+        status: 200,
+        headers: { 'content-type': 'text/event-stream' },
+      }),
+    );
+
+    // After generation finishes, Print / Save as PDF is enabled
+    await waitFor(() => {
+      const printBtn = screen.getByRole('button', { name: /print \/ save as pdf/i });
+      expect(printBtn.hasAttribute('disabled')).toBe(false);
+    });
+  });
+
+  it('calls stubbed print function once per click (two clicks, two calls) and #print-root holds text of clicked tab', async () => {
+    const resumeText = `# Jordan Sample\nUnique Resume Experience\n${GAPS_DELIMITER}\n- None`;
+    const coverText = `Jordan Sample\n\nUnique Cover Letter Content\n${GAPS_DELIMITER}\n- None`;
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string, init?: RequestInit) => {
+        if (url.includes('/models')) {
+          return new Response(
+            JSON.stringify({
+              data: [
+                {
+                  id: 'claude-3-5-sonnet-20241022',
+                  display_name: 'Claude 3.5 Sonnet',
+                },
+              ],
+            }),
+            { status: 200 },
+          );
+        }
+        const bodyStr = typeof init?.body === 'string' ? init.body : '';
+        const text = bodyStr.toLowerCase().includes('cover letter') ? coverText : resumeText;
+        return new Response(makeAnthropicStream(text), {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream' },
+        });
+      }),
+    );
+
+    render(<App />);
+
+    const contextInput = screen.getByLabelText(/job context/i);
+    fireEvent.change(contextInput, {
+      target: { value: 'Job posting context' },
+    });
+
+    const sendBtn = screen.getByRole('button', { name: /^send$/i });
+    fireEvent.click(sendBtn);
+
+    // Wait for generation to finish
+    await waitFor(() => {
+      const sendButton = screen.getByRole('button', { name: /^send$/i });
+      expect(sendButton.hasAttribute('disabled')).toBe(false);
+      expect(screen.getByRole('tab', { name: /resume/i })).toBeTruthy();
+      expect(screen.getByRole('tab', { name: /cover letter/i })).toBeTruthy();
+    });
+
+    // 1 click on Resume tab
+    const printBtn = screen.getByRole('button', { name: /print \/ save as pdf/i });
+    fireEvent.click(printBtn);
+    expect(printSpy).toHaveBeenCalledTimes(1);
+
+    const printRoot = document.getElementById('print-root');
+    expect(printRoot).toBeTruthy();
+    expect(printRoot?.textContent).toContain('Unique Resume Experience');
+    expect(printRoot?.textContent).not.toContain('Unique Cover Letter Content');
+
+    // 2nd click on Resume tab: 2 calls total
+    fireEvent.click(printBtn);
+    expect(printSpy).toHaveBeenCalledTimes(2);
+    expect(printRoot?.textContent).toContain('Unique Resume Experience');
+
+    // Switch to Cover Letter tab
+    const coverTabTrigger = screen.getByRole('tab', { name: /cover letter/i });
+    fireEvent.keyDown(coverTabTrigger, { key: 'Enter', code: 'Enter' });
+    fireEvent.click(coverTabTrigger);
+
+    await waitFor(() => {
+      const coverEditor = screen.getByLabelText(/cover letter draft/i);
+      expect(coverEditor).toBeTruthy();
+    });
+
+    // Click Print on Cover Letter tab: 3 calls total
+    const coverPrintBtn = screen.getByRole('button', { name: /print \/ save as pdf/i });
+    fireEvent.click(coverPrintBtn);
+    expect(printSpy).toHaveBeenCalledTimes(3);
+
+    // #print-root now holds Cover Letter text, not Resume text
+    expect(printRoot?.textContent).toContain('Unique Cover Letter Content');
+    expect(printRoot?.textContent).not.toContain('Unique Resume Experience');
+    expect(printRoot?.dataset.kind).toBe('cover_letter');
+  });
 });
