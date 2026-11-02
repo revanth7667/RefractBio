@@ -8,11 +8,7 @@ import { redact } from './redact';
 
 const cspViolatedHosts = new Set<string>();
 
-export function clearCspViolations(): void {
-  cspViolatedHosts.clear();
-}
-
-export function recordCspViolation(blockedUri: string): void {
+function recordCspViolation(blockedUri: string): void {
   try {
     const url = new URL(blockedUri);
     cspViolatedHosts.add(url.hostname);

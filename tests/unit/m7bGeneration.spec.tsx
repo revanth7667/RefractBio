@@ -6,7 +6,6 @@ import path from 'node:path';
 import App from '../../src/App';
 import * as storage from '../../src/storage/storage';
 import { APP_ID, GAPS_DELIMITER } from '../../src/config';
-import { recordCspViolation, clearCspViolations } from '../../src/providers/errors';
 
 describe('Milestone M7b Generation and Right Pane UI', () => {
   const fakeKey = 'sk-' + 'test-fake-0000';
@@ -660,13 +659,6 @@ describe('Milestone M7b Generation and Right Pane UI', () => {
   describe('Error categories mapping during generation (§13.5)', () => {
     const errorCases = [
       {
-        category: 'csp_blocked',
-        setup: () => recordCspViolation('https://api.anthropic.com/v1/messages'),
-        mockHandler: () => Promise.reject(new TypeError('Failed to fetch')),
-        expectedMessage:
-          "This app's security policy blocked the request to api.anthropic.com. The hosted app only allows the Anthropic and Gemini addresses.",
-      },
-      {
         category: 'cors_or_network (offline)',
         setup: () => vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false),
         mockHandler: () => Promise.reject(new TypeError('Failed to fetch')),
@@ -838,12 +830,23 @@ describe('Milestone M7b Generation and Right Pane UI', () => {
           ),
         expectedMessage: "Something went wrong: I'm a teapot",
       },
+      {
+        category: 'csp_blocked',
+        setup: () =>
+          window.dispatchEvent(
+            Object.assign(new Event('securitypolicyviolation'), {
+              blockedURI: 'https://api.anthropic.com/v1/messages',
+            }),
+          ),
+        mockHandler: () => Promise.reject(new TypeError('Failed to fetch')),
+        expectedMessage:
+          "This app's security policy blocked the request to api.anthropic.com. The hosted app only allows the Anthropic and Gemini addresses.",
+      },
     ];
 
     it.each(errorCases)(
       'shows expected error message and Retry button for $category',
       async ({ setup, mockHandler, expectedMessage }) => {
-        clearCspViolations();
         setup();
 
         vi.stubGlobal(

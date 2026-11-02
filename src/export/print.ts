@@ -11,7 +11,7 @@ const md = new MarkdownIt({
 /**
  * Creates or retrieves the dedicated #print-root element.
  */
-export function getOrCreatePrintRoot(): HTMLElement {
+function getOrCreatePrintRoot(): HTMLElement {
   let el = document.getElementById('print-root');
   if (!el) {
     el = document.createElement('div');

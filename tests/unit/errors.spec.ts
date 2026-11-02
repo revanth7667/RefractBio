@@ -3,7 +3,6 @@ import {
   mapProviderError,
   extractHost,
   parseRetryAfter,
-  recordCspViolation,
 } from '../../src/providers/errors';
 
 describe('Error Mapping & Host Extraction (src/providers/errors.ts)', () => {
@@ -165,7 +164,11 @@ describe('Error Mapping & Host Extraction (src/providers/errors.ts)', () => {
     });
 
     it('maps TypeError when CSP violation was recorded for host', () => {
-      recordCspViolation('https://evil-blocked-host.example.com/api');
+      window.dispatchEvent(
+        Object.assign(new Event('securitypolicyviolation'), {
+          blockedURI: 'https://evil-blocked-host.example.com/api',
+        }),
+      );
       const err = mapProviderError({
         provider: 'Test',
         url: 'https://evil-blocked-host.example.com/v1',

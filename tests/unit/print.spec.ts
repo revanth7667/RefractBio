@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { printDocument, getOrCreatePrintRoot } from '../../src/export/print';
+import { printDocument } from '../../src/export/print';
 import { GAPS_DELIMITER } from '../../src/config';
 
 describe('Print export module (§16.3)', () => {
@@ -25,7 +25,8 @@ describe('Print export module (§16.3)', () => {
     const maliciousDraft = '# Candidate Name\n<script>alert("pwned")</script>\n<img src="x" onerror="alert(1)" />\nText here.';
     printDocument(maliciousDraft, 'letter', 'RESUME');
 
-    const printRoot = getOrCreatePrintRoot();
+    const printRoot = document.getElementById('print-root')!;
+    expect(printRoot).toBeTruthy();
     expect(printRoot.innerHTML).toContain('&lt;script&gt;alert("pwned")&lt;/script&gt;');
     expect(printRoot.innerHTML).toContain('&lt;img src="x" onerror="alert(1)" /&gt;');
     expect(printRoot.querySelector('script')).toBeNull();
@@ -56,7 +57,7 @@ describe('Print export module (§16.3)', () => {
 
   it('replaces content on consecutive prints, never appending', () => {
     printDocument('# First Print Document', 'letter', 'RESUME');
-    const root = getOrCreatePrintRoot();
+    const root = document.getElementById('print-root')!;
     expect(root.innerHTML).toContain('First Print Document');
 
     printDocument('# Second Print Document', 'letter', 'RESUME');
@@ -66,7 +67,7 @@ describe('Print export module (§16.3)', () => {
 
   it('marks data-kind on #print-root for cover letter and resume', () => {
     printDocument('Dear Team,\n\nCover letter body.', 'letter', 'COVER_LETTER');
-    const root = getOrCreatePrintRoot();
+    const root = document.getElementById('print-root')!;
     expect(root.dataset.kind).toBe('cover_letter');
 
     printDocument('# Resume Header', 'letter', 'RESUME');
@@ -81,7 +82,7 @@ describe('Print export module (§16.3)', () => {
 
   it('clears #print-root on afterprint event', () => {
     printDocument('# Resume to be cleared', 'letter', 'RESUME');
-    const root = getOrCreatePrintRoot();
+    const root = document.getElementById('print-root')!;
     expect(root.innerHTML).not.toBe('');
 
     // Dispatch afterprint event
@@ -95,7 +96,7 @@ describe('Print export module (§16.3)', () => {
     const editorText = rawModelOutput.split(GAPS_DELIMITER)[0].trim();
     printDocument(editorText, 'letter', 'RESUME');
 
-    const root = getOrCreatePrintRoot();
+    const root = document.getElementById('print-root')!;
     expect(root.textContent).toContain('Jordan Sample');
     expect(root.textContent).not.toContain(GAPS_DELIMITER);
     expect(root.textContent).not.toContain('Distinctive Gaps note line');
