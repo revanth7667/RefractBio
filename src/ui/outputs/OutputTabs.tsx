@@ -176,8 +176,12 @@ function TabBody({
     tab.kind === 'LINKEDIN_MESSAGE' ? splitLinkedInVariants(tab.editorText) : null;
   const emailParts =
     tab.kind === 'EMAIL' ? splitEmailDraft(tab.editorText) : null;
+  const isFinishedAndNonEmpty =
+    !isBusy && tab.status !== 'generating' && tab.editorText.trim().length > 0;
   const isEmailMissingSubject =
-    tab.kind === 'EMAIL' && !hasEmailSubject(tab.editorText);
+    tab.kind === 'EMAIL' && isFinishedAndNonEmpty && !hasEmailSubject(tab.editorText);
+  const isLinkedInMissingLabels =
+    tab.kind === 'LINKEDIN_MESSAGE' && isFinishedAndNonEmpty && !linkedInVariants?.found;
 
   const snapshot = tab.current?.snapshot;
   const generatedTime = snapshot
@@ -351,7 +355,7 @@ function TabBody({
       </div>
 
       {/* LinkedIn missing variants notice (§16.2) */}
-      {tab.kind === 'LINKEDIN_MESSAGE' && !linkedInVariants?.found && (
+      {isLinkedInMissingLabels && (
         <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-800 dark:text-amber-200">
           Couldn't find the two variant labels, so per-variant copy is off. Check the labels in the draft or in your instructions file.
         </div>
@@ -414,7 +418,7 @@ function TabBody({
             </div>
           )}
 
-          {tab.kind === 'LINKEDIN_MESSAGE' && !linkedInVariants?.found && (
+          {isLinkedInMissingLabels && (
             <div>
               <Badge variant="outline" className="border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-200 text-xs">
                 LinkedIn variant labels missing. Per-variant copy is off; check the two label lines in the draft.
