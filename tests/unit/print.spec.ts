@@ -110,4 +110,33 @@ describe('Print export module (§16.3)', () => {
     expect(css).not.toMatch(/url\s*\(/i);
     expect(css).not.toMatch(/@import/i);
   });
+
+  it('verifies every rule in print.css (except screen-hide and print body-hide) is scoped under #print-root', () => {
+    const cssPath = path.resolve(__dirname, '../../src/export/print.css');
+    const css = fs.readFileSync(cssPath, 'utf-8');
+
+    const noComments = css.replace(/\/\*[\s\S]*?\*\//g, '');
+    const mediaMatch = noComments.match(/@media\s+print\s*\{([\s\S]*)\}/);
+    expect(mediaMatch).toBeTruthy();
+    const mediaBody = mediaMatch![1];
+
+    const ruleBlocks = mediaBody.split('}').map((s) => s.trim()).filter(Boolean);
+    expect(ruleBlocks.length).toBeGreaterThan(0);
+
+    for (const block of ruleBlocks) {
+      const selector = block.split('{')[0].trim();
+      if (!selector) continue;
+      if (selector === 'body > *:not(#print-root)') {
+        continue;
+      }
+      expect(selector.startsWith('#print-root')).toBe(true);
+    }
+
+    const topLevelOutsideMedia = noComments.replace(/@media\s+print\s*\{[\s\S]*\}/, '').trim();
+    const topLevelBlocks = topLevelOutsideMedia.split('}').map((s) => s.trim()).filter(Boolean);
+    for (const block of topLevelBlocks) {
+      const selector = block.split('{')[0].trim();
+      expect(selector).toBe('#print-root');
+    }
+  });
 });
