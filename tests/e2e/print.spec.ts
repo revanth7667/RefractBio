@@ -47,6 +47,8 @@ test.describe('M10 Export and Print e2e check (§16.3, §20 M10)', () => {
     const resumeFixture = loadFixture('outputs/resume.txt');
     const coverLetterFixture = loadFixture('outputs/cover-letter.txt');
     const editedMasterInfo = loadFixture('master/edited.md');
+    const resumeGapsSentence = 'Candidate lacks experience with Kubernetes cluster management.';
+    const coverLetterGapsSentence = 'Candidate lacks experience with Apache Kafka real-time streaming.';
 
     // Setup CORS-enabled routes for Anthropic
     await setupAnthropicRoutes(page, resumeFixture, coverLetterFixture);
@@ -125,7 +127,7 @@ test.describe('M10 Export and Print e2e check (§16.3, §20 M10)', () => {
     expect(resumeLetterInfo.text).not.toContain('Job context');
 
     // (7) Assert distinctive Gaps sentence does NOT appear in PDF text
-    expect(resumeLetterInfo.text).not.toContain('Kubernetes');
+    expect(resumeLetterInfo.text).not.toContain(resumeGapsSentence);
 
     // (4) Select A4, click Print again (do not reload)
     await paperSelect.selectOption('a4');
@@ -148,7 +150,8 @@ test.describe('M10 Export and Print e2e check (§16.3, §20 M10)', () => {
     expect(resumeA4Info.width).toBeLessThan(resumeLetterInfo.width);
     expect(resumeA4Info.height).toBeGreaterThan(resumeLetterInfo.height);
     expect(resumeA4Info.text).not.toContain('Send');
-    expect(resumeA4Info.text).not.toContain('Kubernetes');
+    expect(resumeA4Info.text).not.toContain('Settings');
+    expect(resumeA4Info.text).not.toContain(resumeGapsSentence);
 
     // -------------------------------------------------------------
     // PRINT CHECK PROCEDURE (§20 M10): COVER LETTER
@@ -176,7 +179,7 @@ test.describe('M10 Export and Print e2e check (§16.3, §20 M10)', () => {
     expect(coverLetterInfo.text).not.toContain('Send');
     expect(coverLetterInfo.text).not.toContain('Settings');
     expect(coverLetterInfo.text).not.toContain('Job context');
-    expect(coverLetterInfo.text).not.toContain('Apache Kafka');
+    expect(coverLetterInfo.text).not.toContain(coverLetterGapsSentence);
 
     // Select A4, click Print again
     await paperSelect.selectOption('a4');
@@ -196,7 +199,8 @@ test.describe('M10 Export and Print e2e check (§16.3, §20 M10)', () => {
     expect(coverA4Info.width).toBeLessThan(coverLetterInfo.width);
     expect(coverA4Info.height).toBeGreaterThan(coverLetterInfo.height);
     expect(coverA4Info.text).not.toContain('Send');
-    expect(coverA4Info.text).not.toContain('Apache Kafka');
+    expect(coverA4Info.text).not.toContain('Settings');
+    expect(coverA4Info.text).not.toContain(coverLetterGapsSentence);
 
     // Assert zero security policy violations throughout the entire flow
     const violations = await page.evaluate(() => window.__cspViolations || []);
