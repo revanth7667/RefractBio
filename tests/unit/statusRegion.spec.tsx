@@ -154,7 +154,31 @@ describe('App-wide Status Region (SPEC §17.7)', () => {
       )
     );
 
+    storage.set('masterInfo', {
+      text: '<!-- TEMPLATE-UNEDITED -->\n# Jordan Smith\nSenior Data Analyst',
+      updatedAt: new Date().toISOString(),
+    });
+
     const { container } = render(<App />);
+
+    // 0. Blocked state (sample Master Info, empty job context):
+    const sendBtn = screen.getByRole('button', { name: /^send$/i });
+    expect(sendBtn.getAttribute('aria-describedby')).toBe('send-blocker-reason');
+    expect(document.getElementById('send-blocker-reason')).toBeTruthy();
+
+    const blockedLiveElements = getLiveElements(container);
+    expect(blockedLiveElements).toHaveLength(2);
+    expect(blockedLiveElements[0].getAttribute('aria-live')).toBe('polite');
+    expect(blockedLiveElements[1].getAttribute('aria-label')).toBe('File upload notices');
+
+    // Resolve blocker by saving clean Master Info
+    const openMasterBtn = screen.getByRole('button', { name: 'Open Master Info' });
+    fireEvent.click(openMasterBtn);
+
+    const masterEditor = screen.getByRole('textbox', { name: 'Master Info' });
+    fireEvent.change(masterEditor, { target: { value: cleanMasterInfo } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
 
     // 1. Empty state (Send ready with job context):
     // Deselect cover letter toggle so only Resume runs
@@ -165,6 +189,10 @@ describe('App-wide Status Region (SPEC §17.7)', () => {
     const contextInput = screen.getByLabelText(/job context/i);
     fireEvent.change(contextInput, { target: { value: 'Looking for a Senior Data Analyst.' } });
 
+    // Send button aria-describedby is absent when unblocked
+    expect(sendBtn.getAttribute('aria-describedby')).toBeNull();
+    expect(document.getElementById('send-blocker-reason')).toBeNull();
+
     // In ready empty state: exactly app-wide status region + local file-notices region
     const emptyStateLiveElements = getLiveElements(container);
     expect(emptyStateLiveElements).toHaveLength(2);
@@ -172,7 +200,6 @@ describe('App-wide Status Region (SPEC §17.7)', () => {
     expect(emptyStateLiveElements[1].getAttribute('aria-label')).toBe('File upload notices');
 
     // 2. Generating state (wide layout):
-    const sendBtn = screen.getByRole('button', { name: /^send$/i });
     fireEvent.click(sendBtn);
 
     await waitFor(() => {
