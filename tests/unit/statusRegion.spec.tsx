@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, fireEvent, waitFor } from '@testing-library/react';
 import App from '../../src/App';
 import * as storage from '../../src/storage/storage';
 import { SettingsProvider } from '../../src/state/SettingsContext';
@@ -19,7 +19,14 @@ function AnnouncementTrigger({ message }: { message: string }) {
   );
 }
 
+function getLiveElements(container: HTMLElement) {
+  return Array.from(
+    container.querySelectorAll('[aria-live], [role="status"], [role="alert"], [role="log"]')
+  );
+}
+
 describe('App-wide Status Region (SPEC §17.7)', () => {
+  const fakeKey = 'sk-' + 'test-fake-0000';
   const cleanMasterInfo = '# Jordan Smith\nSenior Data Analyst';
 
   beforeEach(() => {
@@ -90,10 +97,123 @@ describe('App-wide Status Region (SPEC §17.7)', () => {
     expect(liveRegion?.textContent).toBe('Generation finished for Resume');
   });
 
-  it('exactly one app-wide status region exists across the application', () => {
+  it('counts all live elements across empty, generating (wide and narrow), and with drafts states', async () => {
+    // Setup stored API key with rememberKeys: true so Send is not blocked
+    storage.set('settings', {
+      selectedProvider: 'anthropic',
+      selectedModel: { anthropic: 'claude-3-5-sonnet', gemini: 'gemini-1.5-flash' },
+      rememberKeys: true,
+      paperSize: 'letter',
+      theme: 'system',
+      showAllModels: false,
+    });
+    storage.set('apiKeys', { anthropic: fakeKey });
+
+    let resolveStream!: () => void;
+    const streamPromise = new Promise<void>((res) => {
+      resolveStream = res;
+    });
+
+    const createStream = () =>
+      new ReadableStream({
+        async start(controller) {
+          controller.enqueue(
+            new TextEncoder().encode(
+              'event: message_start\ndata: {"type":"message_start","message":{"id":"msg_1","type":"message","role":"assistant","content":[],"model":"claude-3-5-sonnet","stop_reason":null,"usage":{"input_tokens":10,"output_tokens":1}}}\n\n'
+            )
+          );
+          controller.enqueue(
+            new TextEncoder().encode(
+              'event: content_block_start\ndata: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n'
+            )
+          );
+          controller.enqueue(
+            new TextEncoder().encode(
+              'event: content_block_delta\ndata: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"# Jordan Smith\\n\\nSenior Data Analyst"}}\n\n'
+            )
+          );
+          await streamPromise;
+          controller.enqueue(
+            new TextEncoder().encode(
+              'event: message_stop\ndata: {"type":"message_stop"}\n\n'
+            )
+          );
+          controller.close();
+        },
+      });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(() =>
+        Promise.resolve(
+          new Response(createStream(), {
+            status: 200,
+            headers: { 'Content-Type': 'text/event-stream' },
+          })
+        )
+      )
+    );
+
     const { container } = render(<App />);
 
-    const appWideRegions = container.querySelectorAll('[aria-live="polite"].sr-only');
-    expect(appWideRegions).toHaveLength(1);
+    // 1. Empty state (Send ready with job context):
+    // Deselect cover letter toggle so only Resume runs
+    const coverToggle = screen.getByRole('button', { name: /cover letter/i });
+    fireEvent.click(coverToggle);
+
+    // Provide job context
+    const contextInput = screen.getByLabelText(/job context/i);
+    fireEvent.change(contextInput, { target: { value: 'Looking for a Senior Data Analyst.' } });
+
+    // In ready empty state: exactly app-wide status region + local file-notices region
+    const emptyStateLiveElements = getLiveElements(container);
+    expect(emptyStateLiveElements).toHaveLength(2);
+    expect(emptyStateLiveElements[0].getAttribute('aria-live')).toBe('polite');
+    expect(emptyStateLiveElements[1].getAttribute('aria-label')).toBe('File upload notices');
+
+    // 2. Generating state (wide layout):
+    const sendBtn = screen.getByRole('button', { name: /^send$/i });
+    fireEvent.click(sendBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Sending…/i)).toBeTruthy();
+    });
+
+    const generatingWideLiveElements = getLiveElements(container);
+    expect(generatingWideLiveElements).toHaveLength(2);
+    expect(generatingWideLiveElements[0].getAttribute('aria-live')).toBe('polite');
+    expect(generatingWideLiveElements[1].getAttribute('aria-label')).toBe('File upload notices');
+
+    // 3. Generating state (narrow layout):
+    // Switch to Outputs tab in narrow view
+    const narrowOutputsTab = screen.getByRole('tab', { name: /outputs/i });
+    fireEvent.click(narrowOutputsTab);
+
+    // Verify generating indicator does not create an unauthorized live region
+    const generatingDot = narrowOutputsTab.querySelector('[aria-label="Generating"]');
+    expect(generatingDot).toBeTruthy();
+    expect(generatingDot?.getAttribute('role')).toBe('img');
+    expect(generatingDot?.getAttribute('aria-live')).toBeNull();
+
+    const generatingNarrowLiveElements = getLiveElements(container);
+    expect(generatingNarrowLiveElements).toHaveLength(2);
+    expect(generatingNarrowLiveElements[0].getAttribute('aria-live')).toBe('polite');
+    expect(generatingNarrowLiveElements[1].getAttribute('aria-label')).toBe('File upload notices');
+
+    // 4. With drafts:
+    // Resolve stream and wait for draft to finish
+    await act(async () => {
+      resolveStream();
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Sending…/i)).toBeNull();
+      expect(screen.getByRole('tab', { name: /resume/i })).toBeTruthy();
+    });
+
+    const draftsLiveElements = getLiveElements(container);
+    expect(draftsLiveElements).toHaveLength(2);
+    expect(draftsLiveElements[0].getAttribute('aria-live')).toBe('polite');
+    expect(draftsLiveElements[1].getAttribute('aria-label')).toBe('File upload notices');
   });
 });
