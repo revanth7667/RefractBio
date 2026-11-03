@@ -3,7 +3,7 @@
 > **Audience:** an agentic coding tool (Google Antigravity) building this project from scratch, and the humans reviewing its work.
 > **How to read this:** sections marked **MUST** are requirements. Anything about third-party APIs is a *hypothesis* until confirmed in the milestone named in §4. All names, employers, emails and phone numbers in this document are **fake sample data**.
 > **Working name:** "RefractBio" is a working name. Every place the name appears in code, storage keys, filenames or persisted content comes from `src/config.ts` (see §0 and A23), so a rename touches one file.
-> **Spec version:** 3.0 (simplified). Changes since 2.2: (1) **two providers only**, Anthropic and Gemini; OpenAI, OpenRouter, the Cloudflare Worker proxy and all custom-endpoint machinery are removed and deferred; (2) **Master Info is free-form**: one bundled sample file replaces the template, the separate example, the parser and the linter; the only file-specific code is a marker check, HTML-comment stripping, the effective-text rule and a length note; (3) **a fifth output, "Application answers"**, for interview-style and application-form questions, with a Questions box and an `# ANSWERS` instructions section; (4) the internal-ID safety-net badge, metric flags and IDs are gone; (5) verification items renumbered (V1–V22). **Post-M8 edits (no version bump):** §12.6 estimate rounding, §13.5 safety-detection order, §14.1–§14.3 `FOLD_EDIT` and the Send/Regenerate rules, §17.2 Send label, §17.3 empty-state step 3, file tree (§7), and decisions recorded under M7a, M7b and M8 in §20. **Post-M9 edits (no version bump):** §8 `Attachment.objectUrl`, §17.7 local file-notices live region, decisions recorded under M9 and the status-region move under M11 in §20. **Post-M10 edits (no version bump):** §6 version note and test-only packages, §16.3 print scoping, added spacing values, Safari behavior and the Safari help sentence, §17.5 must-say items, R9, decisions recorded under M10 and the M11 task additions in §20. **Post-M10 follow-up edits (no version bump):** support link deferred (§7, §17.1, §17.4, §22.1, §22.3: `supportUrl` placeholder stays `null`, no UI); §6 test-only `@axe-core/playwright`; §12.7 variant-label badge only on a finished, non-empty draft; §16.3 and §17.5 the Safari print note moves from beside the Print button to Help and README; §17.5 no internal IDs in user-facing text; §17.7 axe runs in Playwright; §20 Name gate done and M11 split into M11a and M11b; §22.1 and §22.3 README outline and Name gate wording.
+> **Spec version:** 3.0 (simplified). Changes since 2.2: (1) **two providers only**, Anthropic and Gemini; OpenAI, OpenRouter, the Cloudflare Worker proxy and all custom-endpoint machinery are removed and deferred; (2) **Master Info is free-form**: one bundled sample file replaces the template, the separate example, the parser and the linter; the only file-specific code is a marker check, HTML-comment stripping, the effective-text rule and a length note; (3) **a fifth output, "Application answers"**, for interview-style and application-form questions, with a Questions box and an `# ANSWERS` instructions section; (4) the internal-ID safety-net badge, metric flags and IDs are gone; (5) verification items renumbered (V1–V22). **Post-M8 edits (no version bump):** §12.6 estimate rounding, §13.5 safety-detection order, §14.1–§14.3 `FOLD_EDIT` and the Send/Regenerate rules, §17.2 Send label, §17.3 empty-state step 3, file tree (§7), and decisions recorded under M7a, M7b and M8 in §20. **Post-M9 edits (no version bump):** §8 `Attachment.objectUrl`, §17.7 local file-notices live region, decisions recorded under M9 and the status-region move under M11 in §20. **Post-M10 edits (no version bump):** §6 version note and test-only packages, §16.3 print scoping, added spacing values, Safari behavior and the Safari help sentence, §17.5 must-say items, R9, decisions recorded under M10 and the M11 task additions in §20. **Post-M11b edits (no version bump):** Stop generation is now in scope (Q1 answered Yes; §14.8, §17.2, §17.3, §17.7); `showAllModels` is per provider (§8, §13.4); empty-state step 2 counts attachments (§17.3); DOCX preview shows its character count (§15.4); app icon (§17.1, §22.1); V23 and V24 added; milestones M11c, M11d and M12 added (§20); single-request mode and prompt caching noted under Phase 2. **Post-M10 follow-up edits (no version bump):** support link deferred (§7, §17.1, §17.4, §22.1, §22.3: `supportUrl` placeholder stays `null`, no UI); §6 test-only `@axe-core/playwright`; §12.7 variant-label badge only on a finished, non-empty draft; §16.3 and §17.5 the Safari print note moves from beside the Print button to Help and README; §17.5 no internal IDs in user-facing text; §17.7 axe runs in Playwright; §20 Name gate done and M11 split into M11a and M11b; §22.1 and §22.3 README outline and Name gate wording.
 
 ---
 
@@ -72,7 +72,6 @@ The following are explicitly **out of scope**. Do not implement them, stub them,
 - Passphrase-encrypted key storage (MVP).
 - DOCX export (Phase 2).
 - Automatic retries, background sync, service-worker caching of data.
-- A "Stop generation" button (see Open Question Q1).
 - Markdown preview pane in the editor (print view renders Markdown; the editor is plain text).
 - Command palettes, searchable comboboxes, tooltips, accordions, toast libraries (see A25).
 
@@ -90,7 +89,7 @@ Each assumption below is a decision taken because the brief left it open. Each i
 | A4 | **No automatic retries.** A failed tab shows an error and a Retry button. If a 429 carries a `Retry-After` header, the message shows the wait time. | Fewer moving parts; user stays in control of spend. |
 | A5 | **Parallel concurrency limit = 2** in-flight requests, defined in `src/config.ts`. | Low enough to avoid most rate limits on small tiers. |
 | A6 | Each output's model response ends with a **Gaps note separated by the exact delimiter line `<!-- GAPS-NOTE -->`** (`GAPS_DELIMITER` in config, built from `GAPS_DELIMITER_TOKEN = 'GAPS-NOTE'`). The app shows the Gaps note above the editor; it is **not** part of the editable document, copy, download or print. | Keeps gaps visible but out of the deliverable (so Gaps text never lands in an email or LinkedIn message). |
-| A7 | Streaming text appears live in the tab (read-only while streaming). On error or abort, the partial text is **discarded** and the tab reverts to its prior content. | Deterministic version history. |
+| A7 | Streaming text appears live in the tab (read-only while streaming). On error or abort (including Clear job), the partial text is **discarded** and the tab reverts to its prior content. A **user-initiated Stop** (§14.8) is different: partial text that has already arrived is kept as a new version marked "stopped early". | Deterministic version history; Stop must not lose useful text. |
 | A8 | "Restore previous version" **swaps** current and previous, so pressing it twice returns to the original. | No lost text, no extra storage. |
 | A9 | **HTML comments** (`<!-- ... -->`) in the Master Info and Instructions file are **stripped before sending** to the model, using one simple pattern, `/<!--[\s\S]*?-->/g`. This is the only text transformation applied to Master Info. | Guidance in the sample costs no tokens; comments are for humans. |
 | A10 | Markdown → HTML for printing uses **markdown-it with `html: false`** (raw HTML escaped), so no sanitizer library is needed. | Safe by construction, one dependency. |
@@ -146,6 +145,8 @@ Each assumption below is a decision taken because the brief left it open. Each i
 | V20 | Relative base + hash routing | With `base: './'`, assets and the hash router work when hosted under a repository subpath (GitHub Pages) and from `file://`. | `vite.config.ts`, `src/state/useHashRoute.ts` | M2 |
 | V21 | LinkedIn connection-note length | The default instructions assume connection-request notes must be under 300 characters. LinkedIn has changed this limit over time; confirm the current figure from LinkedIn's own help pages and edit the default instructions if it differs. | `src/data/instructions.default.md` | M5 |
 | V22 | Gemini API free-tier data-use terms | Whether content sent on Gemini's free tier may be used by Google to improve its products, and how paid usage differs. Confirm from Google's official terms; state the result plainly in the README and Help page, because resumes are sensitive. | `docs/help.md`, `README.md` | M3 |
+| V23 | Aborting an in-flight request | Calling `AbortController.abort()` on a streaming `fetch` stops further events promptly in Chrome, Firefox and Safari for both providers, and the app returns to a usable state (Send enabled, job context intact). What the provider bills after an abort is governed by its terms (state it carefully in Help). | `src/generation/queue.ts`, `src/providers/*/stream.ts` | M11c |
+| V24 | App icon and favicon rendering | Chrome, Firefox and Safari show the SVG favicon (or the 32 px PNG fallback) legibly on light and dark tabs; the iOS home-screen icon uses `apple-touch-icon.png`; the single-file build shows the embedded icon from disk. | `index.html`, `src/assets/` | M11c |
 
 ---
 
@@ -391,7 +392,8 @@ export interface Settings {
   rememberKeys: boolean;          // default false
   theme: Theme;                   // default 'system'
   paperSize: PaperSize;           // default 'letter'
-  showAllModels: boolean;         // default false
+  /** Per provider; a missing entry means false. Each provider's "Show all models" is independent (§13.4). */
+  showAllModels: Partial<Record<ProviderId, boolean>>;
 }
 
 // ---------- Master Info (free-form text) ----------
@@ -487,6 +489,7 @@ export interface OutputVersion {
   gaps: string;                   // text after the delimiter, '' if none returned
   gapsMissing: boolean;           // true if model omitted the delimiter
   truncated: boolean;             // true if the provider stopped at a length limit (A21)
+  stopped: boolean;               // true if the user pressed Stop and this is the partial text received (§14.8)
   snapshot: InputSnapshot;
 }
 
@@ -593,6 +596,7 @@ export function isAvailable(): boolean;                   // try set/remove a pr
 - Every `localStorage` call is in `try/catch`. `QuotaExceededError` (check `name` and legacy `code` 22/1014) → `quota_exceeded`. Any access throwing `SecurityError` → `unavailable`.
 - `get` on an envelope with a different `schemaVersion` runs `migrations[from]` if present, else returns `schema_mismatch` and the UI offers to reset that item (never silently deletes).
 - `migrations` is an empty map in v1; the function exists so v2 can add entries.
+- **Settings shape change (M11c):** `showAllModels` changed from one boolean to a per-provider record (§8). `SCHEMA_VERSION` is part of the storage key (above), so it is **not** bumped (that would create new keys and orphan saved data). Instead the settings reader accepts the old shape: a stored boolean `true` becomes `{ [selectedProvider]: true }`, a stored `false` becomes `{}`; unknown or malformed values fall back to `{}`. The next save writes the new shape. No new storage key.
 - The module contains no React and no logging of values.
 
 ### 9.3 Stored shapes
@@ -1135,7 +1139,7 @@ Model-list pagination is capped at 20 pages to avoid loops.
 
 Rules:
 1. The list is fetched when the user presses "Test connection" and, if a key is already available (for example a remembered key), when the app starts. Pressing "Test connection" again refreshes it. It is cached in memory for the session. The app does not fetch while the user is still typing a key.
-2. **Default view and "Show all models".** `likelyChat = false` if API metadata says non-chat (for Gemini: `generateContent` is not supported), or if the ID contains a `nonChatIdPatterns` entry. With "Show all models" unchecked (the default; stored as `settings.showAllModels`), the picker shows only the short default list from rule 5. With it checked, the picker shows every model the provider returned, including those with `likelyChat = false`.
+2. **Default view and "Show all models".** `likelyChat = false` if API metadata says non-chat (for Gemini: `generateContent` is not supported), or if the ID contains a `nonChatIdPatterns` entry. "Show all models" is **per provider** (stored as `settings.showAllModels[provider]`, default unchecked). Changing it for one provider never changes the other provider, and the Settings → Providers panel and the send bar read and write the same per-provider value. With it unchecked, the picker shows only the short default list from rule 5. With it checked, the picker shows every model that provider returned, including those with `likelyChat = false`.
 3. Capability: use API metadata if the provider exposes it (V9) → `capabilitySource: 'api-metadata'`; else pattern lists → `'pattern-guess'`; else `'unknown'` / `'none'`.
 4. `smallTierGuess` from `smallTierIdPatterns`; UI shows a muted line under the picker: "This model's name suggests a smaller, faster tier that may write weaker resumes. This is a guess based on the name only."
 5. **Default list** (replaces the former "recommended first" rule). The list for the current provider is built from `defaultPatterns[provider]`, an ordered array read purely as data. For each pattern, in order: only models with `likelyChat = true` are considered; (a) if a model's ID or display name equals the pattern (case-insensitive; a Gemini ID may carry a `models/` prefix, so `models/{pattern}` also counts; hyphens in the pattern also match spaces in the display name), that model is selected; (b) otherwise, among the models whose display name or ID contains the pattern as a case-insensitive substring, the freshest one (rule 9) is selected; (c) if nothing matches, the pattern adds nothing; (d) a model already selected by an earlier pattern is not added again. The default list is the selected models in pattern order. If the list ends up empty (no patterns, or none matched), the default view shows all `likelyChat` models instead. Patterns are editable data, so a new model family does not appear in the default view until its pattern is added to `defaultPatterns` or "Show all models" is checked.
@@ -1194,7 +1198,7 @@ stateDiagram-v2
   error --> idle: CLEAR
 ```
 
-Reducer actions (`src/generation/tabReducer.ts`): `START`, `DELTA(text)`, `SUCCESS(fullText, truncated, snapshot)`, `FAIL(error)`, `ABORT`, `EDIT(text)`, `FOLD_EDIT`, `RESTORE_PREVIOUS`, `CLEAR`. `FOLD_EDIT` copies the edited text into `current.document` and clears `userEdited`; it is dispatched when the user confirms the overwrite dialog (§14.3).
+Reducer actions (`src/generation/tabReducer.ts`): `START`, `DELTA(text)`, `SUCCESS(fullText, truncated, snapshot)`, `FAIL(error)`, `ABORT`, `STOP` (user pressed Stop, §14.8), `EDIT(text)`, `FOLD_EDIT`, `RESTORE_PREVIOUS`, `CLEAR`. `FOLD_EDIT` copies the edited text into `current.document` and clears `userEdited`; it is dispatched when the user confirms the overwrite dialog (§14.3).
 
 ### 14.2 Send semantics and tab visibility
 
@@ -1202,15 +1206,15 @@ Reducer actions (`src/generation/tabReducer.ts`): `START`, `DELTA(text)`, `SUCCE
 - **Tab visibility rule (A26):** the pure selector `visibleTabs(tabs)` returns the tabs where `status !== 'idle' || current !== null`, in fixed order Resume, Cover Letter, LinkedIn, Email, Answers. A selected output that has never been sent has **no tab**; it exists only as a toggle on the left. A tab appears the moment its request starts. When `visibleTabs` is empty, the right pane shows the empty state (§17.3).
 - Each selected kind → one independent call. Never a combined call.
 - Queue: FIFO, concurrency 2 (A5). A failure in one call never cancels others.
-- **Per-tab Regenerate/Retry** button: regenerates only that tab with **current** inputs, even if that output is not selected. It joins the queue, may be pressed while other tabs are running, and is disabled for that tab while the tab is queued or generating.
-- **Send is disabled while any job is queued or generating**, so Send never restarts a running kind. The queue (`src/generation/queue.ts`) keeps one `AbortController` per job and, if the same kind is enqueued twice, aborts the earlier job and runs the new one (not reachable from the UI). Clear job aborts every queued and running job (§14.5).
+- **Per-tab Regenerate/Retry** button: regenerates only that tab with **current** inputs, even if that output is not selected. It joins the queue and may be pressed while other tabs are running. While that tab is queued or generating, the button is replaced by **Stop** (§14.8).
+- **Send is disabled while any job is queued or generating**, so Send never restarts a running kind. The queue (`src/generation/queue.ts`) keeps one `AbortController` per job and, if the same kind is enqueued twice, aborts the earlier job and runs the new one (not reachable from the UI). Clear job aborts every queued and running job (§14.5). A user **Stop** cancels one job (per-tab Stop) or every queued and running job (Stop all) without touching the job context, questions, attachments, custom instructions or other tabs (§14.8).
 - The **Questions** box content is sent **only** with the Answers call (A31); other outputs ignore it.
 
 ### 14.3 Versions, edits and truncation
 
 - On `START`: `streamingText = ''`; editor shows streaming text, read-only, with "Generating…".
 - On `SUCCESS`: `previous = current` (if any), `current = new version` (including `truncated`), `editorText = current.document`, `userEdited = false`.
-- On `FAIL`/`ABORT`: `streamingText` discarded; `editorText`, `current`, `previous`, `userEdited` unchanged (A7).
+- On `FAIL`/`ABORT`: `streamingText` discarded; `editorText`, `current`, `previous`, `userEdited` unchanged (A7). `STOP` is handled by §14.8.
 - On `EDIT`: `editorText = text`; `userEdited = (text !== current.document)`.
 - **Truncation notice (A21):** shown whenever `current.truncated` is true (it follows the current version, including after Restore previous version). Text: "This draft was cut off before the model finished. Press Regenerate, or choose a model or setting that allows longer output."
 - **Before overwriting edited tabs**: if any tab about to start has `userEdited === true`, show one AlertDialog: "You edited {Resume, Email}. Regenerating will replace your edits (you can still restore the previous version once). Continue?" Cancel → nothing starts. Continue → the edited text is first folded into `current.document` (`FOLD_EDIT`, so `previous` after success holds the user's edits, not the stale generated text).
@@ -1258,6 +1262,21 @@ If capability is `'unknown'` with images/PDFs attached: Send stays enabled; a no
 ### 14.7 Leave-page warning (`src/state/useBeforeUnload.ts`)
 
 Register a `beforeunload` handler (calling `event.preventDefault()` and setting `returnValue = ''`) **only while** any tab has `current !== null`, any tab is `generating`, or `userEdited` is true. Remove it otherwise. The browser shows its own generic text; the app cannot customize it.
+
+### 14.8 Stop (user cancel)
+
+Why: a provider can be slow or busy and leave a request waiting; the user needs to give up on it and try another provider or model **without losing the job context or instructions**.
+
+- **Controls.** (1) **Per-tab Stop**: in the tab toolbar, in the place of Regenerate/Retry while that tab is `queued` or `generating`; accessible name "Stop {Output}". (2) **Stop all**: a secondary button in the send bar beside Clear job, shown while any job is queued or generating; accessible name "Stop all outputs". Both go through the queue's cancel function (`src/generation/queue.ts`, one `AbortController` per job). Stop never asks for confirmation.
+- **What Stop does not touch:** job context, questions, attachments, custom instructions, selected outputs, provider and model choices, finished tabs and their previous versions. As soon as no job is queued or generating, **Send is enabled again**, so the user can pick another provider or model and send.
+- **Queued job (not yet started):** removed from the queue, no request is made. Tab with `current !== null`: returns to its previous display unchanged. Tab with no content: returns to `idle`, so the tab disappears (A26).
+- **Running job, no text received yet:** the request is aborted. If `current !== null` the tab reverts as in §14.3 (ABORT). If `current === null` the tab goes to `error` with the category `stopped`: message "Stopped before anything came back. Press Retry, or choose another provider or model.", with Retry.
+- **Running job, some text received:** the request is aborted and the partial text is kept: `previous = current` (if any), `current` = the partial text with `stopped = true`, `editorText` = that text, `userEdited = false`, status `done`. The partial text goes through the same splitter as a finished response, so a Gaps note appears only if its delimiter had already arrived. **Restore previous version** therefore brings back the earlier complete draft when a regeneration was stopped. The snapshot is recorded as for a finished draft.
+- **Stopped notice** (follows `current.stopped`, including after Restore previous version, like the truncation notice): "Stopped early. This draft is incomplete. Press Regenerate to run it again" plus, when `previous !== null`, ", or restore the previous version". Copy, Download and Print stay available (the user decides).
+- **Waiting hint.** While a tab is `generating` and no text has arrived for `waitingHintSeconds` (data, `src/data/limits.json`, value 20), show above the editor: "Still waiting for the provider. You can press Stop and try another provider or model." It disappears when text arrives or the tab leaves `generating`. It is announced once through the app-wide status region.
+- **Announcements** (app-wide status region, §17.7): "Stopped {Output}." / "Stopped all outputs." A stop is not an error and shows no error callout, except the `stopped` category above.
+- **Not an error for the queue:** a stopped job does not cancel other jobs (A5, §14.2); Stop all cancels every queued and running job. Clear job behaves as before (ABORT semantics).
+- Help must say (§17.5): stopping ends the connection; the provider may still count the tokens it produced before the stop.
 
 ---
 
@@ -1310,7 +1329,7 @@ Classification checks extension first, then MIME; on conflict, extension wins.
 
 ### 15.4 Attachment list UI
 
-Each attachment shows: icon by kind, name, size (e.g. "2.4 MB"), status (Reading…/Ready/Error), badges (Large file, "Text extracted" for DOCX with a "Preview text" disclosure showing the first 2,000 characters), and a **Remove** button (`aria-label="Remove {name}"`). Images show a thumbnail of at most 64 × 64 CSS px (about 1.7 × 1.7 cm / 0.67 × 0.67 in at the nominal 96 CSS px per inch) using an object URL that is revoked on removal/clear.
+Each attachment shows: icon by kind, name, size (e.g. "2.4 MB"), status (Reading…/Ready/Error), badges (Large file, "Text extracted" for DOCX with a "Preview text" disclosure showing the first 2,000 characters; when the text is longer than that, a note under the preview reads "Showing the first 2,000 of {N} characters. The full text is sent to the model.", with {N} formatted with thousands separators. The full extracted text, not the preview, is what goes into the request), and a **Remove** button (`aria-label="Remove {name}"`). Images show a thumbnail of at most 64 × 64 CSS px (about 1.7 × 1.7 cm / 0.67 × 0.67 in at the nominal 96 CSS px per inch) using an object URL that is revoked on removal/clear.
 
 ### 15.5 Explicitly excluded
 
@@ -1370,7 +1389,8 @@ DOCX export, HTML export, multiple templates, custom fonts.
 
 ### 17.1 Global layout
 
-- **Header**: app name (`APP_NAME`), a short tagline "Your facts, many drafts.", a Settings button (gear icon, `aria-label="Settings"`), and a Help link (`#/help`).
+- **App icon.** Four files in `src/assets/`, supplied by the maintainer (agents never create or edit icon artwork): `logo-full.svg` (the detailed logo; About tab at about 96 CSS px, README), `logo-mark.svg` (a simplified mark that stays legible at 16 px; header at about 28 CSS px, and the favicon source), `favicon-32.png` and `apple-touch-icon.png` (180 × 180 px; PNG fallbacks). `index.html` links `logo-mark.svg` as `<link rel="icon" type="image/svg+xml">`, `favicon-32.png` as `<link rel="icon" type="image/png" sizes="32x32">`, and `apple-touch-icon.png` as `<link rel="apple-touch-icon">`. In the hosted build the files are normal relative assets (`base: './'`); in the single-file build they must be embedded as `data:` URIs (the CSP already allows `img-src data:`; the single-file output must still reference no local file). Icons shown in the page are decorative (`alt=""` or `aria-hidden`), because the app name is always next to them. No scripts, fonts or external references inside the SVGs.
+- **Header**: the `logo-mark.svg` mark, app name (`APP_NAME`), a short tagline "Your facts, many drafts.", a Settings button (gear icon, `aria-label="Settings"`), and a Help link (`#/help`).
 - **Main**: two panes side by side at ≥ 768 CSS px viewport width (left 40%, right 60%, both independently scrollable). A CSS px is nominally 1/96 in (≈ 0.026 cm), so 768 CSS px is nominally about 20.3 cm (8 in), but the physical size depends on the screen.
 - **Footer**: "MIT License · Source · Privacy" — plain anchors from `src/data/links.json` (`target="_blank" rel="noopener noreferrer"`; Privacy is an in-app link to the Help page). **Support link (deferred):** `links.json` keeps a `supportUrl` field set to `null`. The UI renders a "Support this project" anchor only when `supportUrl` is a non-empty string, so adding one later is a data change, not a code change. Nothing is shown while it is `null`. No widget script, ever.
 - **Narrow screens (< 768 CSS px)**: panes collapse into two tabs, **Inputs** and **Outputs**. When Send is pressed, the UI switches to Outputs automatically. The Outputs tab label shows a dot while any tab is generating.
@@ -1381,16 +1401,16 @@ DOCX export, HTML export, multiple templates, custom fonts.
 2. **Outputs**: five toggle buttons (multi-select, `aria-pressed`), each with icon + label: Resume (FileText), Cover Letter (FileSignature), LinkedIn Message (MessageSquare), Email (Mail), Application Answers (HelpCircle). Default on first load: Resume and Cover Letter selected. (Selection alone never creates a right-pane tab, see A26.)
 3. **Application questions** (A31): a textarea that is **shown only while the Answers toggle is on**. Label "Application questions", helper "Paste the questions you need answered, one per line or numbered (for example 'Tell me about a time when…'). You can also attach a screenshot of them in the job context area above." Content is kept in memory when the toggle is switched off and on again, and is cleared by Clear job.
 4. **Custom instructions (this job only)**: collapsible (native `<details>`/`<summary>`), closed by default; textarea, placeholder "e.g. Emphasise reporting automation. Keep the cover letter under 250 words." Helper: "Applies to every output for this job. Cleared with Clear job."
-5. **Send bar**: compact provider `<select>` + model `<select>` with an "Other (type a model ID)…" option (§13.4) and the small-tier note, token estimate (§12.6), blockers/notices (§14.6, §10.4 length note), primary **Send** button (shows "Sending… (n of m)" while any job is queued or generating, where m is the number of jobs in the run and n = min(completed + 1, m); Send is disabled during that time), secondary **Clear job** button.
+5. **Send bar**: compact provider `<select>` + model `<select>` with an "Other (type a model ID)…" option (§13.4) and the small-tier note, token estimate (§12.6), blockers/notices (§14.6, §10.4 length note), primary **Send** button (shows "Sending… (n of m)" while any job is queued or generating, where m is the number of jobs in the run and n = min(completed + 1, m); Send is disabled during that time), secondary **Clear job** button, and **Stop all** (§14.8) shown while any job is queued or generating.
 
 ### 17.3 Right pane
 
-- **Empty state** (shown whenever `visibleTabs` is empty, §14.2): plain text: "Your drafts will appear here. 1. Fill in your Master Info (Settings). 2. Add job context. 3. Pick outputs and press Send." Each step shows ✓ when done: step 1 when the effective Master Info has no sample marker and is not empty; step 2 when the pasted job context is not empty; step 3 never shows ✓ in the empty state (it completes when the first tab appears and the empty state is replaced). This state returns after Clear job.
+- **Empty state** (shown whenever `visibleTabs` is empty, §14.2): plain text: "Your drafts will appear here. 1. Fill in your Master Info (Settings). 2. Add job context. 3. Pick outputs and press Send." Each step shows ✓ when done: step 1 when the effective Master Info has no sample marker and is not empty; step 2 when the job has any context: pasted text with at least one non-whitespace character, **or** at least one attachment whose status is not `error` (a file that is still `reading` counts). This is one shared predicate (`hasJobContext`), so the empty state and the Send blockers can never disagree, and a job with only files is complete; step 3 never shows ✓ in the empty state (it completes when the first tab appears and the empty state is replaced). This state returns after Clear job.
 - **Tabs** (shadcn Tabs), one per visible tab (§14.2), in the order Resume, Cover Letter, LinkedIn, Email, Answers. Tab label = output name + status indicator: generating (spinner, `aria-label="Generating"`), done (check), error (alert icon). A small amber dot marks a stale tab.
 - **Tab body** (top to bottom):
-  - Toolbar: **Regenerate** (or **Retry** in error state), **Restore previous version** (disabled when unavailable, with visible helper text "No earlier version yet" and a `title` attribute), **Copy** (labelled **Copy all** on the LinkedIn and Answers tabs), **Download .md**, and, for Resume/Cover Letter, **Print / Save as PDF** with paper `<select>`. Email adds Copy subject / Copy body. LinkedIn adds Copy connection note / Copy direct message (§16.2).
+  - Toolbar: **Regenerate** (or **Retry** in error state; replaced by **Stop** while the tab is queued or generating, §14.8), **Restore previous version** (disabled when unavailable, with visible helper text "No earlier version yet" and a `title` attribute), **Copy** (labelled **Copy all** on the LinkedIn and Answers tabs), **Download .md**, and, for Resume/Cover Letter, **Print / Save as PDF** with paper `<select>`. Email adds Copy subject / Copy body. LinkedIn adds Copy connection note / Copy direct message (§16.2).
   - Meta line: "Generated with {provider} · {model} · {time}"; stale badge if applicable; "Edited" badge if `userEdited`.
-  - **Truncation notice** (A21) when `current.truncated`.
+  - **Truncation notice** (A21) when `current.truncated`, and the **stopped notice** (§14.8) when `current.stopped`; the **waiting hint** (§14.8) while a tab is generating with no text yet.
   - **Gaps note**: collapsible callout (native `<details>`), open by default when gaps exist: title "Gaps: things the job or your questions ask for that aren't in your Master Info". Not editable. The two safety-net badges defined in §12.7 (No Subject line; LinkedIn variant labels missing) appear in this area.
   - Error callout (error state): mapped message, "Show details" disclosure with redacted detail, Retry.
   - Editor: monospace textarea, full height of remaining space, `aria-label="{Output} draft"`. Read-only while generating.
@@ -1406,7 +1426,7 @@ Sections are shown as shadcn **Tabs** inside the sheet (or, on narrow screens, a
 3. **Instructions** (§11.3) with fallback warnings.
 4. **Appearance**: theme (System/Light/Dark), default paper size (US Letter 21.59 × 27.94 cm (8.5 × 11 in) / A4 21.0 × 29.7 cm (8.27 × 11.69 in)).
 5. **Data**: storage used (§9.4), "Delete all app data" → AlertDialog: "Delete your Master Info, instructions file, saved API keys and settings from this browser? Download copies first if you want to keep them." Buttons: "Download Master Info", "Download instructions", "Cancel", "Delete everything". On confirm: `storage.removeAll()`, clear in-memory state, reload.
-6. **About**: version (from `package.json`), MIT license, source link, privacy summary, link to Help; a support link only when `links.json` has a non-empty `supportUrl` (none for v0.1.0).
+6. **About**: the full logo (`logo-full.svg`), version (from `package.json`), MIT license, source link, privacy summary, link to Help; a support link only when `links.json` has a non-empty `supportUrl` (none for v0.1.0).
 
 Unsaved changes in the Master Info or Instructions editors: closing the sheet shows one "Save changes?" prompt (Save / Discard / Cancel) that covers both editors. Save saves every unsaved editor (if any save fails the sheet stays open and shows the error); Discard reverts both drafts; Cancel keeps the sheet open.
 
@@ -1414,9 +1434,9 @@ Unsaved changes in the Master Info or Instructions editors: closing the sheet sh
 
 Sections: Quick start; Writing a good Master Info (free-form; the sample's habits: short lines, numbers you can defend, "about" for estimates, a "Not me" section, real stories for interview questions); Application answers (how to paste questions or attach a screenshot, why stories matter, "Needs your input" lines); Providers and API keys (where to get them; spending limits; if the Gemini key-in-URL exception from §13.1 is in use, say so here; the V22 free-tier data-use note); "Why did my request get blocked?" (extensions, VPN, firewall, switching provider); "My draft was cut off" (truncation); LinkedIn variants (connection note vs direct message, keep the labels); Privacy (what leaves the browser and where); Using the single-file version (storage caveat §9.5); Printing to PDF; Troubleshooting (table mirroring §13.5).
 
-**Must-say items (found during M1–M10):** download a copy of your Master Info (private windows and profiles that clear site data on quit lose it); a leading BOM is dropped when a Master Info file is uploaded; LinkedIn connection notes are limited to 200 characters and free accounts can personalize only 3 invitations per month (Premium is unlimited; V21); Gemini's free tier may use content to improve Google products (V22); Send is disabled while a run is queued or generating; Printing to PDF: choose 'Save as PDF', turn off 'Headers and footers'; Chrome and Firefox use the paper size chosen in the app, Safari uses the paper size chosen in its own print dialog; margins are 1.9 cm (0.75 in) in all of them (V18).
+**Must-say items (found during M1–M10):** download a copy of your Master Info (private windows and profiles that clear site data on quit lose it); a leading BOM is dropped when a Master Info file is uploaded; LinkedIn connection notes are limited to 200 characters and free accounts can personalize only 3 invitations per month (Premium is unlimited; V21); Gemini's free tier may use content to improve Google products (V22); Send is disabled while a run is queued or generating; Printing to PDF: choose 'Save as PDF', turn off 'Headers and footers'; Chrome and Firefox use the paper size chosen in the app, Safari uses the paper size chosen in its own print dialog; margins are 1.9 cm (0.75 in) in all of them (V18); Stop ends the connection and keeps what already arrived, and the provider may still count the tokens it produced before the stop; the model list's "Show all models" setting is per provider.
 
-**Wording rules for Help and README:** internal IDs (V1–V22, A-numbers, milestone names) never appear in user-facing text, including headings. `docs/help.md` is the single source of the Help page (no second copy of the text in `HelpPage.tsx`). The Gemini free-tier paragraph has one canonical wording, used in Help, README and beside the Gemini key field, with the source link and the date it was checked. A claim about another company's data practices (for example that Anthropic does not train on API inputs) is kept only if that company's published terms support it, with the checked date; otherwise the text tells readers to read the provider's terms. Help styles are scoped under a wrapper element (Tailwind's preflight removes heading sizes and list bullets, as in M10), and a computed-style test checks headings and lists.
+**Wording rules for Help and README:** internal IDs (V-numbers, A-numbers, milestone names) never appear in user-facing text, including headings. `docs/help.md` is the single source of the Help page (no second copy of the text in `HelpPage.tsx`). The Gemini free-tier paragraph has one canonical wording, used in Help, README and beside the Gemini key field, with the source link and the date it was checked. A claim about another company's data practices (for example that Anthropic does not train on API inputs) is kept only if that company's published terms support it, with the checked date; otherwise the text tells readers to read the provider's terms. Help styles are scoped under a wrapper element (Tailwind's preflight removes heading sizes and list bullets, as in M10), and a computed-style test checks headings and lists.
 
 ### 17.6 Loading, empty and error states (summary)
 
@@ -1436,6 +1456,7 @@ Sections: Quick start; Writing a good Master Info (free-form; the sample's habit
 - Dialogs trap focus and return it to the trigger on close (Radix).
 - One app-wide `aria-live="polite"` status region for: generation started/finished/failed per output, copied, saved. The file-notices list in the context area (rejected or capped files, §15.3) is a second, local polite live region; it is the only other one.
 - Color contrast meets WCAG 2.1 AA in both themes; status is never conveyed by color alone (icons + text).
+- Stop controls are real buttons with accessible names ("Stop {Output}", "Stop all outputs"); focus moves to the tab's Regenerate or Retry button (or to Send) after a stop, never to the page body; stops and the waiting hint are announced through the app-wide status region only (no new live regions).
 - The app-wide status region lives in the top-level layout: always mounted (including with zero drafts) and never inside a pane hidden with `display: none` (on narrow screens the Outputs pane is hidden while the Inputs tab shows).
 - Automated check: `@axe-core/playwright` against the built app (`vite preview`, so the CSP is present) on the main screen (empty state and with drafts) and the Settings sheet, in light and dark themes; no serious or critical violations. Not in jsdom (no colour contrast).
 - Respect `prefers-reduced-motion` (no spinner animation → static "Generating…" text).
@@ -1683,7 +1704,7 @@ Each milestone also records results for the V-items assigned to it in §4 ("Veri
 - **Maintainer-verified acceptance:** the real browser print preview in Chrome, Firefox and Safari matches, with headers/footers off; the saved PDF looks right at both sizes; no app UI is visible in print (V18 row filled).
 - **Decisions recorded (post-M10):** `src/export/email.ts` holds `splitEmailDraft` (found, subject, body: subject = text after `Subject:` on the first line; body = text after the first blank line; CRLF handled); "Copy subject" copies the subject without the label and the pair shows only when a Subject line is found; `#print-root` is created by `print.ts` on the first print (not in `index.html`) and marked with `data-kind`; "Print / Save as PDF" is disabled while that tab is generating or its editor text is empty and always prints the editor text, never the Gaps note; Settings → Appearance paper size is a native `<select>` like the toolbar one; `print.css` is scoped under `#print-root` (§16.3); the Playwright tests are `print.spec.ts` (print-check, four PDFs) and `printStyles.spec.ts` (computed styles under print media and PDF text size); `pdfjs-dist` is a test-only devDependency; M11 adds the Playwright browser install to CI.
 
-### M11 — Responsive, accessibility, help, single-file build, release (two prompts: M11a, M11b)
+### M11 — Responsive, accessibility, help, single-file build, release (two prompts: M11a, M11b; both accepted; the GitHub Pages fix, release workflow review, V16/V20 rows and hosting move to the release step after M12)
 
 - **Goal:** v0.1.0 public release.
 
@@ -1698,6 +1719,22 @@ Each milestone also records results for the V-items assigned to it in §4 ("Veri
 - **Agent-verified acceptance:** e2e passes; the single HTML file is one self-contained file with no references to other local files (a test greps it for `src=`/`href=` pointing at local paths); the single file, loaded via Playwright from `file://`, renders the app and extracts text from the fixture DOCX.
 - **Maintainer-verified acceptance:** the single HTML file opened from disk in Chrome, Firefox and Safari loads and can generate (with a provider that allows its origin); V16 and V20 rows updated; pre-publication checklist (§22.3) completed.
 
+### M11c — Stop, per-provider model view, empty-state tick, DOCX note, icon
+
+- **Tasks:** (1) **Show all models per provider** (§8, §13.4, §9 settings reader): find out why the earlier fix did not stick (git history; the old spec text defined one global boolean), implement the per-provider record with the tolerant reader, and cover the Settings panel and the send bar. (2) **`hasJobContext`** predicate shared by the empty-state step 2 and the Send blockers (§17.3). (3) **DOCX preview note** (§15.4) and a test that the full text, not the preview, is in the request. (4) **Stop** (§14.8): queue cancel, `STOP` reducer action, `stopped` flag, per-tab Stop, Stop all, stopped notice, waiting hint (`waitingHintSeconds` in `limits.json`), announcements, Help text. (5) **Icon wiring** (§17.1) from the four supplied files, the single-file embedding, README logo.
+- **Agent-verified acceptance:** reducer, queue and UI tests for every Stop case in §14.8 (queued, running with no text, running with partial text with and without a previous version, Stop all, stop after the stream already ended is a no-op, Send enabled afterwards, context untouched, no new live region, fake-timer test of the waiting hint at the configured seconds); a Playwright test with a mocked provider that never answers: press Stop, the request is cancelled, Send is enabled, the job context and instructions are still there, a resend with a different model works; per-provider `showAllModels` regression test (checking one provider leaves the other unchanged in both places) and a settings-reader test for the legacy boolean; `hasJobContext` tests (text only, file only, both, neither, error-state file, whitespace text); icon tests (links in `index.html`, single-file output has no local references and contains the embedded icons, decorative icons have no accessible name, a11y suite still clean); Help and README text tests (no internal IDs).
+- **Maintainer-verified acceptance:** Stop during a real streaming response in Chrome, Firefox and Safari with a real key (V23); the favicon in each browser's tab on light and dark, and from the single file on disk (V24); the empty-state tick with a file only; the DOCX note; Show all models independent per provider after a reload.
+
+### M11d — Supply-chain hygiene, updates within current majors, test cleanup
+
+- **Tasks:** (1) a committed `.npmrc` with `ignore-scripts=true` (explicit `npm run` scripts still run; prove `rm -rf node_modules && npm ci` followed by the full suite and e2e works) and, if the npm version in use supports it (check `npm -v` and the npm docs, do not guess), `min-release-age`; (2) an install-script check script (`scripts/check-install-scripts.mjs`, run in CI) that fails when a package with `hasInstallScript` appears in the lockfile outside a short allowlist (today: `esbuild`, `fsevents`); (3) updates **within** the current majors only, each version at least 14 days old, one commit per group, full suite after each (for example `postcss`, `@testing-library/react`, `lucide-react`, `autoprefixer`, `@types/*`); (4) `npm audit` and `npm audit signatures` output pasted; (5) backlog: remove the `act(...)` warnings, convert the 300 ms debounce tests to fake timers, make Test connection one request (the adapter returns the model list); (6) paste the real file tree so §7 can be synced to what exists.
+- **Agent-verified acceptance:** as listed; no behavior change; no new dependency.
+
+### M12 — Build-tool majors (before release; one major at a time)
+
+- **Scope:** ESLint 10 (with `@eslint/js`; its `file-entry-cache` range already excludes the compromised release), Vite (one major at a time up to the newest the single-file plugin and `scripts/csp.ts` support; check the plugin's peer range first), Vitest (fixes the `tinypool` advisory) with jsdom, `@vitejs/plugin-react`. Every version at least 14 days old, exact pins, `npm view` evidence, one commit per major, full suite (unit, e2e, print PDFs, axe, single-file) after each, and **stop and report** at the first break instead of patching around it. React 19, Tailwind 4, TypeScript 7, markdown-it 15 and pdfjs-dist 6 are **after launch** (they change the UI and CSS pipeline).
+- **Maintainer-verified acceptance:** the manual checks that touch the build (single file from disk in three browsers, print Resume and Cover Letter, dark mode, phone width).
+
 ### Phase 2 and Phase 3 (brief, not specified in detail)
 
 **Phase 2 (suggested priority order):**
@@ -1705,7 +1742,8 @@ Each milestone also records results for the V-items assigned to it in §4 ("Veri
 2. **Import from my existing resume.** The user uploads a CV (PDF/DOCX/image); the model writes a first-draft Master Info as free-form text; the user reviews and edits it in the Master Info editor before saving (nothing is saved automatically). *MVP hooks:* the Master Info panel reserves a toolbar slot (§10.4); adapters already support PDF/image parts.
 3. **More providers** (OpenAI, OpenRouter, others), following §13.6. Providers that block browser requests need a separate user-hosted proxy design.
 4. **DOCX export.** *MVP hooks:* the fixed Markdown structure in the default instructions (§11.4) maps cleanly to Word styles; the export module is separate.
-5. **Fit report** before drafting: requirement-by-requirement status (met / partial / missing / not in Master Info) with evidence quotes and questions for the user. *MVP hooks:* prompt assembly could take another output kind with its own fixed rules; the Gaps output already exists.
+5. **Single-request mode and prompt caching.** An option to send all selected outputs in one request so the shared input (Master Info, job text, attachments) is sent once. Costs: a delimiter format and parser for up to five outputs, merged per-output instructions, one failure or length cut-off affecting every output, and per-tab regenerate, restore, truncation and Gaps logic written for one output per call. A cheaper route to most of the saving is **provider prompt caching** of the shared prefix (check each provider's current documentation: minimum cacheable size, price, and that calls started in parallel can miss the cache, so the first call may have to start before the others). *MVP hooks:* `assemble()` already puts the shared parts first and the per-output instructions last; keep it that way.
+6. **Fit report** before drafting: requirement-by-requirement status (met / partial / missing / not in Master Info) with evidence quotes and questions for the user. *MVP hooks:* prompt assembly could take another output kind with its own fixed rules; the Gaps output already exists.
 
 **Phase 3:** a client-side **honesty check** that compares numbers, dates, employers and titles in a draft against the Master Info text and flags anything that does not appear there (a loose text match, not a structured one). *MVP hooks:* the Master Info is plain text available to the app; the Gaps note and the "Needs your input" convention already surface unsupported claims.
 
@@ -1717,7 +1755,7 @@ Each milestone also records results for the V-items assigned to it in §4 ("Veri
 
 | ID | Question | Default in this spec |
 |----|----------|---------------------|
-| Q1 | Add a "Stop generation" button? | No (scope). Abort happens on Clear and on restart. |
+| Q1 | Add a "Stop generation" button? | **Yes (decided after M11b).** A per-tab Stop and a Stop all button; see §14.8. Real-use finding: a busy provider could leave the app waiting, and the only escape (Clear job) wiped the job context and custom instructions. |
 | Q2 | Default selected outputs on first load? | Resume + Cover Letter. |
 | Q3 | Should the Gaps note be copyable separately? | No in MVP. |
 | Q4 | What is the final project name? | Working name "RefractBio"; decide at the Name gate before M2. |
@@ -1767,7 +1805,7 @@ Each milestone also records results for the V-items assigned to it in §4 ("Veri
 10. Contributing (link to CONTRIBUTING.md): adding a provider = see SPEC §13.6.
 11. License (MIT) and source link. (No support link for v0.1.0; `supportUrl` stays `null` in `links.json`.)
 
-The README follows the wording rules in §17.5 (no internal IDs). The V20 subpath verification steps belong in CONTRIBUTING.md, not the README.
+The README starts with `src/assets/logo-full.svg` (repo-relative image link, decorative alt text). The README follows the wording rules in §17.5 (no internal IDs). The V20 subpath verification steps belong in CONTRIBUTING.md, not the README.
 
 ### 22.2 `.gitignore` and secret scanning
 
@@ -1826,6 +1864,7 @@ CONTRIBUTING.md MUST state: "Never commit real resumes, real Master Info files, 
 - [ ] Build verified under a repository subpath and from disk (`base: './'`); DOCX upload works in the single-file build.
 - [ ] Gemini free-tier data-use note (V22) stated in README, Help and the Gemini key field.
 - [ ] `LICENSE` (MIT) present with correct year and holder; `links.json` source URL is https://github.com/revanth7667/RefractBio; `supportUrl` is `null` (deliberately unused for v0.1.0).
+- [ ] V23 and V24 confirmed in real browsers by the maintainer (no Pending rows).
 - [ ] README, Help page and privacy statement match actual behavior; no internal IDs (V-numbers, A-numbers, milestone names) in user-facing text.
 - [ ] `npm audit` reviewed; dependencies pinned.
 - [ ] Release built from a tagged commit; the single HTML file attached to the GitHub Release with its SHA-256 checksum in the release notes.

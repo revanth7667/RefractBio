@@ -38,3 +38,4 @@ describe('Markdown-it security and performance verification (§22.3)', () => {
     expect(durationPrint).toBeLessThan(2000);
   });
 });
+

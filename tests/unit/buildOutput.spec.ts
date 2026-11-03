@@ -25,3 +25,4 @@ describe('Hosted build output verification (§18.1)', () => {
     expect(fs.existsSync(path.join(distDir, 'spike/storage-probe.html'))).toBe(false);
   });
 });
+
