@@ -427,7 +427,7 @@ function TabBody({
           <div className="font-medium">{tab.error.message}</div>
           {tab.error.detail && (
             <details className="mt-1">
-              <summary className="cursor-pointer text-muted-foreground hover:underline select-none">
+              <summary className="cursor-pointer hover:underline select-none">
                 Show details
               </summary>
               <pre className="mt-1.5 max-h-40 overflow-x-auto rounded bg-background/80 p-2 font-mono text-[11px] text-foreground">
