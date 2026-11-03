@@ -41,9 +41,12 @@ export function cspPlugin(options: CspPluginOptions = {}): Plugin {
       return `${metaTag}\n${html}`;
     },
     closeBundle() {
-      // Emit Cloudflare Pages _headers file with frame-ancestors 'none'
+      // Emit Cloudflare Pages _headers file with frame-ancestors 'none' for hosted build
+      if (options.singleFile) {
+        return;
+      }
       try {
-        const outDir = path.resolve(process.cwd(), options.singleFile ? 'dist-single' : 'dist');
+        const outDir = path.resolve(process.cwd(), 'dist');
         if (fs.existsSync(outDir)) {
           const headersPolicy = `${policy} frame-ancestors 'none';`;
           const headersContent = `/*\n  Content-Security-Policy: ${headersPolicy}\n`;
