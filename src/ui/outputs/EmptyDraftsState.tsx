@@ -1,6 +1,7 @@
 import { useMasterInfo } from '../../state/MasterInfoContext';
 import { useJob } from '../../state/JobContext';
 import { hasTemplateMarker } from '../../masterInfo/masterInfo';
+import { hasJobContext } from '../../prompt/sendBlockers';
 
 interface EmptyDraftsStateProps {
   step3Done?: boolean;
@@ -13,7 +14,7 @@ export function EmptyDraftsState({ step3Done = false }: EmptyDraftsStateProps) {
   const step1Done =
     !hasTemplateMarker(effectiveMasterInfo.text) &&
     effectiveMasterInfo.text.trim().length > 0;
-  const step2Done = jobInputs.pastedText.trim().length > 0;
+  const step2Done = hasJobContext(jobInputs);
 
   return (
     <div className="flex h-full min-h-[350px] items-center justify-center p-6 text-center">

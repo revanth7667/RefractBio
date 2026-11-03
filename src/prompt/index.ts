@@ -1,4 +1,5 @@
 export { assemble, OUTPUT_LABEL } from './assemble';
+export { sendBlockers, hasJobContext, type Blocker, type SendBlockersParams, type SendBlockersResult } from './sendBlockers';
 export {
   neutralizeTags,
   neutralizeFileName,

@@ -1,7 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { sendBlockers, type SendBlockersParams } from '../../src/prompt/sendBlockers';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import React from 'react';
+import { sendBlockers, hasJobContext, type SendBlockersParams } from '../../src/prompt/sendBlockers';
 import { TEMPLATE_MARKER_TOKEN } from '../../src/config';
 import type { Attachment, ModelInfo } from '../../src/types';
+import { EmptyDraftsState } from '../../src/ui/outputs/EmptyDraftsState';
+import { SettingsProvider } from '../../src/state/SettingsContext';
+import { MasterInfoProvider } from '../../src/state/MasterInfoContext';
+import { JobProvider, useJob } from '../../src/state/JobContext';
 
 describe('sendBlockers (§14.6, §10.4, §10.5, §15.3)', () => {
   const validMasterInfo = '# Jordan Smith\nData Analyst with experience in SQL and reporting.';
@@ -317,6 +323,134 @@ describe('sendBlockers (§14.6, §10.4, §10.5, §15.3)', () => {
           n.includes('Your Master Info is long (about 25000 characters)'),
         ),
       ).toBe(true);
+    });
+  });
+
+  describe('hasJobContext predicate (§17.3, §14.6)', () => {
+    const makeAttachment = (status: 'ready' | 'reading' | 'error'): Attachment => ({
+      id: 'att-1',
+      name: 'posting.pdf',
+      mime: 'application/pdf',
+      kind: 'pdf',
+      sizeBytes: 2048,
+      fingerprint: 'fp-1',
+      status,
+    });
+
+    it('returns true for text only with non-whitespace characters', () => {
+      expect(hasJobContext({ pastedText: 'Software Engineer posting' })).toBe(true);
+    });
+
+    it('returns true for file only when status is ready', () => {
+      expect(
+        hasJobContext({
+          pastedText: '',
+          attachments: [makeAttachment('ready')],
+        }),
+      ).toBe(true);
+    });
+
+    it('returns true for file only when status is reading', () => {
+      expect(
+        hasJobContext({
+          pastedText: '',
+          attachments: [makeAttachment('reading')],
+        }),
+      ).toBe(true);
+    });
+
+    it('returns false for file only when status is error (no tick)', () => {
+      expect(
+        hasJobContext({
+          pastedText: '',
+          attachments: [makeAttachment('error')],
+        }),
+      ).toBe(false);
+    });
+
+    it('returns true when both non-whitespace text and attachments are present', () => {
+      expect(
+        hasJobContext({
+          pastedText: 'Senior developer role',
+          attachments: [makeAttachment('ready')],
+        }),
+      ).toBe(true);
+    });
+
+    it('returns false when neither text nor attachments are present', () => {
+      expect(
+        hasJobContext({
+          pastedText: '',
+          attachments: [],
+        }),
+      ).toBe(false);
+    });
+
+    it('returns false for whitespace-only text with no valid attachments', () => {
+      expect(
+        hasJobContext({
+          pastedText: '   \n\t  ',
+          attachments: [],
+        }),
+      ).toBe(false);
+      expect(
+        hasJobContext({
+          pastedText: '   \n\t  ',
+          attachments: [makeAttachment('error')],
+        }),
+      ).toBe(false);
+    });
+
+    it('component test: empty state shows the tick for a files-only job (§17.3)', async () => {
+      function EmptyStateFilesHelper() {
+        const { addFiles } = useJob();
+        return React.createElement(
+          'div',
+          null,
+          React.createElement(
+            'button',
+            {
+              onClick: () => {
+                const file = new File(['Role requirements in attachment'], 'job.txt', {
+                  type: 'text/plain',
+                });
+                addFiles([file]);
+              },
+            },
+            'Add attachment',
+          ),
+          React.createElement(EmptyDraftsState, null),
+        );
+      }
+
+      render(
+        React.createElement(
+          SettingsProvider,
+          null,
+          React.createElement(
+            MasterInfoProvider,
+            null,
+            React.createElement(
+              JobProvider,
+              null,
+              React.createElement(EmptyStateFilesHelper, null),
+            ),
+          ),
+        ),
+      );
+
+      // Step 2 starts unticked
+      const step2Container = screen.getByText('2. Add job context.').parentElement!;
+      expect(step2Container.textContent).not.toContain('✓');
+
+      // Add a file without typing any pastedText
+      const addBtn = screen.getByRole('button', { name: /add attachment/i });
+      fireEvent.click(addBtn);
+
+      // Empty state step 2 shows ✓ for files-only job
+      await waitFor(() => {
+        expect(step2Container.textContent).toContain('✓');
+      });
     });
   });
 });

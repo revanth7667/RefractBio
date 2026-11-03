@@ -38,6 +38,24 @@ export interface SendBlockersResult {
 }
 
 /**
+ * Shared predicate determining if the job has any context per SPEC §17.3, §14.6:
+ * Pasted text with at least one non-whitespace character,
+ * OR at least one attachment whose status is not 'error' (a file that is 'reading' counts).
+ */
+export function hasJobContext(job: {
+  pastedText?: string;
+  attachments?: readonly Attachment[];
+}): boolean {
+  if (job.pastedText && job.pastedText.trim().length > 0) {
+    return true;
+  }
+  if (job.attachments && job.attachments.some((a) => a.status !== 'error')) {
+    return true;
+  }
+  return false;
+}
+
+/**
  * Evaluates send blockers and non-blocking notices per SPEC §14.6, §10.4, §10.5, and §15.3.
  * Blocker is the FIRST that applies in exact order; returns { blocker, notices }.
  */
