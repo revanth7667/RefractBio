@@ -1,5 +1,5 @@
 # Jordan Sample
-Springfield, Examplestate, USA · jordan.sample@example.com · +1 555-0100 · [LinkedIn](https://www.linkedin.com/in/example-jordan-sample)
+Springfield, Examplestate, USA · jordan.sample@example.com · +1 555-0100 · https://www.linkedin.com/in/example-jordan-sample
 
 ## Summary
 Data analyst focused on logistics and operations reporting with hands-on experience supporting regional operations teams. Skilled in SQL, Python, and reporting automation that reduced weekly report preparation by over 80%.

@@ -107,7 +107,6 @@ test.describe('Print typography reproduction and verification (§16.3, M10-FIX-2
         afterH3P: getProps('#print-root h3 + p'),
         ul: getProps('#print-root ul'),
         li: getProps('#print-root li'),
-        a: getProps('#print-root a'),
       };
     });
 
@@ -149,11 +148,6 @@ test.describe('Print typography reproduction and verification (§16.3, M10-FIX-2
     expect(styles.li?.marginTop).toBeCloseTo(1.89, 0);
     expect(styles.li?.marginBottom).toBeCloseTo(1.89, 0);
 
-    // links: black, no underline
-    expect(styles.a).toBeTruthy();
-    expect(styles.a?.color).toBe('rgb(0, 0, 0)');
-    expect(styles.a?.textDecorationLine).toBe('none');
-
     // Resume PDF inspection: largest text is 18 pt ± 1 pt
     const resumePdfBuffer = await page.pdf({ preferCSSPageSize: true });
     const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
@@ -191,5 +185,66 @@ test.describe('Print typography reproduction and verification (§16.3, M10-FIX-2
 
     // cover letter paragraphs: margin-bottom 11.34 px (0.3 cm)
     expect(coverParaMarginBottom).toBeCloseTo(11.34, 0);
+  });
+
+  test('asserts print link styling (black text, no underline) on draft with links', async ({
+    page,
+  }) => {
+    // Stub window.print to prevent browser dialog
+    await page.addInitScript(() => {
+      window.print = () => {};
+    });
+
+    const draftWithLink = '# Jordan Sample\n\nContact: [Example Portfolio](https://example.com/portfolio)\n';
+    const coverLetterFixture = loadFixture('outputs/cover-letter.txt');
+    const editedMasterInfo = loadFixture('master/edited.md');
+
+    await setupAnthropicRoutes(page, draftWithLink, coverLetterFixture);
+
+    await page.goto('/');
+
+    // Setup key in Settings
+    await page.getByRole('button', { name: 'Settings' }).click();
+    const keyInput = page.getByPlaceholder('Enter your Anthropic API key');
+    await keyInput.fill(fakeKey);
+
+    const testBtn = page.getByRole('button', { name: 'Test connection' }).first();
+    await testBtn.click();
+    await expect(page.getByText(/connected/i)).toBeVisible();
+
+    // Master Info
+    await page.getByRole('tab', { name: 'Master Info' }).click();
+    const masterEditor = page.getByRole('textbox', { name: 'Master Info' });
+    await masterEditor.fill(editedMasterInfo);
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await page.getByRole('button', { name: 'Close' }).click();
+
+    // Generate
+    const jobContextInput = page.getByLabel('Job context');
+    await jobContextInput.fill('Data Analyst role');
+    const sendBtn = page.getByRole('button', { name: /^send$/i });
+    await sendBtn.click();
+
+    // Wait for Resume tab print button
+    const printBtn = page.getByRole('button', { name: /print \/ save as pdf/i });
+    await expect(printBtn).toBeVisible({ timeout: 15000 });
+    await printBtn.click();
+
+    // Emulate print media
+    await page.emulateMedia({ media: 'print' });
+
+    const linkStyles = await page.evaluate(() => {
+      const el = document.querySelector('#print-root a');
+      if (!el) return null;
+      const cs = window.getComputedStyle(el);
+      return {
+        color: cs.color,
+        textDecorationLine: cs.textDecorationLine,
+      };
+    });
+
+    expect(linkStyles).toBeTruthy();
+    expect(linkStyles?.color).toBe('rgb(0, 0, 0)');
+    expect(linkStyles?.textDecorationLine).toBe('none');
   });
 });
