@@ -46,7 +46,7 @@ export async function extractPdfInfo(pdfBuffer: Buffer): Promise<ExtractedPdfInf
 /**
  * Creates an Anthropic SSE response stream from document text.
  */
-export function makeAnthropicStream(text: string): string {
+export function makeAnthropicStream(text: string, stopReason: string | null = 'end_turn'): string {
   return [
     'event: message_start',
     'data: {"type":"message_start","message":{"id":"msg_1","type":"message","role":"assistant","content":[],"model":"claude-3-5-sonnet-20241022","stop_reason":null}}',
@@ -61,7 +61,7 @@ export function makeAnthropicStream(text: string): string {
     'data: {"type":"content_block_stop","index":0}',
     '',
     'event: message_delta',
-    'data: {"type":"message_delta","delta":{"stop_reason":"end_turn"}}',
+    `data: {"type":"message_delta","delta":{"stop_reason":${JSON.stringify(stopReason)}}}`,
     '',
     'event: message_stop',
     'data: {"type":"message_stop"}',
