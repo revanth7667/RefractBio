@@ -128,9 +128,13 @@ test.describe('Accessibility check with axe-core (§17.7)', () => {
         }
         await page.waitForTimeout(200);
 
-        // Blocker reason message visible in empty state
+        // Blocker reason message and footer visible in empty state
         await expect(page.locator('#send-blocker-reason')).toBeVisible();
-        await checkA11y(page, `main screen empty state with send blocker (${theme})`);
+        await expect(page.locator('footer')).toBeVisible();
+        await expect(page.getByRole('link', { name: 'MIT License' })).toBeVisible();
+        await expect(page.getByRole('link', { name: 'Source' })).toBeVisible();
+        await expect(page.getByRole('link', { name: 'Privacy' })).toBeVisible();
+        await checkA11y(page, `main screen empty state with send blocker and footer (${theme})`);
 
         // Open Settings sheet
         await page.getByRole('button', { name: 'Settings' }).click();
@@ -169,6 +173,12 @@ test.describe('Accessibility check with axe-core (§17.7)', () => {
         ).toBeVisible();
         await page.waitForTimeout(100);
         await checkA11y(page, `Settings: Data tab (${theme})`);
+
+        // 6. About tab
+        await page.getByRole('tab', { name: 'About' }).click();
+        await expect(page.getByRole('heading', { level: 3, name: /RefractBio/ })).toBeVisible();
+        await page.waitForTimeout(100);
+        await checkA11y(page, `Settings: About tab (${theme})`);
       });
 
       test(`Help page in ${theme} mode`, async ({ page }) => {
@@ -299,11 +309,16 @@ test.describe('Accessibility check with axe-core (§17.7)', () => {
         await page.waitForTimeout(150);
         await checkA11y(page, `Narrow: Outputs tab with drafts (${theme})`);
 
-        // 3. Narrow Settings sheet
+        // 3. Narrow Settings sheet (Providers tab & About tab)
         await page.getByRole('button', { name: 'Settings' }).click();
         await expect(page.getByRole('dialog')).toBeVisible();
         await page.waitForTimeout(150);
-        await checkA11y(page, `Narrow: Settings sheet (${theme})`);
+        await checkA11y(page, `Narrow: Settings sheet Providers tab (${theme})`);
+
+        await page.getByRole('tab', { name: 'About' }).click();
+        await expect(page.getByRole('heading', { level: 3, name: /RefractBio/ })).toBeVisible();
+        await page.waitForTimeout(100);
+        await checkA11y(page, `Narrow: Settings sheet About tab (${theme})`);
       });
     });
   }
