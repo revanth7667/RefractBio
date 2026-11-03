@@ -78,3 +78,4 @@ jobs:
           gh release create "${GITHUB_REF_NAME}" "$RELEASE_FILE" "$CHECKSUM_FILE" \
             --title "RefractBio v${PKG_VERSION}" \
             --generate-notes
+

@@ -60,3 +60,4 @@ This project strictly follows Conventional Commits:
 ## Verifying a subpath deployment
 
 To verify that the built application runs under a repository subpath (such as GitHub Pages or a custom subdirectory) with relative asset loading and hash routing: run npm run build; create a temporary directory and symlink dist into it as RefractBio (TMP_DIR=$(mktemp -d); ln -s "$(pwd)/dist" "$TMP_DIR/RefractBio"); serve it (python3 -m http.server 8080 --directory "$TMP_DIR"); open http://localhost:8080/RefractBio/ and http://localhost:8080/RefractBio/#/help. Also check that /RefractBio (no trailing slash) redirects to /RefractBio/ on the real host, because the build uses relative asset paths.
+

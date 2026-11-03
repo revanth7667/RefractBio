@@ -66,3 +66,4 @@ describe('Single-file build verification (§18.1, A24, V16)', () => {
     expect(html).not.toContain('spike/storage-probe.html');
   });
 });
+
