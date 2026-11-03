@@ -3,7 +3,7 @@
 > **Audience:** an agentic coding tool (Google Antigravity) building this project from scratch, and the humans reviewing its work.
 > **How to read this:** sections marked **MUST** are requirements. Anything about third-party APIs is a *hypothesis* until confirmed in the milestone named in §4. All names, employers, emails and phone numbers in this document are **fake sample data**.
 > **Working name:** "RefractBio" is a working name. Every place the name appears in code, storage keys, filenames or persisted content comes from `src/config.ts` (see §0 and A23), so a rename touches one file.
-> **Spec version:** 3.0 (simplified). Changes since 2.2: (1) **two providers only**, Anthropic and Gemini; OpenAI, OpenRouter, the Cloudflare Worker proxy and all custom-endpoint machinery are removed and deferred; (2) **Master Info is free-form**: one bundled sample file replaces the template, the separate example, the parser and the linter; the only file-specific code is a marker check, HTML-comment stripping, the effective-text rule and a length note; (3) **a fifth output, "Application answers"**, for interview-style and application-form questions, with a Questions box and an `# ANSWERS` instructions section; (4) the internal-ID safety-net badge, metric flags and IDs are gone; (5) verification items renumbered (V1–V22). **Post-M8 edits (no version bump):** §12.6 estimate rounding, §13.5 safety-detection order, §14.1–§14.3 `FOLD_EDIT` and the Send/Regenerate rules, §17.2 Send label, §17.3 empty-state step 3, file tree (§7), and decisions recorded under M7a, M7b and M8 in §20. **Post-M9 edits (no version bump):** §8 `Attachment.objectUrl`, §17.7 local file-notices live region, decisions recorded under M9 and the status-region move under M11 in §20. **Post-M10 edits (no version bump):** §6 version note and test-only packages, §16.3 print scoping, added spacing values, Safari behavior and the Safari help sentence, §17.5 must-say items, R9, decisions recorded under M10 and the M11 task additions in §20. **Post-M10 follow-up edits (no version bump):** §6 test-only `@axe-core/playwright`; §12.7 variant-label badge only on a finished, non-empty draft; §16.3 and §17.5 the Safari print note moves from beside the Print button to Help and README; §17.5 no internal IDs in user-facing text; §17.7 axe runs in Playwright; §20 Name gate done and M11 split into M11a and M11b; §22.1 and §22.3 README outline and Name gate wording.
+> **Spec version:** 3.0 (simplified). Changes since 2.2: (1) **two providers only**, Anthropic and Gemini; OpenAI, OpenRouter, the Cloudflare Worker proxy and all custom-endpoint machinery are removed and deferred; (2) **Master Info is free-form**: one bundled sample file replaces the template, the separate example, the parser and the linter; the only file-specific code is a marker check, HTML-comment stripping, the effective-text rule and a length note; (3) **a fifth output, "Application answers"**, for interview-style and application-form questions, with a Questions box and an `# ANSWERS` instructions section; (4) the internal-ID safety-net badge, metric flags and IDs are gone; (5) verification items renumbered (V1–V22). **Post-M8 edits (no version bump):** §12.6 estimate rounding, §13.5 safety-detection order, §14.1–§14.3 `FOLD_EDIT` and the Send/Regenerate rules, §17.2 Send label, §17.3 empty-state step 3, file tree (§7), and decisions recorded under M7a, M7b and M8 in §20. **Post-M9 edits (no version bump):** §8 `Attachment.objectUrl`, §17.7 local file-notices live region, decisions recorded under M9 and the status-region move under M11 in §20. **Post-M10 edits (no version bump):** §6 version note and test-only packages, §16.3 print scoping, added spacing values, Safari behavior and the Safari help sentence, §17.5 must-say items, R9, decisions recorded under M10 and the M11 task additions in §20. **Post-M10 follow-up edits (no version bump):** support link deferred (§7, §17.1, §17.4, §22.1, §22.3: `supportUrl` placeholder stays `null`, no UI); §6 test-only `@axe-core/playwright`; §12.7 variant-label badge only on a finished, non-empty draft; §16.3 and §17.5 the Safari print note moves from beside the Print button to Help and README; §17.5 no internal IDs in user-facing text; §17.7 axe runs in Playwright; §20 Name gate done and M11 split into M11a and M11b; §22.1 and §22.3 README outline and Name gate wording.
 
 ---
 
@@ -277,7 +277,7 @@ refractbio/                           # directory name may change with the proje
 │  │  ├─ limits.json                  # size limits (V10)
 │  │  ├─ estimates.json               # token-estimate constants
 │  │  ├─ generation-defaults.json     # e.g. Anthropic max_tokens
-│  │  └─ links.json                   # repo URL, support URL
+│  │  └─ links.json                   # repo URL (https://github.com/revanth7667/RefractBio); "supportUrl": null placeholder, unused in the UI for now
 │  ├─ storage/
 │  │  ├─ storage.ts
 │  │  └─ keys.ts
@@ -1372,7 +1372,7 @@ DOCX export, HTML export, multiple templates, custom fonts.
 
 - **Header**: app name (`APP_NAME`), a short tagline "Your facts, many drafts.", a Settings button (gear icon, `aria-label="Settings"`), and a Help link (`#/help`).
 - **Main**: two panes side by side at ≥ 768 CSS px viewport width (left 40%, right 60%, both independently scrollable). A CSS px is nominally 1/96 in (≈ 0.026 cm), so 768 CSS px is nominally about 20.3 cm (8 in), but the physical size depends on the screen.
-- **Footer**: "MIT License · Source · Support this project · Privacy" — plain anchors from `src/data/links.json` (`target="_blank" rel="noopener noreferrer"`). The support link is a plain outbound anchor; no widget script.
+- **Footer**: "MIT License · Source · Privacy" — plain anchors from `src/data/links.json` (`target="_blank" rel="noopener noreferrer"`; Privacy is an in-app link to the Help page). **Support link (deferred):** `links.json` keeps a `supportUrl` field set to `null`. The UI renders a "Support this project" anchor only when `supportUrl` is a non-empty string, so adding one later is a data change, not a code change. Nothing is shown while it is `null`. No widget script, ever.
 - **Narrow screens (< 768 CSS px)**: panes collapse into two tabs, **Inputs** and **Outputs**. When Send is pressed, the UI switches to Outputs automatically. The Outputs tab label shows a dot while any tab is generating.
 
 ### 17.2 Left pane (top to bottom)
@@ -1406,7 +1406,7 @@ Sections are shown as shadcn **Tabs** inside the sheet (or, on narrow screens, a
 3. **Instructions** (§11.3) with fallback warnings.
 4. **Appearance**: theme (System/Light/Dark), default paper size (US Letter 21.59 × 27.94 cm (8.5 × 11 in) / A4 21.0 × 29.7 cm (8.27 × 11.69 in)).
 5. **Data**: storage used (§9.4), "Delete all app data" → AlertDialog: "Delete your Master Info, instructions file, saved API keys and settings from this browser? Download copies first if you want to keep them." Buttons: "Download Master Info", "Download instructions", "Cancel", "Delete everything". On confirm: `storage.removeAll()`, clear in-memory state, reload.
-6. **About**: version (from `package.json`), MIT license, source link, support link, privacy summary, link to Help.
+6. **About**: version (from `package.json`), MIT license, source link, privacy summary, link to Help; a support link only when `links.json` has a non-empty `supportUrl` (none for v0.1.0).
 
 Unsaved changes in the Master Info or Instructions editors: closing the sheet shows one "Save changes?" prompt (Save / Discard / Cancel) that covers both editors. Save saves every unsaved editor (if any save fails the sheet stays open and shows the error); Discard reverts both drafts; Cancel keeps the sheet open.
 
@@ -1765,7 +1765,7 @@ Each milestone also records results for the V-items assigned to it in §4 ("Veri
 8. Development: `npm ci`, `npm run dev`, `npm test`, `npm run e2e`, `npm run build`, `npm run build:single`; Node version from `.nvmrc` (set at implementation time). Note that the dev server runs without a CSP (A28).
 9. Project structure (link to SPEC.md §7).
 10. Contributing (link to CONTRIBUTING.md): adding a provider = see SPEC §13.6.
-11. License (MIT) and support link.
+11. License (MIT) and source link. (No support link for v0.1.0; `supportUrl` stays `null` in `links.json`.)
 
 The README follows the wording rules in §17.5 (no internal IDs). The V20 subpath verification steps belong in CONTRIBUTING.md, not the README.
 
@@ -1825,7 +1825,7 @@ CONTRIBUTING.md MUST state: "Never commit real resumes, real Master Info files, 
 - [ ] Print verified at US Letter 21.59 × 27.94 cm (8.5 × 11 in) and A4 21.0 × 29.7 cm (8.27 × 11.69 in) (automated Chromium check passes and the maintainer's three-browser check is done).
 - [ ] Build verified under a repository subpath and from disk (`base: './'`); DOCX upload works in the single-file build.
 - [ ] Gemini free-tier data-use note (V22) stated in README, Help and the Gemini key field.
-- [ ] `LICENSE` (MIT) present with correct year and holder; `links.json` support URL set.
+- [ ] `LICENSE` (MIT) present with correct year and holder; `links.json` source URL is https://github.com/revanth7667/RefractBio; `supportUrl` is `null` (deliberately unused for v0.1.0).
 - [ ] README, Help page and privacy statement match actual behavior; no internal IDs (V-numbers, A-numbers, milestone names) in user-facing text.
 - [ ] `npm audit` reviewed; dependencies pinned.
 - [ ] Release built from a tagged commit; the single HTML file attached to the GitHub Release with its SHA-256 checksum in the release notes.
