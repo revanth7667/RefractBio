@@ -8,30 +8,6 @@ describe('Narrow-screen tabs (SPEC §17.1, §17.2, §17.3)', () => {
   const fakeKey = 'sk-' + 'test-fake-0000';
   const cleanMasterInfo = '# Jordan Smith\nSenior Data Analyst\nSQL and Python experience.';
 
-  const makeAnthropicStream = (text: string): string => {
-    return [
-      'event: message_start',
-      'data: {"type":"message_start","message":{"id":"msg_1","type":"message","role":"assistant","content":[],"model":"claude-3-5-sonnet","stop_reason":null,"usage":{"input_tokens":10,"output_tokens":1}}}',
-      '',
-      'event: content_block_start',
-      'data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}',
-      '',
-      'event: content_block_delta',
-      `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":${JSON.stringify(text)}}}`,
-      '',
-      'event: content_block_stop',
-      'data: {"type":"content_block_stop","index":0}',
-      '',
-      'event: message_delta',
-      'data: {"type":"message_delta","delta":{"stop_reason":"end_turn"},"usage":{"output_tokens":10}}',
-      '',
-      'event: message_stop',
-      'data: {"type":"message_stop"}',
-      '',
-      '',
-    ].join('\n');
-  };
-
   beforeEach(() => {
     localStorage.clear();
     window.location.hash = '#/';
