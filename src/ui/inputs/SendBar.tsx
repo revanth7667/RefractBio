@@ -173,7 +173,6 @@ export function SendBar({ onSend }: SendBarProps) {
           {blocker && (
             <div
               id="send-blocker-reason"
-              role="alert"
               className="text-xs text-red-700 dark:text-red-400 flex flex-wrap items-center gap-2 font-medium"
             >
               <span>{blocker.message}</span>
