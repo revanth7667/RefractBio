@@ -177,7 +177,7 @@ describe('App-wide Status Region (SPEC §17.7)', () => {
 
     const masterEditor = screen.getByRole('textbox', { name: 'Master Info' });
     fireEvent.change(masterEditor, { target: { value: cleanMasterInfo } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
 
     // 1. Empty state (Send ready with job context):

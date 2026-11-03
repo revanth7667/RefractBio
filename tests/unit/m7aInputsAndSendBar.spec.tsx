@@ -75,7 +75,9 @@ describe('Milestone M7a Inputs, SendBar, Blockers, and Estimates UI', () => {
     const sendBtn = screen.getByRole('button', { name: /^send$/i });
     expect(sendBtn.hasAttribute('disabled')).toBe(true);
 
-    const blockerMsg = screen.getByRole('alert');
+    const blockerMsg = document.getElementById('send-blocker-reason')!;
+    expect(blockerMsg).toBeTruthy();
+    expect(sendBtn.getAttribute('aria-describedby')).toBe('send-blocker-reason');
     expect(blockerMsg.textContent).toContain('Your Master Info still contains the sample marker');
 
     const openMasterInfoBtn = screen.getByRole('button', { name: /open master info/i });
