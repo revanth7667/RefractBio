@@ -42,8 +42,8 @@ Your Master Info is a single, free-form text file that acts as the single source
 ## Single-File Version Caveats
 
 RefractBio can be packaged as a standalone, self-contained single HTML file:
-- **Storage restrictions**: When opened directly from disk via the `file://` protocol, some browsers restrict access to persistent `localStorage`. If persistent storage is unavailable, an alert banner is shown; you can still draft documents, but your Master Info and settings will not persist across browser reloads. Always download a copy of your Master Info before closing the tab.
-- **Content Security Policy**: The single-file build requires inline script execution to bundle all code and dependencies into one portable file without external asset requests.
+- **Storage restrictions**: If you use the downloaded single-file version, keep a downloaded copy of your Master Info. Some browsers may share or not keep saved data for files opened from disk. When opened directly from disk via the `file://` protocol, some browsers restrict access to persistent `localStorage`. If persistent storage is unavailable, an alert banner is shown; you can still draft documents, but your Master Info and settings will not persist across browser reloads.
+- **Content Security Policy**: The single-file build requires inline scripts allowed because the code is inlined; the hosted build uses script-src 'self'.
 
 ## Development
 
@@ -75,9 +75,9 @@ For detailed architecture, state management, and file layout documentation, see 
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines and testing practices. To add a new provider, see [SPEC.md §13.6](SPEC.md#136-adding-a-provider-later-phase-2-not-in-the-mvp).
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines, testing practices, and verifying subpath deployments. To add a new provider, see [SPEC.md §13.6](SPEC.md#136-adding-a-provider-later-phase-2-not-in-the-mvp).
 
-## License and Support
+## License
 
 - **License**: MIT License. See [LICENSE](LICENSE) for details.
-- **Support**: If you find RefractBio helpful, please consider supporting the project via GitHub Sponsors.
+- **Source Code**: [GitHub Repository](https://github.com/revanth7667/RefractBio)
