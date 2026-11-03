@@ -4,22 +4,27 @@ import path from 'node:path';
 import { createHelpMarkdownRenderer } from '../../src/ui/help/HelpPage';
 import { GEMINI_FREE_TIER_NOTE } from '../../src/config';
 
-describe('Help documentation & renderer (SPEC §17.5)', () => {
+describe('Help documentation & renderer (SPEC §17.5, §22.1)', () => {
   const helpMdPath = path.resolve(__dirname, '../../docs/help.md');
+  const readmeMdPath = path.resolve(__dirname, '../../README.md');
   const helpContent = fs.readFileSync(helpMdPath, 'utf-8');
+  const readmeContent = fs.readFileSync(readmeMdPath, 'utf-8');
 
-  it('docs/help.md contains no internal IDs matching \\bV\\d+\\b, \\bA\\d+\\b or "M\\d+"', () => {
+  it('docs/help.md and README.md contain no internal IDs matching \\bV\\d+\\b, \\bA\\d+\\b or "M\\d+"', () => {
     const internalIdRegex = /\b[VA]\d+\b|M\d+/;
-    const lines = helpContent.split('\n');
-    const matchedLines: { line: number; text: string }[] = [];
+    const checkFile = (content: string, filename: string) => {
+      const lines = content.split('\n');
+      const matchedLines: { file: string; line: number; text: string }[] = [];
+      lines.forEach((text, i) => {
+        if (internalIdRegex.test(text)) {
+          matchedLines.push({ file: filename, line: i + 1, text });
+        }
+      });
+      return matchedLines;
+    };
 
-    lines.forEach((text, i) => {
-      if (internalIdRegex.test(text)) {
-        matchedLines.push({ line: i + 1, text });
-      }
-    });
-
-    expect(matchedLines).toEqual([]);
+    expect(checkFile(helpContent, 'docs/help.md')).toEqual([]);
+    expect(checkFile(readmeContent, 'README.md')).toEqual([]);
   });
 
   it('contains the canonical Gemini free-tier paragraph exactly matching src/config.ts', () => {
