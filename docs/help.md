@@ -140,7 +140,7 @@ In the print dialog, choose 'Save as PDF', turn off 'Headers and footers'; Chrom
 
 ### How to Print
 
-1. In the draft toolbar, select your desired paper format (**US Letter** or **A-4**).
+1. In the draft toolbar, select your desired paper format (**US Letter** or **A4**).
 2. Click **Print / Save as PDF**.
 3. In the browser print dialog, choose 'Save as PDF', and turn off 'Headers and footers' for a clean page.
 
