@@ -174,7 +174,7 @@ export function SendBar({ onSend }: SendBarProps) {
             <div
               id="send-blocker-reason"
               role="alert"
-              className="text-xs text-destructive flex flex-wrap items-center gap-2 font-medium"
+              className="text-xs text-red-700 dark:text-red-400 flex flex-wrap items-center gap-2 font-medium"
             >
               <span>{blocker.message}</span>
               {blocker.action === 'open-master-info' && (
@@ -185,7 +185,7 @@ export function SendBar({ onSend }: SendBarProps) {
                   onClick={() => {
                     openSettings('masterInfo');
                   }}
-                  className="h-7 px-2 text-xs"
+                  className="h-7 px-2 text-xs text-foreground"
                 >
                   Open Master Info
                 </Button>
