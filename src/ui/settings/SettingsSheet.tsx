@@ -23,6 +23,7 @@ import {
 import { ProvidersPanel } from './ProvidersPanel';
 import { MasterInfoPanel } from './MasterInfoPanel';
 import { InstructionsPanel } from './InstructionsPanel';
+import { AboutPanel } from './AboutPanel';
 import { useSettings } from '../../state/SettingsContext';
 import { useMasterInfo } from '../../state/MasterInfoContext';
 import { useInstructions } from '../../state/InstructionsContext';
@@ -185,7 +186,7 @@ export function SettingsSheet({ open, onOpenChange, tab, onTabChange }: Settings
 
           <div className="mt-6">
             <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-6">
                 <TabsTrigger value="providers">Providers</TabsTrigger>
                 <TabsTrigger value="masterInfo" className="relative">
                   Master Info
@@ -201,6 +202,7 @@ export function SettingsSheet({ open, onOpenChange, tab, onTabChange }: Settings
                 </TabsTrigger>
                 <TabsTrigger value="appearance">Appearance</TabsTrigger>
                 <TabsTrigger value="data">Data</TabsTrigger>
+                <TabsTrigger value="about">About</TabsTrigger>
               </TabsList>
 
               <TabsContent value="providers" className="mt-6">
@@ -315,6 +317,10 @@ export function SettingsSheet({ open, onOpenChange, tab, onTabChange }: Settings
                     </AlertDialogContent>
                   </AlertDialog>
                 </div>
+              </TabsContent>
+
+              <TabsContent value="about" className="mt-6">
+                <AboutPanel onNavigateToHelp={() => onOpenChange(false)} />
               </TabsContent>
             </Tabs>
           </div>
