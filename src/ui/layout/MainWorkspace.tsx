@@ -157,13 +157,13 @@ export function MainWorkspace() {
           >
             <span>Outputs</span>
             {isGenerating && (
-              <>
-                <span
-                  className="ml-1.5 h-2 w-2 rounded-full bg-primary shrink-0"
-                  aria-hidden="true"
-                />
+              <span
+                className="ml-1.5 h-2 w-2 rounded-full bg-primary shrink-0"
+                aria-label="Generating"
+                role="status"
+              >
                 <span className="sr-only">(generating)</span>
-              </>
+              </span>
             )}
           </button>
         </div>
