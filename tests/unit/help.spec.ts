@@ -10,8 +10,9 @@ describe('Help documentation & renderer (SPEC §17.5, §22.1)', () => {
   const helpContent = fs.readFileSync(helpMdPath, 'utf-8');
   const readmeContent = fs.readFileSync(readmeMdPath, 'utf-8');
 
-  it('docs/help.md and README.md contain no internal IDs matching \\bV\\d+\\b, \\bA\\d+\\b or "M\\d+"', () => {
-    const internalIdRegex = /\b[VA]\d+\b|M\d+/;
+  const internalIdRegex = /\bV\d+\b|\bM\d+\b|\bA(?!4\b)\d+\b/;
+
+  it('docs/help.md and README.md contain no internal IDs matching \\bV\\d+\\b, \\bM\\d+\\b, or \\bA(?!4\\b)\\d+\\b', () => {
     const checkFile = (content: string, filename: string) => {
       const lines = content.split('\n');
       const matchedLines: { file: string; line: number; text: string }[] = [];
@@ -25,6 +26,18 @@ describe('Help documentation & renderer (SPEC §17.5, §22.1)', () => {
 
     expect(checkFile(helpContent, 'docs/help.md')).toEqual([]);
     expect(checkFile(readmeContent, 'README.md')).toEqual([]);
+  });
+
+  it('allows paper format A4 while correctly rejecting internal IDs', () => {
+    // Strings that MUST pass
+    expect(internalIdRegex.test('A4')).toBe(false);
+    expect(internalIdRegex.test('US Letter or A4')).toBe(false);
+    expect(internalIdRegex.test('Select A4 paper size')).toBe(false);
+
+    // Strings that MUST fail
+    expect(internalIdRegex.test('(V22)')).toBe(true);
+    expect(internalIdRegex.test('A27')).toBe(true);
+    expect(internalIdRegex.test('M10')).toBe(true);
   });
 
   it('contains the canonical Gemini free-tier paragraph exactly matching src/config.ts', () => {
