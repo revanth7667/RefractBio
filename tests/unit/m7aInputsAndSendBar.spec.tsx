@@ -113,7 +113,7 @@ describe('Milestone M7a Inputs, SendBar, Blockers, and Estimates UI', () => {
       rememberKeys: true,
       theme: 'system',
       paperSize: 'letter',
-      showAllModels: false,
+      showAllModels: {},
     };
     storage.set('settings', settings);
     storage.set('apiKeys', { anthropic: fakeKey });
@@ -188,7 +188,7 @@ describe('Milestone M7a Inputs, SendBar, Blockers, and Estimates UI', () => {
       rememberKeys: true,
       theme: 'system',
       paperSize: 'letter',
-      showAllModels: false,
+      showAllModels: {},
     });
     storage.set('apiKeys', { anthropic: fakeKey });
 
@@ -267,7 +267,7 @@ describe('Milestone M7a Inputs, SendBar, Blockers, and Estimates UI', () => {
       paperSize: 'letter',
       selectedProvider: 'anthropic',
       selectedModel: { anthropic: '', gemini: '' },
-      showAllModels: false,
+      showAllModels: {},
       rememberKeys: true,
     };
     storage.set('settings', initialSettings);

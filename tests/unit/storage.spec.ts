@@ -23,7 +23,7 @@ describe('Storage Module', () => {
       rememberKeys: false,
       theme: 'system',
       paperSize: 'letter',
-      showAllModels: false,
+      showAllModels: {},
     };
 
     const setResult = storage.set('settings', sampleSettings);
@@ -140,6 +140,90 @@ describe('Storage Module', () => {
     storage.set('settings', { theme: 'dark' });
     const u1 = storage.usage();
     expect(u1.approxBytes).toBeGreaterThan(0);
+  });
+
+  describe('Tolerant settings reader for showAllModels (§9 note, §13.4)', () => {
+    it('converts legacy boolean true to { [selectedProvider]: true }', () => {
+      const legacyAnthropic = {
+        selectedProvider: 'anthropic',
+        selectedModel: {},
+        rememberKeys: false,
+        theme: 'system',
+        paperSize: 'letter',
+        showAllModels: true,
+      };
+      const normalizedA = storage.normalizeSettings(legacyAnthropic);
+      expect(normalizedA.showAllModels).toEqual({ anthropic: true });
+
+      const legacyGemini = {
+        ...legacyAnthropic,
+        selectedProvider: 'gemini',
+      };
+      const normalizedG = storage.normalizeSettings(legacyGemini);
+      expect(normalizedG.showAllModels).toEqual({ gemini: true });
+    });
+
+    it('converts legacy boolean false to empty object {}', () => {
+      const legacyFalse = {
+        selectedProvider: 'anthropic',
+        selectedModel: {},
+        rememberKeys: false,
+        theme: 'system',
+        paperSize: 'letter',
+        showAllModels: false,
+      };
+      const normalized = storage.normalizeSettings(legacyFalse);
+      expect(normalized.showAllModels).toEqual({});
+    });
+
+    it('falls back to {} for malformed showAllModels values', () => {
+      const malformedInputs = [
+        null,
+        undefined,
+        'true',
+        123,
+        [true],
+        { anthropic: 'not-a-boolean' },
+        { unknownProvider: true },
+      ];
+
+      for (const input of malformedInputs) {
+        const normalized = storage.normalizeSettings({
+          selectedProvider: 'anthropic',
+          showAllModels: input,
+        });
+        expect(normalized.showAllModels).toEqual({});
+      }
+    });
+
+    it('reads legacy boolean from storage via storage.get and writes new shape on next save', () => {
+      const fullKey = getPrefixedKey('settings');
+      localStorage.setItem(
+        fullKey,
+        JSON.stringify({
+          schemaVersion: SCHEMA_VERSION,
+          savedAt: new Date().toISOString(),
+          data: {
+            selectedProvider: 'anthropic',
+            selectedModel: {},
+            rememberKeys: false,
+            theme: 'system',
+            paperSize: 'letter',
+            showAllModels: true,
+          },
+        })
+      );
+
+      const res = storage.get<Settings>('settings');
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        expect(res.value.showAllModels).toEqual({ anthropic: true });
+        // Next save writes the new shape
+        storage.set('settings', res.value);
+        const raw = JSON.parse(localStorage.getItem(fullKey)!);
+        expect(raw.data.showAllModels).toEqual({ anthropic: true });
+      }
+    });
   });
 });
 

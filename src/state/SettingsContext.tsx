@@ -10,7 +10,7 @@ const DEFAULT_SETTINGS: Settings = {
   rememberKeys: false,
   theme: 'system',
   paperSize: 'letter',
-  showAllModels: false,
+  showAllModels: {},
 };
 
 interface SettingsContextValue {
@@ -29,7 +29,7 @@ interface SettingsContextValue {
   setApiKey: (provider: ProviderId, key: string) => void;
   setRememberKeys: (remember: boolean) => void;
   setSelectedModel: (provider: ProviderId, model: string) => void;
-  setShowAllModels: (show: boolean) => void;
+  setShowAllModels: (providerOrShow: ProviderId | boolean, show?: boolean) => void;
   updateSettings: (updates: Partial<Settings>) => void;
   setTheme: (theme: Theme) => void;
   setPaperSize: (size: PaperSize) => void;
@@ -150,7 +150,23 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const setTheme = (theme: Theme) => updateSettings({ theme });
   const setPaperSize = (paperSize: PaperSize) => updateSettings({ paperSize });
   const setSelectedProvider = (selectedProvider: ProviderId) => updateSettings({ selectedProvider });
-  const setShowAllModels = (showAllModels: boolean) => updateSettings({ showAllModels });
+  const setShowAllModels = (providerOrShow: ProviderId | boolean, maybeShow?: boolean) => {
+    setSettingsState((prev) => {
+      let provider: ProviderId;
+      let show: boolean;
+      if (typeof providerOrShow === 'boolean') {
+        provider = prev.selectedProvider;
+        show = providerOrShow;
+      } else {
+        provider = providerOrShow;
+        show = Boolean(maybeShow);
+      }
+      const nextShowAll = { ...prev.showAllModels, [provider]: show };
+      const next = { ...prev, showAllModels: nextShowAll };
+      storage.set('settings', next);
+      return next;
+    });
+  };
 
   const setSelectedModel = (provider: ProviderId, model: string) => {
     setSettingsState((prev) => {

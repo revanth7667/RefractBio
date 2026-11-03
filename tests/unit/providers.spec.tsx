@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { SettingsProvider } from '../../src/state/SettingsContext';
 import { ProvidersPanel } from '../../src/ui/settings/ProvidersPanel';
 import { ModelPicker } from '../../src/ui/inputs/ModelPicker';
+import App from '../../src/App';
 import * as storage from '../../src/storage/storage';
 import type { ModelInfo } from '../../src/types';
 
@@ -349,8 +350,8 @@ describe('ProvidersPanel & ModelPicker (UI Settings → Providers)', () => {
       expect(storage.get('apiKeys').ok).toBe(false);
     });
 
-    it('manages "Show all models" as a single setting per SPEC §8', () => {
-      render(
+    it('manages "Show all models" independently per provider in Settings and survives reload', () => {
+      const { unmount } = render(
         <SettingsProvider>
           <ProvidersPanel />
         </SettingsProvider>
@@ -363,15 +364,81 @@ describe('ProvidersPanel & ModelPicker (UI Settings → Providers)', () => {
       expect(anthropicCheckbox.checked).toBe(false);
       expect(geminiCheckbox.checked).toBe(false);
 
-      // Checking one toggles the shared showAllModels setting
+      // Checking anthropic leaves gemini unchanged
       fireEvent.click(anthropicCheckbox);
+      expect(anthropicCheckbox.checked).toBe(true);
+      expect(geminiCheckbox.checked).toBe(false);
+
+      // Checking gemini leaves anthropic unchanged
+      fireEvent.click(geminiCheckbox);
       expect(anthropicCheckbox.checked).toBe(true);
       expect(geminiCheckbox.checked).toBe(true);
 
-      // Unchecking toggles it back
-      fireEvent.click(geminiCheckbox);
+      // Unchecking anthropic leaves gemini checked
+      fireEvent.click(anthropicCheckbox);
       expect(anthropicCheckbox.checked).toBe(false);
-      expect(geminiCheckbox.checked).toBe(false);
+      expect(geminiCheckbox.checked).toBe(true);
+
+      unmount();
+
+      // Reloading from storage retains independent state
+      render(
+        <SettingsProvider>
+          <ProvidersPanel />
+        </SettingsProvider>
+      );
+      const reloadedCheckboxes = screen.getAllByRole('checkbox', { name: /show all models/i }) as HTMLInputElement[];
+      expect(reloadedCheckboxes[0].checked).toBe(false);
+      expect(reloadedCheckboxes[1].checked).toBe(true);
+    });
+
+    it('syncs per-provider "Show all models" between SendBar and Settings panel and switches correctly', () => {
+      render(<App />);
+
+      // On main workspace, SendBar has Show all models (for default anthropic)
+      const sendBarCheckbox = screen.getByLabelText(/show all models/i) as HTMLInputElement;
+      expect(sendBarCheckbox.checked).toBe(false);
+
+      // Tick Anthropic Show all models in SendBar
+      fireEvent.click(sendBarCheckbox);
+      expect(sendBarCheckbox.checked).toBe(true);
+
+      // Open Settings sheet to Providers tab
+      const settingsBtn = screen.getByRole('button', { name: /settings/i });
+      fireEvent.click(settingsBtn);
+
+      // Settings panel Anthropic checkbox reflects true, Gemini reflects false
+      const checkboxes = screen.getAllByRole('checkbox', { name: /show all models/i }) as HTMLInputElement[];
+      // In sheet: checkboxes[0] is Anthropic in ProvidersPanel, checkboxes[1] is Gemini in ProvidersPanel
+      expect(checkboxes[0].checked).toBe(true);
+      expect(checkboxes[1].checked).toBe(false);
+
+      // Tick Gemini in Settings panel
+      fireEvent.click(checkboxes[1]);
+      expect(checkboxes[1].checked).toBe(true);
+      expect(checkboxes[0].checked).toBe(true);
+
+      // Close Settings sheet by pressing Escape
+      fireEvent.keyDown(document.body, { key: 'Escape' });
+
+      // Switch provider to Gemini in SendBar
+      const providerSelect = screen.getByLabelText(/provider/i);
+      fireEvent.change(providerSelect, { target: { value: 'gemini' } });
+
+      // SendBar now reflects Gemini's value (true)
+      const geminiSendBarCheckbox = screen.getByLabelText(/show all models/i) as HTMLInputElement;
+      expect(geminiSendBarCheckbox.checked).toBe(true);
+
+      // Untick Gemini in SendBar
+      fireEvent.click(geminiSendBarCheckbox);
+      expect(geminiSendBarCheckbox.checked).toBe(false);
+
+      // Switch provider back to Anthropic
+      fireEvent.change(providerSelect, { target: { value: 'anthropic' } });
+
+      // Anthropic in SendBar is still checked (true)
+      const anthropicSendBarCheckbox = screen.getByLabelText(/show all models/i) as HTMLInputElement;
+      expect(anthropicSendBarCheckbox.checked).toBe(true);
     });
   });
 });

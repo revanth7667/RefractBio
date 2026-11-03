@@ -1,4 +1,5 @@
 import { SCHEMA_VERSION } from '../config';
+import type { Settings, ProviderId, Theme, PaperSize } from '../types';
 import { getPrefixedKey, STORAGE_PREFIX, type StorageKey } from './keys';
 
 export type { StorageKey };
@@ -61,6 +62,82 @@ export function isAvailable(): boolean {
   }
 }
 
+export function normalizeSettings(data: unknown): Settings {
+  if (!data || typeof data !== 'object') {
+    return {
+      selectedProvider: 'anthropic',
+      selectedModel: {},
+      rememberKeys: false,
+      theme: 'system',
+      paperSize: 'letter',
+      showAllModels: {},
+    };
+  }
+
+  const raw = data as Record<string, unknown>;
+
+  const selectedProvider: ProviderId =
+    raw.selectedProvider === 'gemini' ? 'gemini' : 'anthropic';
+
+  const selectedModel: Partial<Record<ProviderId, string>> = {};
+  if (raw.selectedModel && typeof raw.selectedModel === 'object' && !Array.isArray(raw.selectedModel)) {
+    const sm = raw.selectedModel as Record<string, unknown>;
+    if (typeof sm.anthropic === 'string') selectedModel.anthropic = sm.anthropic;
+    if (typeof sm.gemini === 'string') selectedModel.gemini = sm.gemini;
+  }
+
+  const rememberKeys = Boolean(raw.rememberKeys);
+
+  const theme: Theme =
+    raw.theme === 'light' || raw.theme === 'dark' || raw.theme === 'system'
+      ? raw.theme
+      : 'system';
+
+  const paperSize: PaperSize =
+    raw.paperSize === 'a4' ? 'a4' : 'letter';
+
+  let showAllModels: Partial<Record<ProviderId, boolean>> = {};
+  if (raw.showAllModels === true) {
+    showAllModels = { [selectedProvider]: true };
+  } else if (raw.showAllModels === false) {
+    showAllModels = {};
+  } else if (
+    raw.showAllModels &&
+    typeof raw.showAllModels === 'object' &&
+    !Array.isArray(raw.showAllModels)
+  ) {
+    const sam = raw.showAllModels as Record<string, unknown>;
+    if (typeof sam.anthropic === 'boolean') {
+      showAllModels.anthropic = sam.anthropic;
+    }
+    if (typeof sam.gemini === 'boolean') {
+      showAllModels.gemini = sam.gemini;
+    }
+  } else {
+    showAllModels = {};
+  }
+
+  return {
+    selectedProvider,
+    selectedModel,
+    rememberKeys,
+    theme,
+    paperSize,
+    showAllModels,
+  };
+}
+
+export function readSettings(stored?: unknown): Settings {
+  if (stored !== undefined) {
+    return normalizeSettings(stored);
+  }
+  const res = get<unknown>('settings');
+  if (res.ok) {
+    return normalizeSettings(res.value);
+  }
+  return normalizeSettings(null);
+}
+
 export function get<T>(key: StorageKey): StorageResult<T> {
   try {
     const storage = getStorage();
@@ -95,6 +172,10 @@ export function get<T>(key: StorageKey): StorageResult<T> {
         reason: 'schema_mismatch',
         message: `Schema version ${parsed.schemaVersion} does not match current version ${SCHEMA_VERSION}`,
       };
+    }
+
+    if (key === 'settings') {
+      return { ok: true, value: normalizeSettings(parsed.data) as T };
     }
 
     return { ok: true, value: parsed.data };

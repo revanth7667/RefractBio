@@ -140,8 +140,8 @@ export function SendBar({ onSend }: SendBarProps) {
             models={currentModels}
             isLoading={loadingModels[selectedProvider]}
             error={modelErrors[selectedProvider]}
-            showAllModels={settings.showAllModels}
-            onToggleShowAll={setShowAllModels}
+            showAllModels={Boolean(settings.showAllModels[selectedProvider])}
+            onToggleShowAll={(show) => setShowAllModels(selectedProvider, show)}
           />
         </div>
       </div>

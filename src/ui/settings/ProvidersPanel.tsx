@@ -266,8 +266,8 @@ export function ProvidersPanel() {
                 models={models}
                 isLoading={isLoadingModels}
                 error={modelError}
-                showAllModels={settings.showAllModels}
-                onToggleShowAll={setShowAllModels}
+                showAllModels={Boolean(settings.showAllModels[provider.id])}
+                onToggleShowAll={(show) => setShowAllModels(provider.id, show)}
               />
             </div>
           </div>

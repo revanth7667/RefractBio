@@ -33,7 +33,8 @@ export interface Settings {
   rememberKeys: boolean;          // default false
   theme: Theme;                   // default 'system'
   paperSize: PaperSize;           // default 'letter'
-  showAllModels: boolean;         // default false
+  /** Per provider; a missing entry means false. Each provider's "Show all models" is independent (§13.4). */
+  showAllModels: Partial<Record<ProviderId, boolean>>;
 }
 
 // ---------- Master Info (free-form text) ----------
