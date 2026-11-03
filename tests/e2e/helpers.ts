@@ -70,13 +70,38 @@ export function makeAnthropicStream(text: string, stopReason: string | null = 'e
   ].join('\n');
 }
 
+export interface AnthropicRequestBody {
+  model?: string;
+  max_tokens?: number;
+  messages?: Array<{
+    role?: string;
+    content?: Array<{
+      type?: string;
+      text?: string;
+    }>;
+  }>;
+}
+
+export interface AnthropicMockOptions {
+  resume?: string;
+  coverLetter?: string;
+  email?: string;
+  linkedin?: string;
+  answers?: string;
+  capturedRequests?: Array<{
+    url: string;
+    method: string;
+    postData: string;
+    parsedBody?: AnthropicRequestBody;
+  }>;
+}
+
 /**
  * Sets up Playwright page route mocks for Anthropic API endpoints with full CORS support.
  */
-export async function setupAnthropicRoutes(
+export async function setupAnthropicMock(
   page: Page,
-  resumeFixture: string,
-  coverLetterFixture: string,
+  options: AnthropicMockOptions,
 ): Promise<void> {
   await page.route('https://api.anthropic.com/**', async (route) => {
     const request = route.request();
@@ -117,8 +142,28 @@ export async function setupAnthropicRoutes(
     // Messages generation endpoint POST
     if (url.includes('/v1/messages')) {
       const postData = request.postData() || '';
-      const isCoverLetter = postData.includes('COVER_LETTER');
-      const text = isCoverLetter ? coverLetterFixture : resumeFixture;
+      let parsedBody: AnthropicRequestBody | undefined;
+      try {
+        parsedBody = JSON.parse(postData) as AnthropicRequestBody;
+      } catch {
+        // ignore
+      }
+      if (options.capturedRequests) {
+        options.capturedRequests.push({ url, method, postData, parsedBody });
+      }
+
+      let text = options.resume || '';
+      if (postData.includes('Write the cover letter now') || postData.includes('COVER_LETTER')) {
+        text = options.coverLetter || '';
+      } else if (postData.includes('Write the LinkedIn message now') || postData.includes('LINKEDIN_MESSAGE')) {
+        text = options.linkedin || '';
+      } else if (postData.includes('Write the email now') || postData.includes('EMAIL')) {
+        text = options.email || '';
+      } else if (postData.includes('Write the answers') || postData.includes('ANSWERS')) {
+        text = options.answers || '';
+      } else if (postData.includes('Write the resume now') || postData.includes('RESUME')) {
+        text = options.resume || '';
+      }
 
       return route.fulfill({
         status: 200,
@@ -131,6 +176,20 @@ export async function setupAnthropicRoutes(
     }
 
     return route.abort();
+  });
+}
+
+/**
+ * Sets up Playwright page route mocks for Anthropic API endpoints with full CORS support.
+ */
+export async function setupAnthropicRoutes(
+  page: Page,
+  resumeFixture: string,
+  coverLetterFixture: string,
+): Promise<void> {
+  return setupAnthropicMock(page, {
+    resume: resumeFixture,
+    coverLetter: coverLetterFixture,
   });
 }
 

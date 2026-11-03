@@ -1,0 +1,14 @@
+### Tell me about a time you fixed a data problem (max 120 words)
+
+At Example Logistics, our daily shipment reporting had a reconciliation error caused by timezone mismatches in source tables. I wrote automated SQL scripts to normalize timestamps to UTC and added integrity validation tests, reducing discrepancy reports to zero.
+
+### Why do you want to work here?
+
+I admire ExampleCorp's focus on scalable logistics intelligence. My background in building clean SQL and Python data workflows aligns well with your platform goals.
+
+### Questions about Kubernetes experience
+
+Needs your input: The Master Info does not mention Kubernetes experience. Please provide details if applicable.
+
+<!-- GAPS-NOTE -->
+- Kubernetes experience was not found in Master Info.

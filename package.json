@@ -33,7 +33,7 @@
   "devDependencies": {
     "@axe-core/playwright": "4.14.0",
     "@eslint/js": "9.39.5",
-    "@playwright/test": "1.49.1",
+    "@playwright/test": "1.64.1",
     "@testing-library/jest-dom": "6.6.3",
     "@testing-library/react": "16.0.1",
     "@types/markdown-it": "14.1.2",

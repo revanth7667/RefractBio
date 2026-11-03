@@ -1,0 +1,13 @@
+**Variant 1: Connection request note**
+Hi Alex, I saw your team's analytics work at ExampleCorp. As a data analyst with ETL and SQL experience, I'd love to connect.
+
+Variant 2: Direct message
+Hi Alex,
+
+I noticed your open Senior Data Analyst role. In my recent work at Example Logistics, I built automated SQL pipelines and improved reporting accuracy by 25%. I'd welcome the chance to discuss how my background fits your team.
+
+Best,
+Jordan Sample
+
+<!-- GAPS-NOTE -->
+- None
