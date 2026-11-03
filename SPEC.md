@@ -3,7 +3,7 @@
 > **Audience:** an agentic coding tool (Google Antigravity) building this project from scratch, and the humans reviewing its work.
 > **How to read this:** sections marked **MUST** are requirements. Anything about third-party APIs is a *hypothesis* until confirmed in the milestone named in §4. All names, employers, emails and phone numbers in this document are **fake sample data**.
 > **Working name:** "RefractBio" is a working name. Every place the name appears in code, storage keys, filenames or persisted content comes from `src/config.ts` (see §0 and A23), so a rename touches one file.
-> **Spec version:** 3.0 (simplified). Changes since 2.2: (1) **two providers only**, Anthropic and Gemini; OpenAI, OpenRouter, the Cloudflare Worker proxy and all custom-endpoint machinery are removed and deferred; (2) **Master Info is free-form**: one bundled sample file replaces the template, the separate example, the parser and the linter; the only file-specific code is a marker check, HTML-comment stripping, the effective-text rule and a length note; (3) **a fifth output, "Application answers"**, for interview-style and application-form questions, with a Questions box and an `# ANSWERS` instructions section; (4) the internal-ID safety-net badge, metric flags and IDs are gone; (5) verification items renumbered (V1–V22). **Post-M8 edits (no version bump):** §12.6 estimate rounding, §13.5 safety-detection order, §14.1–§14.3 `FOLD_EDIT` and the Send/Regenerate rules, §17.2 Send label, §17.3 empty-state step 3, file tree (§7), and decisions recorded under M7a, M7b and M8 in §20. **Post-M9 edits (no version bump):** §8 `Attachment.objectUrl`, §17.7 local file-notices live region, decisions recorded under M9 and the status-region move under M11 in §20. **Post-M10 edits (no version bump):** §6 version note and test-only packages, §16.3 print scoping, added spacing values, Safari behavior and the Safari help sentence, §17.5 must-say items, R9, decisions recorded under M10 and the M11 task additions in §20.
+> **Spec version:** 3.0 (simplified). Changes since 2.2: (1) **two providers only**, Anthropic and Gemini; OpenAI, OpenRouter, the Cloudflare Worker proxy and all custom-endpoint machinery are removed and deferred; (2) **Master Info is free-form**: one bundled sample file replaces the template, the separate example, the parser and the linter; the only file-specific code is a marker check, HTML-comment stripping, the effective-text rule and a length note; (3) **a fifth output, "Application answers"**, for interview-style and application-form questions, with a Questions box and an `# ANSWERS` instructions section; (4) the internal-ID safety-net badge, metric flags and IDs are gone; (5) verification items renumbered (V1–V22). **Post-M8 edits (no version bump):** §12.6 estimate rounding, §13.5 safety-detection order, §14.1–§14.3 `FOLD_EDIT` and the Send/Regenerate rules, §17.2 Send label, §17.3 empty-state step 3, file tree (§7), and decisions recorded under M7a, M7b and M8 in §20. **Post-M9 edits (no version bump):** §8 `Attachment.objectUrl`, §17.7 local file-notices live region, decisions recorded under M9 and the status-region move under M11 in §20. **Post-M10 edits (no version bump):** §6 version note and test-only packages, §16.3 print scoping, added spacing values, Safari behavior and the Safari help sentence, §17.5 must-say items, R9, decisions recorded under M10 and the M11 task additions in §20. **Post-M10 follow-up edits (no version bump):** §6 test-only `@axe-core/playwright`; §12.7 variant-label badge only on a finished, non-empty draft; §16.3 and §17.5 the Safari print note moves from beside the Print button to Help and README; §17.5 no internal IDs in user-facing text; §17.7 axe runs in Playwright; §20 Name gate done and M11 split into M11a and M11b; §22.1 and §22.3 README outline and Name gate wording.
 
 ---
 
@@ -230,6 +230,7 @@ Use the latest stable version of each package at implementation time, pin **exac
 | Playwright | One e2e smoke test | Stable cross-browser runner. |
 | pdfjs-dist (test-only devDependency) | Reads page count, page size and text from the PDFs in the M10 print-check | Never imported under `src/`. |
 | @types/markdown-it (devDependency) | Types for markdown-it | Types only. |
+| @axe-core/playwright (test-only devDependency) | Accessibility checks (axe) on the built app in Playwright, including colour contrast, which jsdom cannot measure | Never imported under `src/`. Pulls in `axe-core`. Pin both exactly. |
 | ESLint + Prettier | Code quality | Include `no-console` rule as `error` in `src/providers/**` and `src/storage/**`. |
 
 **Explicitly not used:** official provider SDKs, state libraries (Redux/Zustand), routers, CodeMirror, DOMPurify, marked, react-markdown, toast libraries (use a minimal in-house `aria-live` status region), date libraries, PWA plugin (PWA is optional and is not in any MVP milestone).
@@ -1062,6 +1063,8 @@ Constants live in `src/data/estimates.json`:
 | No Subject line | `EMAIL` | The draft does not start with `Subject:` | "No Subject line" |
 | LinkedIn variant labels missing | `LINKEDIN_MESSAGE` | `splitLinkedInVariants(editorText).found` is `false` | "LinkedIn variant labels missing. Per-variant copy is off; check the two label lines in the draft." |
 
+**Timing rule (found in M10 manual checks):** a badge, and the matching notice in §16.2 and the Gaps-note area, is shown only when the tab's status is not `generating` (or queued) **and** the editor text is non-empty. While streaming, the text is partial or empty and must never produce a badge or notice. Any screen-reader announcement for a badge follows the same rule.
+
 The LinkedIn badge pairs with the notice in §16.2 (the badge appears in the tab; the notice explains why per-variant Copy buttons are absent). The Answers output has no badge; "Needs your input:" lines in an answer are normal output and also appear in the Gaps note.
 
 **LinkedIn variants (A29):** `splitLinkedInVariants(text): LinkedInVariants`
@@ -1353,7 +1356,7 @@ Copy and Download .md only (no print).
   - **Browser behavior (V18, macOS, built-in Save as PDF):** Chrome and Firefox honor `@page size`. Safari ignores it: the paper size comes from Safari's own print dialog (with the app set to A4, Safari's PDF is US Letter 21.59 × 27.94 cm / 8.5 × 11 in; choosing A4 in Safari's Paper Size menu gives an A4 PDF), so the app's paper selector has no effect on Safari's page size. In every case Safari prints text about 6.7% larger than specified (body 11.2 pt instead of 10.5 pt).
   - Links printed as text, color black, no underline.
   - Cover letter uses the same stylesheet; paragraphs get 0.3 cm (0.12 in) bottom margin.
-- Help text next to the button: "In the print dialog, choose 'Save as PDF', and turn off 'Headers and footers' for a clean page. In Safari, choose the paper size in the print dialog; the selector here doesn't change it." (Shown in every browser, because the browser is not detected; the Help page's "Printing to PDF" section says the same.)
+- Help text next to the button: "In the print dialog, choose 'Save as PDF', and turn off 'Headers and footers' for a clean page." Nothing about Safari is shown beside the button, to keep the toolbar uncluttered: people normally pick their own country's paper size, and the browser's default matches it. The Safari behavior (above) is explained in the Help page's "Printing to PDF" section and in the README instead.
 - The printed output must match the fixed Markdown structure in the default instructions; unexpected Markdown still prints legibly (no crashes).
 - **Testability note:** `window.print()` is called through a single exported function in `print.ts` so tests can stub it. When stubbed, `afterprint` never fires, so `#print-root` stays filled until the test (or the next print) clears it; this is intended and is what the M10 automated check relies on.
 
@@ -1411,7 +1414,9 @@ Unsaved changes in the Master Info or Instructions editors: closing the sheet sh
 
 Sections: Quick start; Writing a good Master Info (free-form; the sample's habits: short lines, numbers you can defend, "about" for estimates, a "Not me" section, real stories for interview questions); Application answers (how to paste questions or attach a screenshot, why stories matter, "Needs your input" lines); Providers and API keys (where to get them; spending limits; if the Gemini key-in-URL exception from §13.1 is in use, say so here; the V22 free-tier data-use note); "Why did my request get blocked?" (extensions, VPN, firewall, switching provider); "My draft was cut off" (truncation); LinkedIn variants (connection note vs direct message, keep the labels); Privacy (what leaves the browser and where); Using the single-file version (storage caveat §9.5); Printing to PDF; Troubleshooting (table mirroring §13.5).
 
-**Must-say items (found during M1–M10):** download a copy of your Master Info (private windows and profiles that clear site data on quit lose it); a leading BOM is dropped when a Master Info file is uploaded; LinkedIn connection notes are limited to 200 characters and free accounts can personalize only 3 invitations per month (Premium is unlimited; V21); Gemini's free tier may use content to improve Google products (V22); Send is disabled while a run is queued or generating; Printing to PDF: choose 'Save as PDF', turn off 'Headers and footers', and in Safari choose the paper size in the print dialog (V18).
+**Must-say items (found during M1–M10):** download a copy of your Master Info (private windows and profiles that clear site data on quit lose it); a leading BOM is dropped when a Master Info file is uploaded; LinkedIn connection notes are limited to 200 characters and free accounts can personalize only 3 invitations per month (Premium is unlimited; V21); Gemini's free tier may use content to improve Google products (V22); Send is disabled while a run is queued or generating; Printing to PDF: choose 'Save as PDF', turn off 'Headers and footers'; Chrome and Firefox use the paper size chosen in the app, Safari uses the paper size chosen in its own print dialog; margins are 1.9 cm (0.75 in) in all of them (V18).
+
+**Wording rules for Help and README:** internal IDs (V1–V22, A-numbers, milestone names) never appear in user-facing text, including headings. `docs/help.md` is the single source of the Help page (no second copy of the text in `HelpPage.tsx`). The Gemini free-tier paragraph has one canonical wording, used in Help, README and beside the Gemini key field, with the source link and the date it was checked. A claim about another company's data practices (for example that Anthropic does not train on API inputs) is kept only if that company's published terms support it, with the checked date; otherwise the text tells readers to read the provider's terms. Help styles are scoped under a wrapper element (Tailwind's preflight removes heading sizes and list bullets, as in M10), and a computed-style test checks headings and lists.
 
 ### 17.6 Loading, empty and error states (summary)
 
@@ -1431,6 +1436,8 @@ Sections: Quick start; Writing a good Master Info (free-form; the sample's habit
 - Dialogs trap focus and return it to the trigger on close (Radix).
 - One app-wide `aria-live="polite"` status region for: generation started/finished/failed per output, copied, saved. The file-notices list in the context area (rejected or capped files, §15.3) is a second, local polite live region; it is the only other one.
 - Color contrast meets WCAG 2.1 AA in both themes; status is never conveyed by color alone (icons + text).
+- The app-wide status region lives in the top-level layout: always mounted (including with zero drafts) and never inside a pane hidden with `display: none` (on narrow screens the Outputs pane is hidden while the Inputs tab shows).
+- Automated check: `@axe-core/playwright` against the built app (`vite preview`, so the CSP is present) on the main screen (empty state and with drafts) and the Settings sheet, in light and dark themes; no serious or critical violations. Not in jsdom (no colour contrast).
 - Respect `prefers-reduced-motion` (no spinner animation → static "Generating…" text).
 - `lang="en"` on `<html>`.
 - Keyboard shortcut: `Ctrl/Cmd + Enter` in the left pane triggers Send (documented in Help).
@@ -1594,7 +1601,7 @@ Each milestone also records results for the V-items assigned to it in §4 ("Veri
 
 ### Name gate — before M2
 
-The maintainer confirms the final project name (or accepts the working name) after checking GitHub, npm and domain availability and searching for existing products. The agent sets `APP_NAME`, `APP_ID`, and the fixed strings in `src/config.ts` accordingly (A23). Renaming after M2 requires a storage migration, so decide now.
+**Status: done (2026-11-02).** The name is free on the maintainer's GitHub; web searches return only unrelated biologics companies. npm and other registries are out of scope (the project is not published there), and it is hosted on the maintainer's own domain. Original text: the maintainer confirms the final project name (or accepts the working name) after checking GitHub, npm and domain availability and searching for existing products. The agent sets `APP_NAME`, `APP_ID`, and the fixed strings in `src/config.ts` accordingly (A23). Renaming after M2 requires a storage migration, so decide now.
 
 ### M2 — Scaffold, CSP, storage module
 
@@ -1676,12 +1683,20 @@ The maintainer confirms the final project name (or accepts the working name) aft
 - **Maintainer-verified acceptance:** the real browser print preview in Chrome, Firefox and Safari matches, with headers/footers off; the saved PDF looks right at both sizes; no app UI is visible in print (V18 row filled).
 - **Decisions recorded (post-M10):** `src/export/email.ts` holds `splitEmailDraft` (found, subject, body: subject = text after `Subject:` on the first line; body = text after the first blank line; CRLF handled); "Copy subject" copies the subject without the label and the pair shows only when a Subject line is found; `#print-root` is created by `print.ts` on the first print (not in `index.html`) and marked with `data-kind`; "Print / Save as PDF" is disabled while that tab is generating or its editor text is empty and always prints the editor text, never the Gaps note; Settings → Appearance paper size is a native `<select>` like the toolbar one; `print.css` is scoped under `#print-root` (§16.3); the Playwright tests are `print.spec.ts` (print-check, four PDFs) and `printStyles.spec.ts` (computed styles under print media and PDF text size); `pdfjs-dist` is a test-only devDependency; M11 adds the Playwright browser install to CI.
 
-### M11 — Responsive, accessibility, help, single-file build, release
+### M11 — Responsive, accessibility, help, single-file build, release (two prompts: M11a, M11b)
 
 - **Goal:** v0.1.0 public release.
-- **Tasks:** move the app-wide status region (§17.7) out of `OutputTabs.tsx` into the top-level layout so it is always mounted and never inside a `display: none` pane (found in M9); narrow-screen tabs; a11y pass (§17.7) with axe in a component test; Help page content including the must-say items (§17.5) and the Safari sentence beside the Print button (§16.3); `build:single` (single-file build with `script-src 'unsafe-inline'`, A24, configured to inline dynamic imports so mammoth is included, V16); README; release workflow attaching the single HTML file to GitHub Releases; e2e smoke test. **Stretch goal:** `scripts/csp-hash.mjs` to replace `'unsafe-inline'` with script hashes in the single-file build; skip it if it is unreliable, and document the trade-off.
-- **Agent-verified acceptance:** e2e passes; axe reports no serious/critical violations on the main screen and Settings; the single HTML file is one self-contained file with no references to other local files (a test greps it for `src=`/`href=` pointing at local paths); the single file, loaded via Playwright from `file://`, renders the app and extracts text from the fixture DOCX.
-- **Maintainer-verified acceptance:** the single HTML file opened from disk in Chrome, Firefox and Safari loads and can generate (with a provider that allows its origin); pre-publication checklist (§22.3) completed.
+
+**M11a (UI, content and tests; no build or CSP changes)**
+- **Tasks:** (1) fix the variant-label false warning during generation (§12.7 timing rule) and explain the second message at `OutputTabs.tsx` (banner vs announcement); (2) move the app-wide status region (§17.7) out of `OutputTabs.tsx` into the top-level layout; (3) narrow-screen tabs (§17.2, §17.3); (4) Help page: `docs/help.md` as the single source rendered with markdown-it in `HelpPage.tsx`, all §17.5 must-say items and wording rules, scoped styles and a computed-style test; (5) README rewritten to the §22.1 outline (same wording rules; the V20 subpath instructions move to CONTRIBUTING.md in M11b); (6) axe check with `@axe-core/playwright` (§17.7); (7) restore the bare LinkedIn URL in `tests/fixtures/outputs/resume.txt` and test link styling with a separate inline draft; (8) optional cleanup: `act(...)` warnings; the 300 ms debounces tested with fake timers.
+- **No** Safari sentence beside the Print button (§16.3).
+- **Agent-verified acceptance:** tests for the variant-label timing rule (no badge or notice while generating or empty; badge when a finished draft lacks the labels); status-region announcements with zero drafts and with the Outputs pane hidden; narrow-width tab behavior; Help renders headings and lists with real computed styles; no `V\d+` or milestone IDs in `docs/help.md`, `README.md` or user-facing strings; axe clean.
+- **Maintainer-verified acceptance:** Help and README read correctly; narrow screen (phone width) usable in Chrome, Firefox and Safari.
+
+**M11b (build and release)**
+- **Tasks:** `build:single` (single-file build with `script-src 'unsafe-inline'`, A24, configured to inline dynamic imports so mammoth is included, V16; re-check the print flow under that CSP); Playwright in CI and the e2e smoke test (§19.5), updating `@playwright/test` to the latest 1.x; CONTRIBUTING.md (including "Never commit real resumes…" and the subpath check from V20), `.nvmrc`, version 0.1.0, release workflow attaching the single HTML file to GitHub Releases; fix the failing GitHub Pages deployment, then the V20 deployed check; the §22.3 checklist. **Stretch goal:** `scripts/csp-hash.mjs` to replace `'unsafe-inline'` with script hashes in the single-file build; skip it if it is unreliable, and document the trade-off.
+- **Agent-verified acceptance:** e2e passes; the single HTML file is one self-contained file with no references to other local files (a test greps it for `src=`/`href=` pointing at local paths); the single file, loaded via Playwright from `file://`, renders the app and extracts text from the fixture DOCX.
+- **Maintainer-verified acceptance:** the single HTML file opened from disk in Chrome, Firefox and Safari loads and can generate (with a provider that allows its origin); V16 and V20 rows updated; pre-publication checklist (§22.3) completed.
 
 ### Phase 2 and Phase 3 (brief, not specified in detail)
 
@@ -1745,11 +1760,14 @@ The maintainer confirms the final project name (or accepts the working name) aft
 4. Getting an API key (link to each provider's console; advise spending limits; note the Gemini key-in-URL exception if it is in use).
 5. Writing your Master Info (free-form; the sample's habits explained; "Not me" and "Stories and examples" sections).
 6. Application answers: how to use the Questions box or a screenshot.
+   Also a short "Printing to PDF" note: choose 'Save as PDF', turn off 'Headers and footers'; Chrome and Firefox use the app's paper size, Safari uses the print dialog's paper size.
 7. Single-file version caveats (§9.5) and its CSP trade-off (A24).
 8. Development: `npm ci`, `npm run dev`, `npm test`, `npm run e2e`, `npm run build`, `npm run build:single`; Node version from `.nvmrc` (set at implementation time). Note that the dev server runs without a CSP (A28).
 9. Project structure (link to SPEC.md §7).
 10. Contributing (link to CONTRIBUTING.md): adding a provider = see SPEC §13.6.
 11. License (MIT) and support link.
+
+The README follows the wording rules in §17.5 (no internal IDs). The V20 subpath verification steps belong in CONTRIBUTING.md, not the README.
 
 ### 22.2 `.gitignore` and secret scanning
 
@@ -1795,7 +1813,7 @@ CONTRIBUTING.md MUST state: "Never commit real resumes, real Master Info files, 
 ### 22.3 Pre-publication checklist
 
 - [ ] `docs/provider-findings.md` complete (no "Pending" rows); §4 items updated in this SPEC.
-- [ ] Final project name confirmed (Name gate) and availability checked on GitHub, npm, domains and web search.
+- [x] Final project name confirmed (Name gate, done 2026-11-02: GitHub and web search checked; npm and other registries out of scope because the project is not published there; hosted on the maintainer's own domain).
 - [ ] All fixtures and screenshots use fake data only; repository search for real names, emails, phone numbers, and keys done.
 - [ ] Git history checked for accidentally committed keys or personal files (rewrite history or start a fresh repository before publishing if needed); secret scan passes on the full history (`git log -p` piped through the scan).
 - [ ] CSP verified on the hosted build and the single-file build (no console CSP errors during a full flow); dev server still starts.
@@ -1808,6 +1826,6 @@ CONTRIBUTING.md MUST state: "Never commit real resumes, real Master Info files, 
 - [ ] Build verified under a repository subpath and from disk (`base: './'`); DOCX upload works in the single-file build.
 - [ ] Gemini free-tier data-use note (V22) stated in README, Help and the Gemini key field.
 - [ ] `LICENSE` (MIT) present with correct year and holder; `links.json` support URL set.
-- [ ] README, Help page and privacy statement match actual behavior.
+- [ ] README, Help page and privacy statement match actual behavior; no internal IDs (V-numbers, A-numbers, milestone names) in user-facing text.
 - [ ] `npm audit` reviewed; dependencies pinned.
 - [ ] Release built from a tagged commit; the single HTML file attached to the GitHub Release with its SHA-256 checksum in the release notes.
