@@ -1,0 +1,80 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.2.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4.2.0
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Verify tag matches package.json version
+        run: |
+          TAG_NAME="${GITHUB_REF_NAME}"
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          EXPECTED_TAG="v${PKG_VERSION}"
+          if [ "$TAG_NAME" != "$EXPECTED_TAG" ]; then
+            echo "Error: Tag $TAG_NAME does not match package.json version v$PKG_VERSION"
+            exit 1
+          fi
+          echo "Tag $TAG_NAME matches package.json version v$PKG_VERSION"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Secret scan
+        run: npm run secret-scan
+
+      - name: Build
+        run: npm run build
+
+      - name: Build single-file
+        run: npm run build:single
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: npm run e2e
+
+      - name: Prepare release assets
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          RELEASE_FILE="RefractBio-${PKG_VERSION}.html"
+          CHECKSUM_FILE="${RELEASE_FILE}.sha256"
+          cp dist-single/index.html "$RELEASE_FILE"
+          shasum -a 256 "$RELEASE_FILE" > "$CHECKSUM_FILE"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          RELEASE_FILE="RefractBio-${PKG_VERSION}.html"
+          CHECKSUM_FILE="${RELEASE_FILE}.sha256"
+          gh release create "${GITHUB_REF_NAME}" "$RELEASE_FILE" "$CHECKSUM_FILE" \
+            --title "RefractBio v${PKG_VERSION}" \
+            --generate-notes
