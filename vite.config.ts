@@ -15,11 +15,7 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      input: {
-        main: resolve(__dirname, 'index.html'),
-        spike: resolve(__dirname, 'spike/index.html'),
-        storageProbe: resolve(__dirname, 'spike/storage-probe.html'),
-      },
+      input: resolve(__dirname, 'index.html'),
     },
   },
   test: {
