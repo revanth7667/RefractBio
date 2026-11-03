@@ -7,12 +7,14 @@ import { GEMINI_FREE_TIER_NOTE } from '../../src/config';
 describe('Help documentation & renderer (SPEC §17.5, §22.1)', () => {
   const helpMdPath = path.resolve(__dirname, '../../docs/help.md');
   const readmeMdPath = path.resolve(__dirname, '../../README.md');
+  const contributingMdPath = path.resolve(__dirname, '../../CONTRIBUTING.md');
   const helpContent = fs.readFileSync(helpMdPath, 'utf-8');
   const readmeContent = fs.readFileSync(readmeMdPath, 'utf-8');
+  const contributingContent = fs.readFileSync(contributingMdPath, 'utf-8');
 
   const internalIdRegex = /\bV\d+\b|\bM\d+\b|\bA(?!4\b)\d+\b/;
 
-  it('docs/help.md and README.md contain no internal IDs matching \\bV\\d+\\b, \\bM\\d+\\b, or \\bA(?!4\\b)\\d+\\b', () => {
+  it('docs/help.md, README.md, and CONTRIBUTING.md contain no internal IDs matching \\bV\\d+\\b, \\bM\\d+\\b, or \\bA(?!4\\b)\\d+\\b', () => {
     const checkFile = (content: string, filename: string) => {
       const lines = content.split('\n');
       const matchedLines: { file: string; line: number; text: string }[] = [];
@@ -26,6 +28,7 @@ describe('Help documentation & renderer (SPEC §17.5, §22.1)', () => {
 
     expect(checkFile(helpContent, 'docs/help.md')).toEqual([]);
     expect(checkFile(readmeContent, 'README.md')).toEqual([]);
+    expect(checkFile(contributingContent, 'CONTRIBUTING.md')).toEqual([]);
   });
 
   it('allows paper format A4 while correctly rejecting internal IDs', () => {
@@ -40,8 +43,9 @@ describe('Help documentation & renderer (SPEC §17.5, §22.1)', () => {
     expect(internalIdRegex.test('M10')).toBe(true);
   });
 
-  it('contains the canonical Gemini free-tier paragraph exactly matching src/config.ts', () => {
+  it('contains the canonical Gemini free-tier paragraph exactly matching src/config.ts in help.md and README.md', () => {
     expect(helpContent).toContain(GEMINI_FREE_TIER_NOTE);
+    expect(readmeContent).toContain(GEMINI_FREE_TIER_NOTE);
   });
 
   it('contains the verified Anthropic commercial terms sentence and link', () => {
