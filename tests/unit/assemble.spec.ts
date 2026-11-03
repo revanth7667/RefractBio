@@ -288,6 +288,39 @@ describe('Prompt assembly (§12.1, §12.3)', () => {
       });
       expect(prompt.userParts[3].type).toBe('text');
     });
+
+    it('request body from assemble contains text from beyond character 2,000 of an extracted attachment (§15.4)', () => {
+      // Build a long text (> 2,000 characters) at runtime
+      const prefix = 'A'.repeat(2500);
+      const suffix = 'UNIQUE_SENTINEL_AT_CHARACTER_3000_END';
+      const longExtractedText = prefix + suffix;
+
+      const docxAttachment: Attachment = {
+        id: 'docx-long-1',
+        name: 'long-job-desc.docx',
+        mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        kind: 'docx',
+        sizeBytes: 30000,
+        text: longExtractedText,
+        fingerprint: 'fp-long',
+        status: 'ready',
+      };
+
+      const prompt = assemble(
+        'RESUME',
+        {
+          ...baseInputs,
+          attachments: [docxAttachment],
+        },
+        sampleMasterInfoText,
+        instructions,
+        fakeDate,
+      );
+
+      const partA = (prompt.userParts[0] as { type: 'text'; text: string }).text;
+      expect(partA).toContain(suffix);
+      expect(partA).toContain(longExtractedText);
+    });
   });
 
   describe('Instructions inclusion and unescaped reference tags', () => {

@@ -12,6 +12,7 @@ import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { useJob } from '../../state/JobContext';
 import { isLargeFile, LARGE_FILE_WARNING } from '../../files/sizeChecks';
+import { NUMBER_LOCALE, DOCX_PREVIEW_LIMIT } from '../../config';
 import type { Attachment, AttachmentKind } from '../../types';
 
 function formatFileSize(bytes: number): string {
@@ -66,7 +67,9 @@ function StatusDisplay({ attachment }: { attachment: Attachment }) {
 
 function DocxPreviewDisclosure({ text }: { text?: string }) {
   const [open, setOpen] = useState(false);
-  const previewText = (text || '').slice(0, 2000);
+  const rawText = text || '';
+  const previewText = rawText.slice(0, DOCX_PREVIEW_LIMIT);
+  const isTruncated = rawText.length > DOCX_PREVIEW_LIMIT;
 
   return (
     <div className="mt-1">
@@ -79,9 +82,16 @@ function DocxPreviewDisclosure({ text }: { text?: string }) {
         {open ? 'Hide preview' : 'Preview text'}
       </button>
       {open && (
-        <pre className="mt-1 max-h-48 overflow-y-auto rounded border bg-muted/50 p-2 font-mono text-xs text-foreground whitespace-pre-wrap break-words">
-          {previewText}
-        </pre>
+        <div className="mt-1 space-y-1">
+          <pre className="max-h-48 overflow-y-auto rounded border bg-muted/50 p-2 font-mono text-xs text-foreground whitespace-pre-wrap break-words">
+            {previewText}
+          </pre>
+          {isTruncated && (
+            <p className="text-xs text-muted-foreground">
+              Showing the first {DOCX_PREVIEW_LIMIT.toLocaleString(NUMBER_LOCALE)} of {rawText.length.toLocaleString(NUMBER_LOCALE)} characters. The full text is sent to the model.
+            </p>
+          )}
+        </div>
       )}
     </div>
   );

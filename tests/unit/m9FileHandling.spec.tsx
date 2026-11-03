@@ -5,6 +5,7 @@ import * as storage from '../../src/storage/storage';
 import { APP_ID } from '../../src/config';
 import fs from 'node:fs';
 import path from 'node:path';
+import * as docxModule from '../../src/files/docx';
 
 describe('Milestone M9 File Handling Integration & UI Tests (§15, §20)', () => {
   const fakeKey = 'sk-' + 'test-fake-0000';
@@ -250,6 +251,43 @@ describe('Milestone M9 File Handling Integration & UI Tests (§15, §20)', () =>
         expect(pre).toBeTruthy();
         expect(pre?.textContent).toContain('Project notes: Led migration of reporting database to Postgres.');
       });
+
+      // No note when the text fits under 2,000 characters (§15.4)
+      expect(screen.queryByText(/Showing the first 2,000 of/i)).toBeNull();
+    });
+
+    it('shows preview note under DOCX preview when text exceeds 2,000 characters with formatted count (§15.4)', async () => {
+      const longText = 'Word '.repeat(700); // 3,500 characters
+      vi.spyOn(docxModule, 'extractDocxText').mockResolvedValue(longText);
+
+      render(<App />);
+
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      const docxFile = new File(['fake-docx-data'], 'long-notes.docx', {
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      });
+      fireEvent.change(fileInput, { target: { files: [docxFile] } });
+
+      await waitFor(() => {
+        expect(screen.getByText('long-notes.docx')).toBeTruthy();
+        expect(screen.getByText('Text extracted')).toBeTruthy();
+      });
+
+      const previewBtn = screen.getByRole('button', { name: /preview text/i });
+      fireEvent.click(previewBtn);
+
+      await waitFor(() => {
+        const pre = document.querySelector('pre');
+        expect(pre).toBeTruthy();
+        expect(pre?.textContent?.length).toBe(2000);
+      });
+
+      // Formatted note with thousands separators per SPEC §15.4
+      expect(
+        screen.getByText(
+          'Showing the first 2,000 of 3,500 characters. The full text is sent to the model.',
+        ),
+      ).toBeTruthy();
     });
 
     it('shows §15.2 rejection message for unsupported .heic file, allows dismissal, and clears on next add', async () => {
