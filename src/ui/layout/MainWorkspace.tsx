@@ -160,7 +160,7 @@ export function MainWorkspace() {
               <span
                 className="ml-1.5 h-2 w-2 rounded-full bg-primary shrink-0"
                 aria-label="Generating"
-                role="status"
+                role="img"
               >
                 <span className="sr-only">(generating)</span>
               </span>

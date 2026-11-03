@@ -128,32 +128,30 @@ export function ContextArea() {
         </span>
       </div>
 
-      {/* Aria-live region for rejected or capped files (§15.3) */}
-      {attachmentErrors.length > 0 && (
-        <div
-          role="region"
-          aria-live="polite"
-          aria-label="File upload notices"
-          className="space-y-1.5 pt-1"
-        >
-          {attachmentErrors.map((err, i) => (
-            <div
-              key={i}
-              className="flex items-start justify-between gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+      {/* Aria-live region for rejected or capped files (§15.3, §17.7) */}
+      <div
+        role="region"
+        aria-live="polite"
+        aria-label="File upload notices"
+        className={attachmentErrors.length > 0 ? 'space-y-1.5 pt-1' : undefined}
+      >
+        {attachmentErrors.map((err, i) => (
+          <div
+            key={i}
+            className="flex items-start justify-between gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+          >
+            <span className="flex-1">{err}</span>
+            <button
+              type="button"
+              onClick={() => dismissAttachmentError(i)}
+              aria-label="Dismiss message"
+              className="shrink-0 rounded text-destructive hover:opacity-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <span className="flex-1">{err}</span>
-              <button
-                type="button"
-                onClick={() => dismissAttachmentError(i)}
-                aria-label="Dismiss message"
-                className="shrink-0 rounded text-destructive hover:opacity-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <X className="h-3.5 w-3.5" aria-hidden="true" />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+              <X className="h-3.5 w-3.5" aria-hidden="true" />
+            </button>
+          </div>
+        ))}
+      </div>
 
       {/* Attachment List (§15.4) */}
       <AttachmentList />
