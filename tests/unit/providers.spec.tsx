@@ -257,7 +257,7 @@ describe('ProvidersPanel & ModelPicker (UI Settings → Providers)', () => {
       );
 
       expect(
-        screen.getByText(/On the Gemini API Free Tier \(Unpaid Services\)/i)
+        screen.getByText(/Gemini API Additional Terms of Service/i)
       ).toBeTruthy();
     });
 
