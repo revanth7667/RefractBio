@@ -1,0 +1,119 @@
+/* Scoped styles for Help page markdown rendering (§17.5) */
+.help-content h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.25;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  color: hsl(var(--foreground));
+}
+
+.help-content h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.3;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+
+.help-content h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: hsl(var(--foreground));
+}
+
+.help-content p {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.625;
+  color: hsl(var(--foreground));
+}
+
+.help-content ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.help-content ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.help-content li {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+  line-height: 1.625;
+}
+
+.help-content blockquote {
+  border-left: 4px solid hsl(var(--border));
+  padding-left: 1rem;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  font-style: italic;
+  color: hsl(var(--muted-foreground));
+}
+
+.help-content code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.875em;
+  padding: 0.15rem 0.35rem;
+  background-color: hsl(var(--muted));
+  border-radius: 0.25rem;
+}
+
+.help-content pre {
+  padding: 1rem;
+  background-color: hsl(var(--muted));
+  border-radius: 0.375rem;
+  overflow-x: auto;
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.help-content pre code {
+  padding: 0;
+  background: none;
+}
+
+.help-content a {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.help-content hr {
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+  border-color: hsl(var(--border));
+}
+
+.help-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+}
+
+.help-content th,
+.help-content td {
+  border: 1px solid hsl(var(--border));
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.help-content th {
+  background-color: hsl(var(--muted));
+  font-weight: 600;
+}

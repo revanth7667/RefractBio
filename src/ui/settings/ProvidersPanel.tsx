@@ -7,7 +7,7 @@ import { Switch } from '../components/ui/switch';
 import { ModelPicker } from '../inputs/ModelPicker';
 import { useSettings } from '../../state/SettingsContext';
 import { getAdapter } from '../../providers/registry';
-import { APP_ID } from '../../config';
+import { APP_ID, GEMINI_FREE_TIER_NOTE } from '../../config';
 import type { ProviderId, ConnectionTestResult } from '../../types';
 
 interface ProviderMeta {
@@ -30,10 +30,43 @@ const PROVIDERS: ProviderMeta[] = [
     name: 'Google Gemini',
     keyUrl: 'https://aistudio.google.com/app/apikey',
     keyUrlLabel: 'Google AI Studio',
-    freeTierNote:
-      'On the Gemini API Free Tier (Unpaid Services), prompts, context, and generated content may be read, annotated, and processed by human reviewers and used by Google to improve and train Google products and AI models (do not submit sensitive, confidential, or personal information). On Paid Tiers, data is not used for model training and is not subject to human review. See Help for details.',
+    freeTierNote: GEMINI_FREE_TIER_NOTE,
   },
 ];
+
+function FormattedFreeTierNote({ note }: { note: string }) {
+  const parts: React.ReactNode[] = [];
+  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = linkRegex.exec(note)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(note.slice(lastIndex, match.index));
+    }
+    parts.push(
+      <a
+        key={match.index}
+        href={match[2]}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-primary underline"
+      >
+        {match[1]}
+      </a>,
+    );
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < note.length) {
+    parts.push(note.slice(lastIndex));
+  }
+
+  return (
+    <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+      {parts}
+    </p>
+  );
+}
 
 export function ProvidersPanel() {
   const {
@@ -187,9 +220,7 @@ export function ProvidersPanel() {
               </div>
 
               {provider.freeTierNote && (
-                <p className="text-xs text-muted-foreground mt-1.5">
-                  {provider.freeTierNote}
-                </p>
+                <FormattedFreeTierNote note={provider.freeTierNote} />
               )}
             </div>
 
