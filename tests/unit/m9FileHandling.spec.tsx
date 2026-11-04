@@ -724,12 +724,13 @@ describe('Milestone M9 File Handling Integration & UI Tests (§15, §20)', () =>
         const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
         fireEvent.change(fileInput, { target: { files: [extraFile] } });
 
-        // Flush microtasks for file read
+        // Advance 50 ms for file read to complete without triggering 300 ms debounce
         await act(async () => {
-          await Promise.resolve();
+          await vi.advanceTimersByTimeAsync(50);
         });
 
         expect(screen.getByText('extra.txt')).toBeTruthy();
+        expect(screen.getByText(/Ready/)).toBeTruthy();
 
         // Stale badge has not appeared yet before 300 ms debounce
         expect(screen.queryByText('Inputs changed since this was generated')).toBeNull();
@@ -764,11 +765,13 @@ describe('Milestone M9 File Handling Integration & UI Tests (§15, §20)', () =>
         const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
         fireEvent.change(fileInput, { target: { files: [pdfFile] } });
 
+        // Advance 50 ms for file read to complete without triggering 300 ms debounce
         await act(async () => {
-          await Promise.resolve();
+          await vi.advanceTimersByTimeAsync(50);
         });
 
         expect(screen.getByText('posting.pdf')).toBeTruthy();
+        expect(screen.getByText(/Ready/)).toBeTruthy();
 
         // Before 300 ms debounce, guess suffix is not yet present
         expect(screen.queryByText(/Includes a size-based guess for 1 PDF\(s\)\./)).toBeNull();
