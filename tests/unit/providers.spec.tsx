@@ -262,8 +262,8 @@ describe('ProvidersPanel & ModelPicker (UI Settings → Providers)', () => {
       ).toBeTruthy();
     });
 
-    it('executes Test connection and shows "Connected, N models found" on success', async () => {
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+    it('executes Test connection for Anthropic with exactly one request and fills model picker', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
         new Response(
           JSON.stringify({
             data: [{ id: 'claude-3-5-sonnet', display_name: 'Claude 3.5 Sonnet' }],
@@ -271,7 +271,8 @@ describe('ProvidersPanel & ModelPicker (UI Settings → Providers)', () => {
           }),
           { status: 200 }
         )
-      ));
+      );
+      vi.stubGlobal('fetch', fetchMock);
 
       render(
         <SettingsProvider>
@@ -288,6 +289,50 @@ describe('ProvidersPanel & ModelPicker (UI Settings → Providers)', () => {
       await waitFor(() => {
         expect(screen.getByText(/Connected, 1 models found/i)).toBeTruthy();
       });
+
+      // Exactly ONE request per press
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      // Model picker is filled with model from the test connection response
+      const picker = document.getElementById('model-picker-anthropic') as HTMLSelectElement;
+      expect(picker).toBeTruthy();
+      expect(screen.getByRole('option', { name: 'Claude 3.5 Sonnet' })).toBeTruthy();
+    });
+
+    it('executes Test connection for Gemini with exactly one request and fills model picker', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            models: [{ name: 'models/gemini-1.5-flash', displayName: 'Gemini 1.5 Flash', supportedGenerationMethods: ['generateContent'] }],
+          }),
+          { status: 200 }
+        )
+      );
+      vi.stubGlobal('fetch', fetchMock);
+
+      render(
+        <SettingsProvider>
+          <ProvidersPanel />
+        </SettingsProvider>
+      );
+
+      const geminiInput = screen.getByPlaceholderText(/enter your google gemini api key/i);
+      fireEvent.change(geminiInput, { target: { value: fakeKey } });
+
+      const testBtn = screen.getAllByRole('button', { name: /test connection/i })[1];
+      fireEvent.click(testBtn);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Connected, 1 models found/i)).toBeTruthy();
+      });
+
+      // Exactly ONE request per press
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      // Model picker is filled with model from the test connection response
+      const picker = document.getElementById('model-picker-gemini') as HTMLSelectElement;
+      expect(picker).toBeTruthy();
+      expect(screen.getByRole('option', { name: 'Gemini 1.5 Flash' })).toBeTruthy();
     });
 
     it('executes Test connection and shows mapped error + suggestions on network failure', async () => {

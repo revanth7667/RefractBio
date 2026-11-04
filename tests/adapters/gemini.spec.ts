@@ -324,6 +324,8 @@ describe('Gemini Adapter (tests/adapters/gemini.spec.ts)', () => {
       const res = await adapter.testConnection({ id: 'gemini', apiKey: fakeKey });
       expect(res.ok).toBe(true);
       expect(res.modelsFound).toBe(1);
+      expect(res.models).toBeDefined();
+      expect(res.models?.length).toBe(1);
     });
 
     it('returns ok: false with mapped error and suggestions on failure', async () => {
