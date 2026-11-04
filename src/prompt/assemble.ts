@@ -107,7 +107,7 @@ export function assemble(
   const rawQuestions = inputs.questions ?? '';
   const hasQuestions = rawQuestions.trim() !== '';
 
-  let showEmptyJobContextSentence = false;
+  let showEmptyJobContextSentence: boolean;
   if (kind === 'ANSWERS') {
     // For ANSWERS, empty sentence applies only when both job context and questions are empty
     showEmptyJobContextSentence = isJobContextEmpty && !hasQuestions;

@@ -26,7 +26,7 @@ export function splitEmailDraft(text: string): EmailParts {
   const remaining = lines.slice(1);
   const firstBlankIndex = remaining.findIndex((line) => line.trim() === '');
 
-  let body = '';
+  let body: string;
   if (firstBlankIndex !== -1) {
     body = remaining.slice(firstBlankIndex + 1).join('\n').trim();
   } else {

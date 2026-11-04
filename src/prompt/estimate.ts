@@ -28,7 +28,7 @@ export function computeEstimate(
   partC?: string,
   attachments?: readonly Attachment[],
 ): TokenEstimate {
-  let system = '';
+  let system: string;
   let textPartA = '';
   let textPartC = '';
   let attList: readonly Attachment[] = [];

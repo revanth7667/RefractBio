@@ -64,7 +64,7 @@ export function filterAndEnrichModels(
     // 2. Determine capabilities & capabilitySource
     let supportsImages: CapabilityGuess = 'unknown';
     let supportsPdf: CapabilityGuess = 'unknown';
-    let capabilitySource: 'api-metadata' | 'pattern-guess' | 'none' = 'none';
+    let capabilitySource: 'api-metadata' | 'pattern-guess' | 'none';
 
     if (raw.capabilities) {
       capabilitySource = 'api-metadata';
