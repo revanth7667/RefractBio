@@ -24,6 +24,7 @@ import { ProvidersPanel } from './ProvidersPanel';
 import { MasterInfoPanel } from './MasterInfoPanel';
 import { InstructionsPanel } from './InstructionsPanel';
 import { AboutPanel } from './AboutPanel';
+import { reloadPage } from './reload';
 import { useSettings } from '../../state/SettingsContext';
 import { useMasterInfo } from '../../state/MasterInfoContext';
 import { useInstructions } from '../../state/InstructionsContext';
@@ -132,13 +133,7 @@ export function SettingsSheet({ open, onOpenChange, tab, onTabChange }: Settings
     clearMasterInfo();
     clearInstructions();
     onOpenChange(false);
-    try {
-      if (typeof window !== 'undefined' && window.location && typeof window.location.reload === 'function') {
-        window.location.reload();
-      }
-    } catch {
-      // In test environments such as jsdom, location.reload may throw
-    }
+    reloadPage();
   };
 
   const downloadMasterInfoCopy = () => {
