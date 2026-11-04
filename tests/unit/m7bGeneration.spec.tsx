@@ -998,7 +998,7 @@ describe('Milestone M7b Generation and Right Pane UI', () => {
           '',
           '',
         ].join('\n');
-        act(() => {
+        await act(async () => {
           try {
             (streamController as ReadableStreamDefaultController<Uint8Array>).enqueue(
               encoder.encode(postAbortChunk),
@@ -1007,6 +1007,7 @@ describe('Milestone M7b Generation and Right Pane UI', () => {
           } catch {
             // Stream controller may be closed or in error state
           }
+          await new Promise((r) => setTimeout(r, 100));
         });
       } catch {
         // Stream controller may be closed or in error state
@@ -1032,6 +1033,15 @@ describe('Milestone M7b Generation and Right Pane UI', () => {
     });
 
     await screen.findByText(/Generated with Anthropic/i);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /^send$/i }).hasAttribute('disabled')).toBe(false);
+    });
+
+    // Wait for 300 ms timers (SendBar estimate & stale checks) to settle cleanly inside act
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 400));
+    });
 
     expect(messagesCallCount).toBe(2);
   });
