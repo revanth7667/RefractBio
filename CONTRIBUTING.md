@@ -34,12 +34,24 @@ npm run e2e
 # Run secret scanner across source files
 npm run secret-scan
 
+# Verify dependencies with install scripts against allowlist
+npm run check:install-scripts
+
 # Build standard production web app bundle
 npm run build
 
 # Build standalone self-contained single-file HTML bundle
 npm run build:single
 ```
+
+## Supply-chain safety
+
+To defend against supply-chain attacks (such as lifecycle script worms that steal developer credentials during installation):
+
+- **Scripts disabled by default**: The project `.npmrc` sets `ignore-scripts=true`. Install-time lifecycle scripts (`preinstall`, `postinstall`) do not run automatically. Explicit scripts defined in `package.json` (`npm run`, `npm test`, etc.) continue to run normally.
+- **Clean installs**: Always run `npm ci`, not `npm install`, for a clean install from `package-lock.json`.
+- **Install-script check**: Run `npm run check:install-scripts` (implemented in `scripts/check-install-scripts.mjs`) to verify that no dependencies outside our strictly vetted allowlist have install scripts.
+- **14-day rule for new dependency versions**: Dependency updates must be published for at least 14 days before being adopted. While newer npm versions (npm 11.10.0 and later) support the automated `min-release-age` configuration, on npm 10 this cooldown period is enforced manually during dependency review.
 
 ## Commit and Code Conventions
 
