@@ -44,6 +44,7 @@ export class GeminiAdapter implements ProviderAdapter {
       const models = await this.listModels(config);
       return {
         ok: true,
+        models,
         modelsFound: models.length,
         suggestions: [],
       };

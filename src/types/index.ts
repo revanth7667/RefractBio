@@ -177,6 +177,7 @@ export interface AppError {
 
 export interface ConnectionTestResult {
   ok: boolean;
+  models?: ModelInfo[];
   modelsFound?: number;
   error?: AppError;
   /** Setup hints shown on failure (network, extensions, firewall). */

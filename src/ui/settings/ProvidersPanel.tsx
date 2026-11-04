@@ -79,7 +79,7 @@ export function ProvidersPanel() {
     models: sharedModels,
     loadingModels,
     modelErrors,
-    loadModels,
+    setCachedModels,
   } = useSettings();
 
   const [showKeys, setShowKeys] = useState<Record<ProviderId, boolean>>({
@@ -113,9 +113,9 @@ export function ProvidersPanel() {
       const res = await adapter.testConnection({ id: providerId, apiKey: key });
       setTestResults((prev) => ({ ...prev, [providerId]: res }));
 
-      if (res.ok) {
-        // Refresh shared models cache
-        await loadModels(providerId, key);
+      if (res.ok && res.models) {
+        // Populate shared models cache without an extra request
+        setCachedModels(providerId, res.models);
       }
     } catch {
       // Should not throw as testConnection catches, but guard anyway

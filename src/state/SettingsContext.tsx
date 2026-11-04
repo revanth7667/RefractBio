@@ -21,6 +21,7 @@ interface SettingsContextValue {
   loadingModels: Record<ProviderId, boolean>;
   modelErrors: Record<ProviderId, AppError | null>;
   loadModels: (providerId: ProviderId, explicitKey?: string) => Promise<void>;
+  setCachedModels: (providerId: ProviderId, models: ModelInfo[]) => void;
   settingsOpen: boolean;
   setSettingsOpen: (open: boolean) => void;
   settingsTab: string;
@@ -90,6 +91,27 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     gemini: null,
   });
 
+  const setCachedModels = (providerId: ProviderId, fetchedModels: ModelInfo[]) => {
+    setModels((prev) => ({ ...prev, [providerId]: fetchedModels }));
+    setModelErrors((prev) => ({ ...prev, [providerId]: null }));
+
+    // If no model is currently selected, select the first default model or first available model
+    setSettingsState((prevSettings) => {
+      const currentSelected = prevSettings.selectedModel[providerId];
+      if (!currentSelected && fetchedModels.length > 0) {
+        const defaultList = getDefaultModels(fetchedModels, providerId);
+        const firstDefault = defaultList[0] || fetchedModels.find((m) => m.likelyChat) || fetchedModels[0];
+        if (firstDefault) {
+          const nextSelected = { ...prevSettings.selectedModel, [providerId]: firstDefault.id };
+          const next = { ...prevSettings, selectedModel: nextSelected };
+          storage.set('settings', next);
+          return next;
+        }
+      }
+      return prevSettings;
+    });
+  };
+
   const loadModels = async (providerId: ProviderId, explicitKey?: string) => {
     const key = explicitKey !== undefined ? explicitKey : apiKeys[providerId];
     if (!key || !key.trim()) return;
@@ -100,23 +122,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     try {
       const adapter = getAdapter(providerId);
       const fetchedModels = await adapter.listModels({ id: providerId, apiKey: key });
-      setModels((prev) => ({ ...prev, [providerId]: fetchedModels }));
-
-      // If no model is currently selected, select the first default model or first available model
-      setSettingsState((prevSettings) => {
-        const currentSelected = prevSettings.selectedModel[providerId];
-        if (!currentSelected && fetchedModels.length > 0) {
-          const defaultList = getDefaultModels(fetchedModels, providerId);
-          const firstDefault = defaultList[0] || fetchedModels.find((m) => m.likelyChat) || fetchedModels[0];
-          if (firstDefault) {
-            const nextSelected = { ...prevSettings.selectedModel, [providerId]: firstDefault.id };
-            const next = { ...prevSettings, selectedModel: nextSelected };
-            storage.set('settings', next);
-            return next;
-          }
-        }
-        return prevSettings;
-      });
+      setCachedModels(providerId, fetchedModels);
     } catch (err: unknown) {
       const appErr =
         typeof err === 'object' && err !== null && 'category' in err && 'message' in err
@@ -255,6 +261,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         loadingModels,
         modelErrors,
         loadModels,
+        setCachedModels,
         settingsOpen,
         setSettingsOpen,
         settingsTab,
