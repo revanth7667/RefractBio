@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import App from '../../src/App';
 import * as storage from '../../src/storage/storage';
 import { APP_ID } from '../../src/config';
@@ -589,6 +589,9 @@ describe('Milestone M9 File Handling Integration & UI Tests (§15, §20)', () =>
       fireEvent.change(fileInput, { target: { files: [slowFile] } });
 
       expect(screen.getByText('slow.txt')).toBeTruthy();
+      await waitFor(() => {
+        expect(screen.getByText('Ready')).toBeTruthy();
+      });
     });
 
     it('an error attachment blocks Send with "Remove the file marked with an error."', async () => {
@@ -714,23 +717,31 @@ describe('Milestone M9 File Handling Integration & UI Tests (§15, §20)', () =>
       // No stale badge yet
       expect(screen.queryByText('Inputs changed since this was generated')).toBeNull();
 
-      // Add attachment
-      const extraFile = new File(['some text'], 'extra.txt', { type: 'text/plain' });
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-      fireEvent.change(fileInput, { target: { files: [extraFile] } });
+      vi.useFakeTimers();
+      try {
+        // Add attachment
+        const extraFile = new File(['some text'], 'extra.txt', { type: 'text/plain' });
+        const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+        fireEvent.change(fileInput, { target: { files: [extraFile] } });
 
-      await waitFor(() => {
+        // Flush microtasks for file read
+        await act(async () => {
+          await Promise.resolve();
+        });
+
         expect(screen.getByText('extra.txt')).toBeTruthy();
-        expect(screen.getByText(/Ready/)).toBeTruthy();
-      });
 
-      // Stale badge appears (debounced 300 ms)
-      await waitFor(
-        () => {
-          expect(screen.getByText('Inputs changed since this was generated')).toBeTruthy();
-        },
-        { timeout: 1500 },
-      );
+        // Stale badge has not appeared yet before 300 ms debounce
+        expect(screen.queryByText('Inputs changed since this was generated')).toBeNull();
+
+        act(() => {
+          vi.advanceTimersByTime(300);
+        });
+
+        expect(screen.getByText('Inputs changed since this was generated')).toBeTruthy();
+      } finally {
+        vi.useRealTimers();
+      }
 
       // Now remove attachment
       const removeBtn = screen.getByRole('button', { name: 'Remove extra.txt' });
@@ -748,21 +759,29 @@ describe('Milestone M9 File Handling Integration & UI Tests (§15, §20)', () =>
       const pdfBuf = fs.readFileSync(pdfPath);
       const pdfFile = new File([pdfBuf], 'posting.pdf', { type: 'application/pdf' });
 
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-      fireEvent.change(fileInput, { target: { files: [pdfFile] } });
+      vi.useFakeTimers();
+      try {
+        const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+        fireEvent.change(fileInput, { target: { files: [pdfFile] } });
 
-      await waitFor(() => {
+        await act(async () => {
+          await Promise.resolve();
+        });
+
         expect(screen.getByText('posting.pdf')).toBeTruthy();
-        expect(screen.getByText(/Ready/)).toBeTruthy();
-      });
 
-      // Token estimate line updates (debounced 300 ms)
-      await waitFor(
-        () => {
-          expect(screen.getByText(/Includes a size-based guess for 1 PDF\(s\)\./)).toBeTruthy();
-        },
-        { timeout: 1500 },
-      );
+        // Before 300 ms debounce, guess suffix is not yet present
+        expect(screen.queryByText(/Includes a size-based guess for 1 PDF\(s\)\./)).toBeNull();
+
+        // Advance 300 ms for token estimate debounce
+        act(() => {
+          vi.advanceTimersByTime(300);
+        });
+
+        expect(screen.getByText(/Includes a size-based guess for 1 PDF\(s\)\./)).toBeTruthy();
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it('never writes attachment bytes, names, or file state to localStorage (only 4 keys allowed)', async () => {

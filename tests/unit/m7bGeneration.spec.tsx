@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react';
 import fs from 'node:fs';
 import path from 'node:path';
 import App from '../../src/App';
@@ -579,6 +579,11 @@ describe('Milestone M7b Generation and Right Pane UI', () => {
         headers: { 'content-type': 'text/event-stream' },
       }),
     );
+
+    // Await stream completion so generation settles cleanly within the test
+    await waitFor(() => {
+      expect(within(outputsTabBtn).queryByLabelText('Generating')).toBeNull();
+    });
   });
 
   it('Clear job resets tabs, clears outputs, and returns empty state (§14.5)', async () => {
@@ -993,9 +998,16 @@ describe('Milestone M7b Generation and Right Pane UI', () => {
           '',
           '',
         ].join('\n');
-        (streamController as ReadableStreamDefaultController<Uint8Array>).enqueue(
-          encoder.encode(postAbortChunk),
-        );
+        act(() => {
+          try {
+            (streamController as ReadableStreamDefaultController<Uint8Array>).enqueue(
+              encoder.encode(postAbortChunk),
+            );
+            (streamController as ReadableStreamDefaultController<Uint8Array>).close();
+          } catch {
+            // Stream controller may be closed or in error state
+          }
+        });
       } catch {
         // Stream controller may be closed or in error state
       }
@@ -1018,6 +1030,8 @@ describe('Milestone M7b Generation and Right Pane UI', () => {
       const editor = screen.getByLabelText(/resume draft/i) as HTMLTextAreaElement;
       expect(editor.value).toBe('Second run after clear succeeded!');
     });
+
+    await screen.findByText(/Generated with Anthropic/i);
 
     expect(messagesCallCount).toBe(2);
   });

@@ -101,6 +101,8 @@ describe('Email Copy subject and Copy body buttons (§16.2)', () => {
     const sendBtn = screen.getByRole('button', { name: /^send$/i });
     fireEvent.click(sendBtn);
 
+    await screen.findByText(/Generated with Anthropic/i);
+
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /copy subject/i })).toBeTruthy();
       expect(screen.getByRole('button', { name: /copy body/i })).toBeTruthy();
@@ -131,6 +133,14 @@ describe('Email Copy subject and Copy body buttons (§16.2)', () => {
     fireEvent.click(copyGenericBtn);
     expect(clipboardWriteMock).toHaveBeenCalledWith(
       'Subject: Data Analyst Application - Jordan Sample\n\nDear Logistics Team,\n\nI am excited to submit my background.\n\nSincerely,\nJordan',
+    );
+
+    // Wait for the 2000 ms copied feedback state to reset so no unhandled timer fires
+    await waitFor(
+      () => {
+        expect(screen.queryByRole('button', { name: /^copied$/i })).toBeNull();
+      },
+      { timeout: 2500 },
     );
   });
 
@@ -173,6 +183,8 @@ describe('Email Copy subject and Copy body buttons (§16.2)', () => {
 
     const sendBtn = screen.getByRole('button', { name: /^send$/i });
     fireEvent.click(sendBtn);
+
+    await screen.findByText(/Generated with Anthropic/i);
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /^copy$/i })).toBeTruthy();
@@ -239,6 +251,8 @@ describe('Email Copy subject and Copy body buttons (§16.2)', () => {
     const sendBtn = screen.getByRole('button', { name: /^send$/i });
     fireEvent.click(sendBtn);
 
+    await screen.findByText(/Generated with Anthropic/i);
+
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /copy subject/i })).toBeTruthy();
       expect(screen.getByRole('button', { name: /copy body/i })).toBeTruthy();
@@ -282,5 +296,13 @@ describe('Email Copy subject and Copy body buttons (§16.2)', () => {
     const copyBodyBtn = screen.getByRole('button', { name: /copy body/i });
     fireEvent.click(copyBodyBtn);
     expect(clipboardWriteMock).toHaveBeenCalledWith('Brand New Body Content');
+
+    // Wait for copied timer to reset cleanly
+    await waitFor(
+      () => {
+        expect(screen.queryByRole('button', { name: /^copied$/i })).toBeNull();
+      },
+      { timeout: 2500 },
+    );
   });
 });

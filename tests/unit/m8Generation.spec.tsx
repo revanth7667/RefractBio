@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import App from '../../src/App';
 import * as storage from '../../src/storage/storage';
 import { APP_ID } from '../../src/config';
@@ -181,17 +181,28 @@ describe('Milestone M8 Multi-output Queue, Versions, Stale Badge, and Clear', ()
     expect(screen.queryByTestId('stale-dot-COVER_LETTER')).toBeNull();
     expect(screen.queryByTestId('stale-dot-ANSWERS')).toBeNull();
 
-    // Now edit ONLY the Questions box
-    fireEvent.change(questionsArea, { target: { value: 'Modified question 1 with extra details' } });
+    // Switch to fake timers for debounced stale badge recomputation (300 ms)
+    vi.useFakeTimers();
+    try {
+      // Now edit ONLY the Questions box
+      fireEvent.change(questionsArea, { target: { value: 'Modified question 1 with extra details' } });
 
-    // Debounced stale badge recomputes (300ms)
-    await waitFor(() => {
+      // Before 300 ms debounce fires, stale dot is not yet present
+      expect(screen.queryByTestId('stale-dot-ANSWERS')).toBeNull();
+
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+
+      // Debounced stale badge recomputed (300ms)
       expect(screen.getByTestId('stale-dot-ANSWERS')).toBeTruthy();
-    });
 
-    // Resume and Cover Letter MUST NOT be marked stale
-    expect(screen.queryByTestId('stale-dot-RESUME')).toBeNull();
-    expect(screen.queryByTestId('stale-dot-COVER_LETTER')).toBeNull();
+      // Resume and Cover Letter MUST NOT be marked stale
+      expect(screen.queryByTestId('stale-dot-RESUME')).toBeNull();
+      expect(screen.queryByTestId('stale-dot-COVER_LETTER')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('handles edit-overwrite confirmation (Cancel starts nothing; Continue folds edit into previous and starts)', async () => {

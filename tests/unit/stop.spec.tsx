@@ -299,20 +299,49 @@ describe('Stop generation UI & integration (SPEC §14.8, §17.3, §17.7)', () =>
       '',
     ].join('\n');
 
-    act(() => {
+    await act(async () => {
       streamController.enqueue(encoder.encode(sseChunk));
+      const endChunk = [
+        'event: message_delta',
+        'data: {"type":"message_delta","delta":{"stop_reason":"end_turn"}}',
+        '',
+        'event: message_stop',
+        'data: {"type":"message_stop"}',
+        '',
+        '',
+      ].join('\n');
+      streamController.enqueue(encoder.encode(endChunk));
+      try {
+        streamController.close();
+      } catch {
+        // ignore
+      }
+      await Promise.resolve();
     });
 
     await vi.waitFor(() => {
       expect(container.querySelectorAll('.bg-muted\\/40')).toHaveLength(0);
+      expect(screen.getByRole('button', { name: /^Send$/i }).hasAttribute('disabled')).toBe(false);
     });
 
     vi.useRealTimers();
   });
 
-  it('no new live regions are created by stop UI', () => {
+  it('no new live regions are created by stop UI', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async () => {
+        return new Response(JSON.stringify({ data: [] }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }),
+    );
     const { container } = render(<App />);
     const liveRegions = container.querySelectorAll('[aria-live="polite"].sr-only');
     expect(liveRegions).toHaveLength(1);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /^Send$/i })).toBeTruthy();
+    });
   });
 });
