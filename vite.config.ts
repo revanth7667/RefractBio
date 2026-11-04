@@ -2,8 +2,14 @@
 import { resolve } from 'path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { configDefaults } from 'vitest/config';
+import { configDefaults, type UserConfig as VitestUserConfig } from 'vitest/config';
 import { cspPlugin } from './scripts/csp';
+
+declare module 'vite' {
+  interface UserConfig {
+    test?: VitestUserConfig['test'];
+  }
+}
 
 export default defineConfig({
   base: './',
