@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "e2e": "playwright test",
-    "secret-scan": "node scripts/secret-scan.mjs"
+    "secret-scan": "node scripts/secret-scan.mjs",
+    "check:install-scripts": "node scripts/check-install-scripts.mjs"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "1.2.1",
