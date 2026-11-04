@@ -5,10 +5,15 @@ import { SettingsProvider } from '../../src/state/SettingsContext';
 import { MasterInfoProvider, useMasterInfo, type MasterInfoContextValue } from '../../src/state/MasterInfoContext';
 import { MasterInfoPanel } from '../../src/ui/settings/MasterInfoPanel';
 import { SettingsSheet } from '../../src/ui/settings/SettingsSheet';
+import { reloadPage } from '../../src/ui/settings/reload';
 import * as storage from '../../src/storage/storage';
 import limits from '../../src/data/limits.json';
 import sampleRaw from '../../src/data/master-info.sample.md?raw';
 import editedRaw from '../fixtures/master/edited.md?raw';
+
+vi.mock('../../src/ui/settings/reload', () => ({
+  reloadPage: vi.fn(),
+}));
 
 function StateSpy({ onState }: { onState: (val: MasterInfoContextValue) => void }) {
   const ctx = useMasterInfo();
@@ -512,6 +517,7 @@ describe('Master Info Panel & State (§10.4, §10.5, §17.4)', () => {
     it('resets in-memory Master Info to first-run state upon confirmation', async () => {
       // First save custom data
       storage.set('masterInfo', { text: editedRaw, updatedAt: new Date().toISOString() });
+      vi.mocked(reloadPage).mockClear();
 
       render(<TestSheetWithTrigger />);
 
@@ -522,11 +528,24 @@ describe('Master Info Panel & State (§10.4, §10.5, §17.4)', () => {
       const deleteBtn = await screen.findByRole('button', { name: /delete all app data/i });
       fireEvent.click(deleteBtn);
 
+      // Cancel does not reload
+      const cancelBtn = await screen.findByRole('button', { name: /cancel/i });
+      act(() => {
+        fireEvent.click(cancelBtn);
+      });
+      expect(reloadPage).not.toHaveBeenCalled();
+
+      // Open delete dialog again
+      fireEvent.click(deleteBtn);
+
       // Confirm dialog opens
       const confirmDeleteBtn = await screen.findByRole('button', { name: /delete everything/i });
       act(() => {
         fireEvent.click(confirmDeleteBtn);
       });
+
+      // reloadPage called exactly once after confirmed delete
+      expect(reloadPage).toHaveBeenCalledTimes(1);
 
       // Storage is cleared
       expect(storage.get('masterInfo').ok).toBe(false);
