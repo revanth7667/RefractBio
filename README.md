@@ -2,9 +2,14 @@
 
 # RefractBio
 
+[![CI](https://github.com/revanth7667/RefractBio/actions/workflows/ci.yml/badge.svg)](https://github.com/revanth7667/RefractBio/actions/workflows/ci.yml)
+[![Deploy](https://github.com/revanth7667/RefractBio/actions/workflows/deploy.yml/badge.svg)](https://github.com/revanth7667/RefractBio/actions/workflows/deploy.yml)
+
+**Live site: https://refractbio.revanth7667.com/**
+
 RefractBio is a client-side web application (Vite + React + TypeScript, zero backend) that helps you draft tailored resumes, cover letters, LinkedIn outreach messages, emails, and application answers from a single free-form Master Info file, using your own API key for Anthropic or Google Gemini. It operates exclusively in your browser: prompts are assembled deterministically from your facts, gaps are noted whenever a posting asks for background your Master Info does not verify, and no details are ever invented.
 
-<!-- TODO: Add a screenshot made with the fake sample -->
+![RefractBio with a sample job posting attached on the left, and a drafted resume with its Gaps note on the right. All names and details are fictional sample data.](docs/screenshot.png)
 
 ## Privacy
 
@@ -13,8 +18,8 @@ RefractBio has no backend servers, no analytics, no user accounts, no tracking c
 ## Quick Start
 
 You can run RefractBio in two ways:
-- **Hosted Web App**: Visit https://revanth7667.com/RefractBio/ (planned) in any modern browser.
-- **Single-File Download**: Download the standalone HTML file from [Releases](https://github.com/revanth7667/RefractBio/releases) and open it directly in your browser.
+- **Hosted Web App**: Visit https://refractbio.revanth7667.com/ in any modern browser.
+- **Single-File Download**: Download the standalone HTML file from [Releases](https://github.com/revanth7667/RefractBio/releases) and open it directly in your browser. Each release also includes a `.sha256` checksum file.
 
 1. Open **Settings** and add your career details to the Master Info editor, or use the shipped sample as a starting point.
 2. Add your job context (paste a job description, notes, or attach screenshots and documents).
@@ -40,6 +45,10 @@ Your Master Info is a single, free-form text file that acts as the single source
 
 - **Application Answers**: Use the Questions box to paste form questions (or attach a screenshot of the application form). The model answers each question using only stories and facts from your Master Info; any missing information produces a line starting with `Needs your input:` and is listed in the Gaps note.
 - **Printing to PDF**: The Resume and Cover Letter outputs include a built-in Print / Save as PDF button. In the browser print dialog, choose 'Save as PDF', turn off 'Headers and footers'; Chrome and Firefox use the app's paper size, Safari uses the print dialog's paper size; margins are 1.9 cm (0.75 in) in all of them.
+
+## Hosted Version Notes
+
+The hosted copy is a set of static files served by GitHub Pages on its own address (a dedicated subdomain), so the data it saves in your browser is kept separate from other websites. GitHub Pages cannot send some security headers, so the app relies on a Content Security Policy built into the page itself. The one protection that needs a header, stopping other websites from showing the app inside a frame, is not applied on this host.
 
 ## Single-File Version Caveats
 

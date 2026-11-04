@@ -52,6 +52,13 @@ To defend against supply-chain attacks (such as lifecycle script worms that stea
 - **Clean installs**: Always run `npm ci`, not `npm install`, for a clean install from `package-lock.json`.
 - **Install-script check**: Run `npm run check:install-scripts` (implemented in `scripts/check-install-scripts.mjs`) to verify that no dependencies outside our strictly vetted allowlist have install scripts.
 - **14-day rule for new dependency versions**: Dependency updates must be published for at least 14 days before being adopted. While newer npm versions (npm 11.10.0 and later) support the automated `min-release-age` configuration, on npm 10 this cooldown period is enforced manually during dependency review.
+- **GitHub Actions are pinned to commit SHAs**: every `uses:` line in `.github/workflows` names a full 40-character commit SHA with the version in a trailing comment. When updating an action, take the newest release that is at least 14 days old, is not a pre-release, and runs on Node 24, look up its commit SHA, and use the same SHA in every workflow that uses the action.
+
+## Workflows and releases
+
+- **CI** (`.github/workflows/ci.yml`) runs on every push and pull request to `main`: install, lint, type check, unit tests, secret scan, both builds and the end-to-end tests.
+- **Deploy** (`.github/workflows/deploy.yml`) publishes the hosted build to GitHub Pages after CI succeeds for a push to `main`. It builds the exact commit CI tested. A manual run from the Actions tab skips the CI gate, so use it deliberately.
+- **Release** (`.github/workflows/release.yml`) runs when a tag starting with `v` is pushed. The tag must equal `v` plus the version in `package.json`, and the tagged commit must be on `main`. It repeats the checks, then attaches the single-file build and its SHA-256 checksum to a GitHub Release. Only maintainers create tags.
 
 ## Commit and Code Conventions
 
@@ -71,5 +78,4 @@ This project strictly follows Conventional Commits:
 
 ## Verifying a subpath deployment
 
-To verify that the built application runs under a repository subpath (such as GitHub Pages or a custom subdirectory) with relative asset loading and hash routing: run npm run build; create a temporary directory and symlink dist into it as RefractBio (TMP_DIR=$(mktemp -d); ln -s "$(pwd)/dist" "$TMP_DIR/RefractBio"); serve it (python3 -m http.server 8080 --directory "$TMP_DIR"); open http://localhost:8080/RefractBio/ and http://localhost:8080/RefractBio/#/help. Also check that /RefractBio (no trailing slash) redirects to /RefractBio/ on the real host, because the build uses relative asset paths.
-
+The official hosted copy (https://refractbio.revanth7667.com/) is served from the root of its own subdomain, but the build uses relative asset paths and hash routing, so it must keep working under a repository subpath and from disk. To verify that the built application runs under a subpath (such as a GitHub Pages project site or a custom subdirectory): run npm run build; create a temporary directory and symlink dist into it as RefractBio (TMP_DIR=$(mktemp -d); ln -s "$(pwd)/dist" "$TMP_DIR/RefractBio"); serve it (python3 -m http.server 8080 --directory "$TMP_DIR"); open http://localhost:8080/RefractBio/ and http://localhost:8080/RefractBio/#/help. On a host that serves the app under a subpath, also check that /RefractBio (no trailing slash) redirects to /RefractBio/ on the real host, because the build uses relative asset paths. The official host does not need that check.
