@@ -23,6 +23,7 @@ describe('useBeforeUnload hook (§14.7, Task 8)', () => {
     gaps: '',
     gapsMissing: false,
     truncated: false,
+    stopped: false,
     snapshot: {
       hash: 'h1234567',
       provider: 'anthropic',

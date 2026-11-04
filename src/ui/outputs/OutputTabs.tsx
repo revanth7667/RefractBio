@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Loader2, Check, AlertCircle, Copy, Download, RefreshCw, Undo2, Printer } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Loader2, Check, AlertCircle, Copy, Download, RefreshCw, Undo2, Printer, Square } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -13,6 +13,8 @@ import { splitEmailDraft } from '../../export/email';
 import { copyToClipboard } from '../../export/clipboard';
 import { downloadMarkdown } from '../../export/markdown';
 import { printDocument } from '../../export/print';
+import limits from '../../data/limits.json';
+import { OUTPUT_NAMES } from '../../types';
 import type { OutputKind, OutputTab, PaperSize } from '../../types';
 
 const OUTPUT_TAB_LABELS: Record<OutputKind, string> = {
@@ -44,6 +46,7 @@ export function OutputTabs() {
     setActiveTab,
     retryTab,
     restoreTab,
+    stopTab,
     editTab,
     isTabBusy,
     isTabStale,
@@ -131,7 +134,9 @@ export function OutputTabs() {
               onCopy={handleCopy}
               onRetry={() => retryTab(tab.kind)}
               onRestore={() => restoreTab(tab.kind)}
+              onStop={() => stopTab(tab.kind)}
               onEdit={(text) => editTab(tab.kind, text)}
+              announceStatus={announceStatus}
             />
           </TabsContent>
         ))}
@@ -148,7 +153,9 @@ interface TabBodyProps {
   onCopy: (key: string, text: string) => void;
   onRetry: () => void;
   onRestore: () => void;
+  onStop: () => void;
   onEdit: (text: string) => void;
+  announceStatus: (msg: string) => void;
 }
 
 function TabBody({
@@ -159,9 +166,46 @@ function TabBody({
   onCopy,
   onRetry,
   onRestore,
+  onStop,
   onEdit,
+  announceStatus,
 }: TabBodyProps) {
   const { settings, setPaperSize } = useSettings();
+  const regenerateButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [showWaitingHint, setShowWaitingHint] = useState(false);
+  const announcedHintRef = useRef(false);
+
+  useEffect(() => {
+    if (tab.status !== 'generating' || tab.streamingText) {
+      setShowWaitingHint(false);
+      announcedHintRef.current = false;
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setShowWaitingHint(true);
+      if (!announcedHintRef.current) {
+        announcedHintRef.current = true;
+        announceStatus(
+          'Still waiting for the provider. You can press Stop and try another provider or model.'
+        );
+      }
+    }, limits.waitingHintSeconds * 1000);
+
+    return () => clearTimeout(timer);
+  }, [tab.status, tab.streamingText, announceStatus]);
+
+  const handleStop = () => {
+    onStop();
+    setTimeout(() => {
+      if (regenerateButtonRef.current && document.contains(regenerateButtonRef.current)) {
+        regenerateButtonRef.current.focus();
+      } else {
+        document.getElementById('send-button')?.focus();
+      }
+    }, 0);
+  };
+
   const linkedInVariants =
     tab.kind === 'LINKEDIN_MESSAGE' ? splitLinkedInVariants(tab.editorText) : null;
   const emailParts =
@@ -183,12 +227,23 @@ function TabBody({
       {/* Tab Toolbar (§17.3) */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3">
         <div className="flex flex-wrap items-center gap-2">
-          {tab.status === 'error' ? (
+          {isBusy ? (
             <Button
               type="button"
               size="sm"
+              variant="outline"
+              onClick={handleStop}
+              aria-label={`Stop ${OUTPUT_NAMES[tab.kind]}`}
+            >
+              <Square className="mr-1.5 h-3.5 w-3.5 fill-current" />
+              Stop
+            </Button>
+          ) : tab.status === 'error' ? (
+            <Button
+              ref={regenerateButtonRef}
+              type="button"
+              size="sm"
               variant="default"
-              disabled={isBusy}
               onClick={onRetry}
             >
               <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
@@ -196,10 +251,10 @@ function TabBody({
             </Button>
           ) : (
             <Button
+              ref={regenerateButtonRef}
               type="button"
               size="sm"
               variant="outline"
-              disabled={isBusy}
               onClick={onRetry}
             >
               <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
@@ -381,6 +436,24 @@ function TabBody({
           className="rounded-md border border-amber-500/40 bg-amber-500/15 p-3 text-xs font-medium text-amber-900 dark:text-amber-200"
         >
           This draft was cut off before the model finished. Press Regenerate, or choose a model or setting that allows longer output.
+        </div>
+      )}
+
+      {/* Stopped notice (§14.8) */}
+      {tab.current?.stopped && (
+        <div
+          className="rounded-md border border-amber-500/40 bg-amber-500/15 p-3 text-xs font-medium text-amber-900 dark:text-amber-200"
+        >
+          {tab.previous !== null
+            ? 'Stopped early. This draft is incomplete. Press Regenerate to run it again, or restore the previous version.'
+            : 'Stopped early. This draft is incomplete. Press Regenerate to run it again.'}
+        </div>
+      )}
+
+      {/* Waiting hint (§14.8) */}
+      {showWaitingHint && tab.status === 'generating' && !tab.streamingText && (
+        <div className="rounded-md border border-muted bg-muted/40 p-2.5 text-xs text-muted-foreground">
+          Still waiting for the provider. You can press Stop and try another provider or model.
         </div>
       )}
 

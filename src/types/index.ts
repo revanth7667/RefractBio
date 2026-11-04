@@ -138,6 +138,7 @@ export interface OutputVersion {
   gaps: string;                   // text after the delimiter, '' if none returned
   gapsMissing: boolean;           // true if model omitted the delimiter
   truncated: boolean;             // true if the provider stopped at a length limit (A21)
+  stopped: boolean;               // true if the user pressed Stop and this is the partial text received (§14.8)
   snapshot: InputSnapshot;
 }
 
@@ -164,7 +165,7 @@ export interface LinkedInVariants {
 export type ErrorCategory =
   | 'cors_or_network' | 'csp_blocked' | 'auth' | 'rate_limit' | 'bad_request'
   | 'too_large' | 'model_not_found' | 'unsupported_input' | 'safety_blocked'
-  | 'server' | 'aborted' | 'unknown';
+  | 'server' | 'aborted' | 'stopped' | 'unknown';
 
 export interface AppError {
   category: ErrorCategory;

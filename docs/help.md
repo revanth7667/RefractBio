@@ -53,6 +53,10 @@ RefractBio connects directly from your browser to the AI provider you select. Th
 
 Set monthly spending limits in your provider dashboard to keep total control over costs.
 
+### Model Selection and "Show All Models"
+
+The model picker displays curated, recommended models for each provider by default. You can check "Show all models" to view all available models from that provider. The model list's "Show all models" setting is per provider.
+
 ### Request Authentication and URLs
 
 RefractBio sends your API key exclusively via standard HTTP request headers (`x-api-key` for Anthropic, `x-goog-api-key` for Google Gemini). API keys are never appended to URL query parameters or exposed in browser history.
@@ -86,6 +90,14 @@ If an API request fails immediately:
 ## "My Draft Was Cut Off"
 
 When a draft ends mid-sentence, the provider reached its maximum token output limit. RefractBio flags this with an amber truncation notice above the editor. You can press **Regenerate**, shorten your instructions or job context, or choose a model configured for longer outputs.
+
+---
+
+## Stopping Generation
+
+You can stop a running generation at any time. Click **Stop** in a tab toolbar to cancel that individual draft, or click **Stop all** in the send bar to cancel all queued and running drafts.
+
+Stop ends the connection and keeps what already arrived; the provider may still count the tokens produced before the stop. If text was already streaming when you stopped, RefractBio keeps that partial draft so you can review it or restore a previous version. If no text had arrived yet, you can retry or switch models. Stopping never clears your job context, questions, custom instructions, or attached files, and Send is enabled again immediately.
 
 ---
 

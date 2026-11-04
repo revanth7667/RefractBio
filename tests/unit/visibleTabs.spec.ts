@@ -8,6 +8,7 @@ describe('visibleTabs selector (A26, §14.2)', () => {
     gaps: '',
     gapsMissing: false,
     truncated: false,
+    stopped: false,
     snapshot: {
       hash: 'h123',
       provider: 'anthropic',

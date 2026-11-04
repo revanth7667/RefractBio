@@ -52,6 +52,8 @@ export interface GenerationContextValue {
   sendRun: () => Promise<void>;
   retryTab: (kind: OutputKind) => Promise<void>;
   restoreTab: (kind: OutputKind) => void;
+  stopTab: (kind: OutputKind) => void;
+  stopAll: () => void;
   clearGeneration: () => void;
   editTab: (kind: OutputKind, text: string) => void;
   statusMessage: string;
@@ -89,6 +91,7 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
   const queueRef = useRef<GenerationQueue<OutputKind>>(new GenerationQueue<OutputKind>(2));
   const runIdRef = useRef<number>(0);
   const clearedRef = useRef<boolean>(false);
+  const stoppedKindsRef = useRef<Set<OutputKind>>(new Set());
   const totalJobsRef = useRef<number>(0);
   const completedJobsRef = useRef<number>(0);
 
@@ -171,6 +174,7 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
 
   const clearGeneration = useCallback(() => {
     clearedRef.current = true;
+    stoppedKindsRef.current.clear();
     runIdRef.current++;
     queueRef.current.abortAll();
     dispatch({ type: 'CLEAR_ALL' });
@@ -223,12 +227,12 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
           prompt,
           signal,
           onDelta: (text) => {
-            if (signal.aborted || clearedRef.current || runIdRef.current !== runId) return;
+            if (signal.aborted || clearedRef.current || runIdRef.current !== runId || stoppedKindsRef.current.has(kind)) return;
             dispatch({ type: 'DELTA', kind, text });
           },
         });
 
-        if (signal.aborted || clearedRef.current || runIdRef.current !== runId) return;
+        if (signal.aborted || clearedRef.current || runIdRef.current !== runId || stoppedKindsRef.current.has(kind)) return;
 
         dispatch({
           type: 'SUCCESS',
@@ -240,7 +244,9 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
         announceStatus(`${OUTPUT_LABEL[kind]} generated.`);
       } catch (err: unknown) {
         if (signal.aborted || clearedRef.current || runIdRef.current !== runId) {
-          if (!clearedRef.current && runIdRef.current === runId) {
+          const wasStopped = stoppedKindsRef.current.has(kind);
+          stoppedKindsRef.current.delete(kind);
+          if (!clearedRef.current && runIdRef.current === runId && !wasStopped) {
             dispatch({ type: 'ABORT', kind });
           }
           return;
@@ -386,6 +392,80 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
     [tabs, isTabBusy],
   );
 
+  const stopTab = useCallback(
+    (kind: OutputKind) => {
+      const isQueued = queueRef.current.isQueued(kind);
+      const isRunning = queueRef.current.isRunning(kind);
+      if (!isQueued && !isRunning && tabs[kind].status !== 'generating') {
+        return;
+      }
+
+      stoppedKindsRef.current.add(kind);
+      const snapshot = createInputSnapshot({
+        kind,
+        masterInfo: effectiveMasterInfo.text,
+        instructions: resolvedSaved,
+        inputs: jobInputs,
+        provider: selectedProvider,
+        model: selectedModel,
+        generatedAt: new Date().toISOString(),
+      });
+
+      dispatch({ type: 'STOP', kind, queued: isQueued, snapshot });
+      queueRef.current.cancel(kind);
+      announceStatus(`Stopped ${OUTPUT_NAMES[kind]}.`);
+
+      if (queueRef.current.totalPending === 0) {
+        setIsGenerating(false);
+        setGeneratingProgress(null);
+      }
+    },
+    [
+      tabs,
+      effectiveMasterInfo.text,
+      resolvedSaved,
+      jobInputs,
+      selectedProvider,
+      selectedModel,
+      announceStatus,
+    ],
+  );
+
+  const stopAll = useCallback(() => {
+    const kindsToStop = OUTPUT_ORDER.filter(
+      (k) => queueRef.current.isPending(k) || tabs[k].status === 'generating',
+    );
+    if (kindsToStop.length === 0) return;
+
+    for (const kind of kindsToStop) {
+      stoppedKindsRef.current.add(kind);
+      const isQueued = queueRef.current.isQueued(kind);
+      const snapshot = createInputSnapshot({
+        kind,
+        masterInfo: effectiveMasterInfo.text,
+        instructions: resolvedSaved,
+        inputs: jobInputs,
+        provider: selectedProvider,
+        model: selectedModel,
+        generatedAt: new Date().toISOString(),
+      });
+      dispatch({ type: 'STOP', kind, queued: isQueued, snapshot });
+    }
+
+    queueRef.current.cancelAll();
+    announceStatus('Stopped all outputs.');
+    setIsGenerating(false);
+    setGeneratingProgress(null);
+  }, [
+    tabs,
+    effectiveMasterInfo.text,
+    resolvedSaved,
+    jobInputs,
+    selectedProvider,
+    selectedModel,
+    announceStatus,
+  ]);
+
   const handleConfirmOverwrite = () => {
     setOverwriteDialogOpen(false);
     if (overwriteCallbackRef.current) {
@@ -426,6 +506,8 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
         sendRun,
         retryTab,
         restoreTab,
+        stopTab,
+        stopAll,
         clearGeneration,
         editTab,
         statusMessage,

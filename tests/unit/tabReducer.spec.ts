@@ -256,4 +256,100 @@ describe('tabReducer (src/generation/tabReducer.ts, §14.1–§14.3)', () => {
     expect(tab.previous?.document).toBe('Draft 1 manually edited by user');
     expect(tab.current?.document).toBe('Draft 2 from model');
   });
+
+  describe('STOP action (§14.8)', () => {
+    it('case 1: queued job with current !== null returns to done with previous content unchanged', () => {
+      let tab = createInitialTab('RESUME');
+      tab = tabReducer(tab, {
+        type: 'SUCCESS',
+        fullText: 'Existing finished draft',
+        truncated: false,
+        snapshot: dummySnapshot,
+      });
+
+      // User presses regenerate -> queued
+      const stopped = tabReducer(tab, { type: 'STOP', queued: true });
+      expect(stopped.status).toBe('done');
+      expect(stopped.current?.document).toBe('Existing finished draft');
+      expect(stopped.streamingText).toBe('');
+      expect(stopped.error).toBeNull();
+    });
+
+    it('case 1: queued job with current === null returns to idle so tab disappears', () => {
+      const tab = createInitialTab('RESUME');
+      const stopped = tabReducer(tab, { type: 'STOP', queued: true });
+      expect(stopped.status).toBe('idle');
+      expect(stopped.current).toBeNull();
+      expect(stopped.streamingText).toBe('');
+    });
+
+    it('case 2: running job with no text received and current !== null reverts to done', () => {
+      let tab = createInitialTab('RESUME');
+      tab = tabReducer(tab, {
+        type: 'SUCCESS',
+        fullText: 'Existing finished draft',
+        truncated: false,
+        snapshot: dummySnapshot,
+      });
+      tab = tabReducer(tab, { type: 'START' });
+      expect(tab.status).toBe('generating');
+
+      const stopped = tabReducer(tab, { type: 'STOP', queued: false });
+      expect(stopped.status).toBe('done');
+      expect(stopped.current?.document).toBe('Existing finished draft');
+      expect(stopped.streamingText).toBe('');
+    });
+
+    it('case 3: running job with no text received and current === null goes to error with category stopped', () => {
+      let tab = createInitialTab('RESUME');
+      tab = tabReducer(tab, { type: 'START' });
+      expect(tab.status).toBe('generating');
+
+      const stopped = tabReducer(tab, { type: 'STOP', queued: false });
+      expect(stopped.status).toBe('error');
+      expect(stopped.error).toEqual({
+        category: 'stopped',
+        message: 'Stopped before anything came back. Press Retry, or choose another provider or model.',
+      });
+      expect(stopped.current).toBeNull();
+      expect(stopped.streamingText).toBe('');
+    });
+
+    it('case 4: running job with partial text creates new version with stopped: true and keeps previous', () => {
+      let tab = createInitialTab('RESUME');
+      tab = tabReducer(tab, {
+        type: 'SUCCESS',
+        fullText: 'Draft 1 completed',
+        truncated: false,
+        snapshot: dummySnapshot,
+      });
+      tab = tabReducer(tab, { type: 'START' });
+      tab = tabReducer(tab, { type: 'DELTA', text: 'Partial text before stopping\n' + GAPS_DELIMITER + '\n- Gap item' });
+
+      const stopped = tabReducer(tab, { type: 'STOP', queued: false });
+      expect(stopped.status).toBe('done');
+      expect(stopped.previous?.document).toBe('Draft 1 completed');
+      expect(stopped.current?.document).toBe('Partial text before stopping');
+      expect(stopped.current?.gaps).toBe('- Gap item');
+      expect(stopped.current?.stopped).toBe(true);
+      expect(stopped.current?.truncated).toBe(false);
+      expect(stopped.editorText).toBe('Partial text before stopping');
+      expect(stopped.userEdited).toBe(false);
+      expect(stopped.streamingText).toBe('');
+    });
+
+    it('stopping after the stream already finished is a no-op (§14.8)', () => {
+      let tab = createInitialTab('RESUME');
+      tab = tabReducer(tab, {
+        type: 'SUCCESS',
+        fullText: 'Finished draft',
+        truncated: false,
+        snapshot: dummySnapshot,
+      });
+      expect(tab.status).toBe('done');
+
+      const stopped = tabReducer(tab, { type: 'STOP', queued: false });
+      expect(stopped).toBe(tab);
+    });
+  });
 });

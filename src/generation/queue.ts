@@ -131,6 +131,52 @@ export class GenerationQueue<TKey = string> {
   }
 
   /**
+   * Cancels an individual job by key (§14.8).
+   * Queued jobs are removed without executing a request.
+   * Running jobs are aborted through their AbortController.
+   */
+  public cancel(key: TKey): boolean {
+    const queuedIndex = this.waitingQueue.findIndex((job) => job.key === key);
+    if (queuedIndex !== -1) {
+      const [queuedJob] = this.waitingQueue.splice(queuedIndex, 1);
+      queuedJob.controller.abort();
+      const abortError = new DOMException('The operation was aborted.', 'AbortError');
+      queuedJob.reject(abortError);
+      this.notify();
+      return true;
+    }
+
+    const active = this.activeJobs.get(key);
+    if (active) {
+      active.controller.abort();
+      this.notify();
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Cancels all queued and running jobs (§14.8).
+   * Queued jobs are removed without making a request.
+   * Running jobs are aborted through their AbortController.
+   */
+  public cancelAll(): void {
+    while (this.waitingQueue.length > 0) {
+      const queuedJob = this.waitingQueue.shift()!;
+      queuedJob.controller.abort();
+      const abortError = new DOMException('The operation was aborted.', 'AbortError');
+      queuedJob.reject(abortError);
+    }
+
+    for (const active of this.activeJobs.values()) {
+      active.controller.abort();
+    }
+
+    this.notify();
+  }
+
+  /**
    * Aborts an individual job by key.
    * If running, its AbortController is aborted.
    * If queued, it is aborted and removed from the queue so it never runs.

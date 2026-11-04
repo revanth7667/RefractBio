@@ -6,6 +6,7 @@
   "pastedTextWarnChars": 100000,
   "masterInfoMaxBytes": 1048576,
   "masterInfoWarnChars": 20000,
+  "waitingHintSeconds": 20,
   "providerMaxRequestBytes": {
     "gemini": null,
     "anthropic": null

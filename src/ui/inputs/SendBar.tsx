@@ -44,7 +44,7 @@ export function SendBar({ onSend }: SendBarProps) {
   const { effectiveMasterInfo, hasUnsavedChanges: hasUnsavedMasterInfo } = useMasterInfo();
   const { resolvedSaved } = useInstructions();
   const { jobInputs, clearJob } = useJob();
-  const { isGenerating, generatingProgress, clearGeneration } = useGeneration();
+  const { isGenerating, generatingProgress, clearGeneration, stopAll } = useGeneration();
 
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
   const [estimateLine, setEstimateLine] = useState('');
@@ -194,6 +194,23 @@ export function SendBar({ onSend }: SendBarProps) {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          {isGenerating && (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                stopAll();
+                setTimeout(() => {
+                  document.getElementById('send-button')?.focus();
+                }, 0);
+              }}
+              aria-label="Stop all outputs"
+            >
+              Stop all
+            </Button>
+          )}
+
           <Button
             type="button"
             variant="outline"
@@ -205,6 +222,7 @@ export function SendBar({ onSend }: SendBarProps) {
 
           <Button
             type="button"
+            id="send-button"
             size="sm"
             disabled={blocker !== null || isGenerating}
             onClick={handleSend}

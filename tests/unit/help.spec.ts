@@ -73,6 +73,11 @@ describe('Help documentation & renderer (SPEC §17.5, §22.1)', () => {
     // Ctrl/Cmd+Enter shortcut
     expect(helpContent).toContain('Ctrl+Enter');
     expect(helpContent).toContain('Cmd+Enter');
+    // Stop must-say text
+    expect(helpContent).toContain('Stop ends the connection and keeps what already arrived');
+    expect(helpContent).toContain('provider may still count the tokens produced before the stop');
+    // Show all models per provider
+    expect(helpContent).toContain('Show all models" setting is per provider');
   });
 
   it('produces no <script> or <img> elements from a hostile fixture string (html: false)', () => {

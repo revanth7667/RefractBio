@@ -255,4 +255,106 @@ describe('GenerationQueue (pure module §14.2)', () => {
     expect(job2Started).toBe(false);
     expect(job3Started).toBe(true);
   });
+
+  describe('cancel and cancelAll (§14.8)', () => {
+    it('cancel removes queued job without running it', async () => {
+      const queue = new GenerationQueue<string>(1);
+      let job2Ran = false;
+      let job1Signal!: AbortSignal;
+
+      const createDeferred = () => {
+        let resolve!: () => void;
+        const promise = new Promise<void>((r) => {
+          resolve = r;
+        });
+        return { promise, resolve };
+      };
+      const d1 = createDeferred();
+
+      const p1 = queue.enqueue('job1', async (signal) => {
+        job1Signal = signal;
+        await d1.promise;
+      });
+
+      const p2 = queue.enqueue('job2', async () => {
+        job2Ran = true;
+      });
+
+      expect(queue.isQueued('job2')).toBe(true);
+      const cancelled = queue.cancel('job2');
+      expect(cancelled).toBe(true);
+      expect(queue.isQueued('job2')).toBe(false);
+      await expect(p2).rejects.toThrow();
+
+      d1.resolve();
+      await p1;
+      expect(job1Signal.aborted).toBe(false);
+      expect(job2Ran).toBe(false);
+    });
+
+    it('cancel aborts running job through its AbortController', async () => {
+      const queue = new GenerationQueue<string>(2);
+      let jobSignal!: AbortSignal;
+      const createDeferred = () => {
+        let resolve!: () => void;
+        const promise = new Promise<void>((r) => {
+          resolve = r;
+        });
+        return { promise, resolve };
+      };
+      const d = createDeferred();
+
+      const p = queue.enqueue('runningJob', async (signal) => {
+        jobSignal = signal;
+        await d.promise;
+      });
+
+      expect(queue.isRunning('runningJob')).toBe(true);
+      expect(jobSignal.aborted).toBe(false);
+
+      const cancelled = queue.cancel('runningJob');
+      expect(cancelled).toBe(true);
+      expect(jobSignal.aborted).toBe(true);
+
+      d.resolve();
+      await p;
+    });
+
+    it('cancelAll aborts running jobs and rejects queued jobs', async () => {
+      const queue = new GenerationQueue<string>(1);
+      let job1Signal!: AbortSignal;
+      let job2Started = false;
+
+      const createDeferred = () => {
+        let resolve!: () => void;
+        const promise = new Promise<void>((r) => {
+          resolve = r;
+        });
+        return { promise, resolve };
+      };
+      const d1 = createDeferred();
+
+      const p1 = queue.enqueue('job1', async (signal) => {
+        job1Signal = signal;
+        await d1.promise;
+      });
+
+      const p2 = queue.enqueue('job2', async () => {
+        job2Started = true;
+      });
+
+      expect(queue.isRunning('job1')).toBe(true);
+      expect(queue.isQueued('job2')).toBe(true);
+
+      queue.cancelAll();
+
+      expect(job1Signal.aborted).toBe(true);
+      expect(queue.isQueued('job2')).toBe(false);
+      await expect(p2).rejects.toThrow();
+
+      d1.resolve();
+      await p1;
+      expect(job2Started).toBe(false);
+    });
+  });
 });

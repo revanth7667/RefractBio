@@ -14,6 +14,7 @@ export type TabAction =
   | { type: 'SUCCESS'; fullText: string; truncated: boolean; snapshot: InputSnapshot }
   | { type: 'FAIL'; error: AppError }
   | { type: 'ABORT' }
+  | { type: 'STOP'; snapshot?: InputSnapshot; queued?: boolean }
   | { type: 'EDIT'; text: string }
   | { type: 'RESTORE_PREVIOUS' }
   | { type: 'FOLD_EDIT' }
@@ -25,6 +26,7 @@ export type TabsAction =
   | { type: 'SUCCESS'; kind: OutputKind; fullText: string; truncated: boolean; snapshot: InputSnapshot }
   | { type: 'FAIL'; kind: OutputKind; error: AppError }
   | { type: 'ABORT'; kind: OutputKind }
+  | { type: 'STOP'; kind: OutputKind; snapshot?: InputSnapshot; queued?: boolean }
   | { type: 'EDIT'; kind: OutputKind; text: string }
   | { type: 'RESTORE_PREVIOUS'; kind: OutputKind }
   | { type: 'FOLD_EDIT'; kind: OutputKind }
@@ -89,6 +91,7 @@ export function tabReducer(tab: OutputTab, action: TabAction): OutputTab {
         gaps,
         gapsMissing,
         truncated: action.truncated,
+        stopped: false,
         snapshot: action.snapshot,
       };
 
@@ -121,6 +124,83 @@ export function tabReducer(tab: OutputTab, action: TabAction): OutputTab {
         ...tab,
         status: nextStatus,
         streamingText: '',
+      };
+    }
+
+    case 'STOP': {
+      // Stopping after stream already finished is a no-op (§14.8)
+      if (tab.status !== 'generating' && !action.queued) {
+        return tab;
+      }
+
+      // Case 1: Queued job (not yet started)
+      if (action.queued) {
+        if (tab.current !== null) {
+          return {
+            ...tab,
+            status: 'done',
+            streamingText: '',
+            error: null,
+          };
+        }
+        return {
+          ...tab,
+          status: 'idle',
+          streamingText: '',
+          error: null,
+        };
+      }
+
+      // Cases 2 & 3: Running job, no text received yet
+      if (!tab.streamingText) {
+        // Case 2: current !== null -> reverts as in ABORT
+        if (tab.current !== null) {
+          return {
+            ...tab,
+            status: 'done',
+            streamingText: '',
+          };
+        }
+        // Case 3: current === null -> error category 'stopped'
+        return {
+          ...tab,
+          status: 'error',
+          streamingText: '',
+          error: {
+            category: 'stopped',
+            message:
+              'Stopped before anything came back. Press Retry, or choose another provider or model.',
+          },
+        };
+      }
+
+      // Case 4: Running job, some text received
+      const { document, gaps, gapsMissing } = splitGaps(tab.streamingText);
+      const snapshot: InputSnapshot = action.snapshot ?? (tab.current ? tab.current.snapshot : {
+        hash: '',
+        provider: 'anthropic',
+        model: '',
+        generatedAt: new Date().toISOString(),
+        attachmentNames: [],
+      });
+      const newVersion: OutputVersion = {
+        document,
+        gaps,
+        gapsMissing,
+        truncated: false,
+        stopped: true,
+        snapshot,
+      };
+
+      return {
+        ...tab,
+        status: 'done',
+        previous: tab.current,
+        current: newVersion,
+        editorText: document,
+        userEdited: false,
+        streamingText: '',
+        error: null,
       };
     }
 
