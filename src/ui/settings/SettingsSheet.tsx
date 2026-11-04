@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Sheet,
   SheetContent,
@@ -61,6 +61,15 @@ export function SettingsSheet({ open, onOpenChange, tab, onTabChange }: Settings
   const [approxBytes, setApproxBytes] = useState(0);
   const [showUnsavedCloseConfirm, setShowUnsavedCloseConfirm] = useState(false);
   const [saveAllError, setSaveAllError] = useState<string | null>(null);
+  const tabListRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const activeTrigger = tabListRef.current?.querySelector<HTMLElement>('[data-state="active"]');
+    if (activeTrigger && typeof activeTrigger.scrollIntoView === 'function') {
+      activeTrigger.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+  }, [currentTab, open]);
 
   const hasAnyUnsavedChanges = hasUnsavedMasterInfo || hasUnsavedInstructions;
 
@@ -181,23 +190,34 @@ export function SettingsSheet({ open, onOpenChange, tab, onTabChange }: Settings
 
           <div className="mt-6">
             <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
-              <TabsList className="grid w-full grid-cols-6">
-                <TabsTrigger value="providers">Providers</TabsTrigger>
-                <TabsTrigger value="masterInfo" className="relative">
+              <TabsList
+                ref={tabListRef}
+                className="flex w-full justify-start overflow-x-auto p-1.5 sm:p-1 sm:grid sm:grid-cols-6 sm:overflow-visible"
+              >
+                <TabsTrigger value="providers" className="shrink-0">
+                  Providers
+                </TabsTrigger>
+                <TabsTrigger value="masterInfo" className="relative shrink-0">
                   Master Info
                   {hasUnsavedMasterInfo && (
                     <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-amber-500" />
                   )}
                 </TabsTrigger>
-                <TabsTrigger value="instructions" className="relative">
+                <TabsTrigger value="instructions" className="relative shrink-0">
                   Instructions
                   {hasUnsavedInstructions && (
                     <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-amber-500" />
                   )}
                 </TabsTrigger>
-                <TabsTrigger value="appearance">Appearance</TabsTrigger>
-                <TabsTrigger value="data">Data</TabsTrigger>
-                <TabsTrigger value="about">About</TabsTrigger>
+                <TabsTrigger value="appearance" className="shrink-0">
+                  Appearance
+                </TabsTrigger>
+                <TabsTrigger value="data" className="shrink-0">
+                  Data
+                </TabsTrigger>
+                <TabsTrigger value="about" className="shrink-0">
+                  About
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="providers" className="mt-6">
