@@ -49,6 +49,10 @@ describe('About tab and AboutPanel (SPEC §17.4 item 6)', () => {
     // In-app help link
     const helpLink = screen.getByRole('link', { name: 'Learn more in Help & FAQ' });
     expect(helpLink.getAttribute('href')).toBe('#/help');
+
+    // Decorative logo-full icon has alt="" and aria-hidden="true" (§17.1)
+    const logoImg = screen.getByRole('presentation', { hidden: true });
+    expect(logoImg).toBeTruthy();
   });
 
   it('renders support link only when supportUrl is a non-empty string', () => {

@@ -65,5 +65,14 @@ describe('Single-file build verification (§18.1, A24, V16)', () => {
     expect(html).not.toContain('spike/index.html');
     expect(html).not.toContain('spike/storage-probe.html');
   });
+
+  it('single-file index.html inlines the three icons as data: URIs and contains no external icon files (§17.1)', () => {
+    const html = fs.readFileSync(distSingleHtml, 'utf-8');
+    expect(html).toContain('<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,');
+    expect(html).toContain('<link rel="icon" type="image/png" sizes="32x32" href="data:image/png;base64,');
+    expect(html).toContain('<link rel="apple-touch-icon" href="data:image/png;base64,');
+    const files = fs.readdirSync(distSingleDir);
+    expect(files).toEqual(['index.html']);
+  });
 });
 

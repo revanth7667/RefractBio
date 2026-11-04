@@ -92,4 +92,12 @@ describe('App & Hash Routing & Settings', () => {
     expect(storage.get('masterInfo').ok).toBe(false);
     expect(localStorage.getItem('unrelated_key')).toBe('keep_this');
   });
+
+  it('renders decorative logo-mark icon in header before app name with alt="" and aria-hidden="true" (§17.1)', () => {
+    const { container } = render(<App />);
+    const headerLogo = container.querySelector('header img');
+    expect(headerLogo).toBeTruthy();
+    expect(headerLogo?.getAttribute('alt')).toBe('');
+    expect(headerLogo?.getAttribute('aria-hidden')).toBe('true');
+  });
 });

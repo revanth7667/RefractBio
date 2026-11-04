@@ -1,3 +1,5 @@
+![](src/assets/logo-full.svg)
+
 # RefractBio
 
 RefractBio is a client-side web application (Vite + React + TypeScript, zero backend) that helps you draft tailored resumes, cover letters, LinkedIn outreach messages, emails, and application answers from a single free-form Master Info file, using your own API key for Anthropic or Google Gemini. It operates exclusively in your browser: prompts are assembled deterministically from your facts, gaps are noted whenever a posting asks for background your Master Info does not verify, and no details are ever invented.

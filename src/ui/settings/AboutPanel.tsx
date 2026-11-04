@@ -1,5 +1,6 @@
 import defaultLinks from '../../data/links.json';
 import { APP_NAME, APP_VERSION, PRIVACY_SUMMARY } from '../../config';
+import logoFullUrl from '../../assets/logo-full.svg';
 
 export interface AboutPanelLinks {
   license: string;
@@ -18,13 +19,21 @@ export function AboutPanel({ links = defaultLinks, onNavigateToHelp }: AboutPane
 
   return (
     <div className="space-y-6 text-sm">
-      <div className="space-y-1">
-        <h3 className="text-base font-semibold text-foreground">
-          {APP_NAME} <span className="text-xs font-normal text-muted-foreground">v{APP_VERSION}</span>
-        </h3>
-        <p className="text-xs text-muted-foreground">
-          Client-side web application for drafting job application materials.
-        </p>
+      <div className="flex items-center gap-4">
+        <img
+          src={logoFullUrl}
+          alt=""
+          className="h-24 w-24 object-contain shrink-0"
+          aria-hidden="true"
+        />
+        <div className="space-y-1">
+          <h3 className="text-base font-semibold text-foreground">
+            {APP_NAME} <span className="text-xs font-normal text-muted-foreground">v{APP_VERSION}</span>
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            Client-side web application for drafting job application materials.
+          </p>
+        </div>
       </div>
 
       <div className="space-y-2">
