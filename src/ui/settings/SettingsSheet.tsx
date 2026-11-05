@@ -40,7 +40,16 @@ interface SettingsSheetProps {
 }
 
 export function SettingsSheet({ open, onOpenChange, tab, onTabChange }: SettingsSheetProps) {
-  const { settings, setTheme, setPaperSize, resetAllData, settingsTab, setSettingsTab } = useSettings();
+  const {
+    settings,
+    setTheme,
+    setPaperSize,
+    resetAllData,
+    settingsTab,
+    setSettingsTab,
+    settingsLoadError,
+    resetSettings,
+  } = useSettings();
   const currentTab = tab ?? settingsTab;
   const handleTabChange = onTabChange ?? setSettingsTab;
   const {
@@ -60,6 +69,7 @@ export function SettingsSheet({ open, onOpenChange, tab, onTabChange }: Settings
 
   const [approxBytes, setApproxBytes] = useState(0);
   const [showUnsavedCloseConfirm, setShowUnsavedCloseConfirm] = useState(false);
+  const [showCorruptSettingsConfirm, setShowCorruptSettingsConfirm] = useState(false);
   const [saveAllError, setSaveAllError] = useState<string | null>(null);
   const tabListRef = useRef<HTMLDivElement>(null);
 
@@ -187,6 +197,22 @@ export function SettingsSheet({ open, onOpenChange, tab, onTabChange }: Settings
               Manage application appearance and local data.
             </SheetDescription>
           </SheetHeader>
+
+          {/* Corrupt settings notice (§9.2) */}
+          {settingsLoadError && (
+            <div className="mt-4 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive space-y-2">
+              <p>
+                Your saved settings could not be loaded because the stored data is invalid or has an incompatible version. Default settings are in use.
+              </p>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setShowCorruptSettingsConfirm(true)}
+              >
+                Reset Settings
+              </Button>
+            </div>
+          )}
 
           <div className="mt-6">
             <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
@@ -377,6 +403,31 @@ export function SettingsSheet({ open, onOpenChange, tab, onTabChange }: Settings
             <AlertDialogCancel onClick={handleCancelClose}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleSaveAndClose}>
               Save
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Corrupt settings reset AlertDialog (§9.2) */}
+      <AlertDialog open={showCorruptSettingsConfirm} onOpenChange={setShowCorruptSettingsConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset settings?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will replace your stored settings with the defaults. Your Master Info, instructions and API keys are not changed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowCorruptSettingsConfirm(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                resetSettings();
+                setShowCorruptSettingsConfirm(false);
+              }}
+            >
+              Reset Settings
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

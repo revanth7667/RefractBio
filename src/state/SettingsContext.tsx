@@ -36,6 +36,10 @@ interface SettingsContextValue {
   setPaperSize: (size: PaperSize) => void;
   setSelectedProvider: (provider: ProviderId) => void;
   resetAllData: () => void;
+  settingsLoadError: 'parse_error' | 'schema_mismatch' | null;
+  apiKeysLoadError: 'parse_error' | 'schema_mismatch' | null;
+  resetSettings: () => void;
+  resetApiKeys: () => void;
 }
 
 const SettingsContext = createContext<SettingsContextValue | undefined>(undefined);
@@ -46,7 +50,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<string>('providers');
 
-  const [settingsLoadError] = useState<'parse_error' | 'schema_mismatch' | null>(() => {
+  const [settingsLoadError, setSettingsLoadError] = useState<'parse_error' | 'schema_mismatch' | null>(() => {
     const res = storage.get<Settings>('settings');
     if (!res.ok && (res.reason === 'parse_error' || res.reason === 'schema_mismatch')) {
       return res.reason;
@@ -54,7 +58,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     return null;
   });
 
-  const [apiKeysLoadError] = useState<'parse_error' | 'schema_mismatch' | null>(() => {
+  const [apiKeysLoadError, setApiKeysLoadError] = useState<'parse_error' | 'schema_mismatch' | null>(() => {
     const res = storage.get<Partial<Record<ProviderId, string>>>('apiKeys');
     if (!res.ok && (res.reason === 'parse_error' || res.reason === 'schema_mismatch')) {
       return res.reason;
@@ -236,6 +240,18 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     setModelErrors({ anthropic: null, gemini: null });
   };
 
+  const resetSettings = () => {
+    storage.remove('settings');
+    setSettingsState(DEFAULT_SETTINGS);
+    setSettingsLoadError(null);
+  };
+
+  const resetApiKeys = () => {
+    storage.remove('apiKeys');
+    setApiKeysState({ anthropic: '', gemini: '' });
+    setApiKeysLoadError(null);
+  };
+
   // Sync theme with document element
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -302,6 +318,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         setPaperSize,
         setSelectedProvider,
         resetAllData,
+        settingsLoadError,
+        apiKeysLoadError,
+        resetSettings,
+        resetApiKeys,
       }}
     >
       {children}

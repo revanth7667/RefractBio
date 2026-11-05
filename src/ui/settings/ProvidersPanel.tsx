@@ -4,6 +4,16 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Switch } from '../components/ui/switch';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../components/ui/alert-dialog';
 import { ModelPicker } from '../inputs/ModelPicker';
 import { useSettings } from '../../state/SettingsContext';
 import { getAdapter } from '../../providers/registry';
@@ -80,12 +90,16 @@ export function ProvidersPanel() {
     loadingModels,
     modelErrors,
     setCachedModels,
+    apiKeysLoadError,
+    resetApiKeys,
   } = useSettings();
 
   const [showKeys, setShowKeys] = useState<Record<ProviderId, boolean>>({
     anthropic: false,
     gemini: false,
   });
+
+  const [showCorruptApiKeysConfirm, setShowCorruptApiKeysConfirm] = useState(false);
 
   const [testing, setTesting] = useState<Record<ProviderId, boolean>>({
     anthropic: false,
@@ -126,6 +140,22 @@ export function ProvidersPanel() {
 
   return (
     <div className="space-y-8">
+      {/* Corrupt API keys notice (§9.2) */}
+      {apiKeysLoadError && (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive space-y-2">
+          <p>
+            Your saved API keys could not be loaded because the stored data is invalid.
+          </p>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => setShowCorruptApiKeysConfirm(true)}
+          >
+            Reset API Keys
+          </Button>
+        </div>
+      )}
+
       {/* Global remember keys toggle */}
       <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
         <div className="flex items-center justify-between">
@@ -273,6 +303,31 @@ export function ProvidersPanel() {
           </div>
         );
       })}
+
+      {/* Corrupt API keys reset AlertDialog (§9.2) */}
+      <AlertDialog open={showCorruptApiKeysConfirm} onOpenChange={setShowCorruptApiKeysConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset API keys?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will delete your stored API keys from this browser.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowCorruptApiKeysConfirm(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                resetApiKeys();
+                setShowCorruptApiKeysConfirm(false);
+              }}
+            >
+              Reset API Keys
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
