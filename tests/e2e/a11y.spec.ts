@@ -263,7 +263,7 @@ test.describe('Accessibility check with axe-core (§17.7)', () => {
 
         // Tab 5: Application Answers (with Error Callout visible)
         await page.getByRole('tab', { name: /answers/i }).click();
-        await expect(page.getByRole('button', { name: 'Retry' })).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Retry' }).first()).toBeVisible();
         await page.waitForTimeout(150);
         await checkA11y(page, `Drafts: Answers tab with error callout (${theme})`);
       });

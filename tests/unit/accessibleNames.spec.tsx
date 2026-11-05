@@ -1,14 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import { useState } from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import App from '../../src/App';
 import * as storage from '../../src/storage/storage';
 import { CustomInstructions } from '../../src/ui/inputs/CustomInstructions';
 import { HelpPage } from '../../src/ui/help/HelpPage';
 import { SettingsSheet } from '../../src/ui/settings/SettingsSheet';
 import { SettingsProvider } from '../../src/state/SettingsContext';
-import { MasterInfoProvider, useMasterInfo } from '../../src/state/MasterInfoContext';
-import { InstructionsProvider, useInstructions } from '../../src/state/InstructionsContext';
+import { MasterInfoProvider } from '../../src/state/MasterInfoContext';
+import { InstructionsProvider } from '../../src/state/InstructionsContext';
 import { JobProvider } from '../../src/state/JobContext';
 
 describe('Accessible names and dangling references (SPEC §17.7, B9)', () => {
@@ -57,7 +56,7 @@ describe('Accessible names and dangling references (SPEC §17.7, B9)', () => {
 
   describe('3b. Theme label and group in SettingsSheet Appearance tab', () => {
     it('has no label referencing a missing id, and the group is found by role with name "Theme"', () => {
-      const { container } = render(
+      render(
         <SettingsProvider>
           <MasterInfoProvider>
             <InstructionsProvider>

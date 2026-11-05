@@ -1,13 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
-import { useState } from 'react';
 import * as storage from '../../src/storage/storage';
 import { getPrefixedKey } from '../../src/storage/keys';
-import { SettingsProvider, useSettings } from '../../src/state/SettingsContext';
+import { SettingsProvider } from '../../src/state/SettingsContext';
 import { MasterInfoProvider } from '../../src/state/MasterInfoContext';
 import { InstructionsProvider } from '../../src/state/InstructionsContext';
 import { SettingsSheet } from '../../src/ui/settings/SettingsSheet';
-import type { PaperSize } from '../../src/types';
 
 describe('Corrupt settings & apiKeys notices and reset (SPEC §9.2)', () => {
   const fakeKey = 'sk-' + 'test-fake-0000';
