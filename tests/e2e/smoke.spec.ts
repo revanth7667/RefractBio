@@ -4,6 +4,7 @@ import {
   loadFixture,
   type AnthropicRequestBody,
 } from './helpers';
+import { GAPS_DELIMITER } from '../../src/config';
 
 interface CspViolationReport {
   blockedURI: string;
@@ -60,7 +61,7 @@ test.describe('E2E smoke test (§19.5)', () => {
       '',
       'I am applying for the Senior Freight Data Analyst position at Fictional Logistics Inc.',
       '',
-      '<!-- GAPS-NOTE -->',
+      GAPS_DELIMITER,
       '- None',
     ].join('\n');
 

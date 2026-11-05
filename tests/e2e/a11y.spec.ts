@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { makeAnthropicStream, loadFixture } from './helpers';
+import { GAPS_DELIMITER } from '../../src/config';
 
 const fakeKey = 'sk-' + 'test-fake-0000';
 
@@ -89,12 +90,12 @@ async function setupAllFiveOutputsRoute(
         }
       } else if (postData.includes('Write the LinkedIn message now')) {
         text =
-          'Variant 1: Connection request note\nHi Jordan, noticed your work in analytics.\n\nVariant 2: Direct message\nHello Jordan, reaching out about the senior role.\n\n<!-- GAPS-NOTE -->\n- None.';
+          `Variant 1: Connection request note\nHi Jordan, noticed your work in analytics.\n\nVariant 2: Direct message\nHello Jordan, reaching out about the senior role.\n\n${GAPS_DELIMITER}\n- None.`;
       } else if (postData.includes('Write the email now')) {
         text =
-          'Subject: Application for Senior Data Analyst - Jordan Sample\n\nDear Hiring Team,\n\nI am applying for the role.\n\n<!-- GAPS-NOTE -->\n- None.';
+          `Subject: Application for Senior Data Analyst - Jordan Sample\n\nDear Hiring Team,\n\nI am applying for the role.\n\n${GAPS_DELIMITER}\n- None.`;
       } else if (postData.includes('Write the answers to the questions')) {
-        text = '### 1. Tell me about a time when...\nI automated reporting.\n\n<!-- GAPS-NOTE -->\n- None.';
+        text = `### 1. Tell me about a time when...\nI automated reporting.\n\n${GAPS_DELIMITER}\n- None.`;
       }
 
       return route.fulfill({

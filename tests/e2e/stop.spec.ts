@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { loadFixture, makeAnthropicStream } from './helpers';
+import { GAPS_DELIMITER } from '../../src/config';
 
 async function setupTestApp(page: Page, key: string, masterText: string) {
   await page.goto('/');
@@ -140,7 +141,7 @@ test.describe('E2E Stop generation (§14.8)', () => {
     await sendBtn.click();
 
     // Completes successfully
-    const expectedDocument = resumeFixture.split('<!-- GAPS-NOTE -->')[0].trim();
+    const expectedDocument = resumeFixture.split(GAPS_DELIMITER)[0].trim();
     await expect(page.locator('textarea[aria-label="Resume draft"]')).toHaveValue(expectedDocument);
   });
 
