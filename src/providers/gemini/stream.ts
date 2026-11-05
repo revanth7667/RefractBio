@@ -83,6 +83,14 @@ export async function processGeminiStream(
     }
   }
 
+  if (accumulatedText.length === 0) {
+    throw mapProviderError({
+      provider: 'Gemini',
+      key: apiKey,
+      bodyText: 'Stream produced no text',
+    });
+  }
+
   return {
     text: accumulatedText,
     finishReason,

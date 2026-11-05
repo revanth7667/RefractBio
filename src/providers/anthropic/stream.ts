@@ -16,6 +16,7 @@ export async function processAnthropicStream(
   let accumulatedText = '';
   let finishReason: string | undefined = undefined;
   let truncated = false;
+  let sawMessageStop = false;
 
   for await (const msg of parseSSE(stream, signal)) {
     if (msg.event === 'error') {
@@ -24,6 +25,10 @@ export async function processAnthropicStream(
         key: apiKey,
         bodyText: msg.data,
       });
+    }
+
+    if (msg.event === 'message_stop') {
+      sawMessageStop = true;
     }
 
     if (msg.event === 'content_block_delta') {
@@ -51,6 +56,22 @@ export async function processAnthropicStream(
         // Ignore unparseable metadata chunks
       }
     }
+  }
+
+  if (!sawMessageStop) {
+    throw mapProviderError({
+      provider: 'Anthropic',
+      key: apiKey,
+      bodyText: 'Stream closed without terminal message_stop event',
+    });
+  }
+
+  if (accumulatedText.length === 0) {
+    throw mapProviderError({
+      provider: 'Anthropic',
+      key: apiKey,
+      bodyText: 'Stream produced no text',
+    });
   }
 
   return {
