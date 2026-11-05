@@ -29,6 +29,7 @@ import { useMasterInfo } from './MasterInfoContext';
 import { useInstructions } from './InstructionsContext';
 import { useJob, OUTPUT_ORDER } from './JobContext';
 import { assemble, OUTPUT_LABEL } from '../prompt/assemble';
+import { sendBlockers } from '../prompt/sendBlockers';
 import { computeSnapshotHash, createInputSnapshot } from '../prompt/snapshot';
 import { formatLocalDate } from '../prompt/formatDate';
 import { getAdapter } from '../providers/registry';
@@ -119,8 +120,8 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
     };
   }, []);
 
-  const { settings, apiKeys } = useSettings();
-  const { effectiveMasterInfo } = useMasterInfo();
+  const { settings, apiKeys, models } = useSettings();
+  const { effectiveMasterInfo, hasUnsavedChanges: hasUnsavedMasterInfo } = useMasterInfo();
   const { resolvedSaved } = useInstructions();
   const { jobInputs } = useJob();
 
@@ -367,6 +368,22 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
     async (kind: OutputKind) => {
       if (!currentKey || !selectedModel || isTabBusy(kind)) return;
 
+      const modelInfo = models[selectedProvider]?.find((m) => m.id === selectedModel) || null;
+      const { blocker } = sendBlockers({
+        selectedOutputs: [kind],
+        effectiveMasterInfo,
+        pastedText: jobInputs.pastedText,
+        questions: jobInputs.questions,
+        customInstructions: jobInputs.customInstructions,
+        attachments: jobInputs.attachments,
+        provider: selectedProvider,
+        hasApiKey: Boolean(currentKey && currentKey.trim()),
+        selectedModel,
+        modelInfo,
+        hasUnsavedMasterInfo,
+      });
+      if (blocker !== null) return;
+
       // Edit-overwrite confirm (§14.3)
       if (tabs[kind].userEdited) {
         const names = OUTPUT_NAMES[kind];
@@ -381,7 +398,18 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
 
       executePerTabRetry(kind);
     },
-    [currentKey, selectedModel, isTabBusy, tabs, executePerTabRetry],
+    [
+      currentKey,
+      selectedModel,
+      isTabBusy,
+      models,
+      selectedProvider,
+      effectiveMasterInfo,
+      jobInputs,
+      hasUnsavedMasterInfo,
+      tabs,
+      executePerTabRetry,
+    ],
   );
 
   const restoreTab = useCallback(

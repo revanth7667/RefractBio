@@ -6,6 +6,9 @@ import { Badge } from '../components/ui/badge';
 import { Textarea } from '../components/ui/textarea';
 import { useGeneration } from '../../state/GenerationContext';
 import { useSettings } from '../../state/SettingsContext';
+import { useMasterInfo } from '../../state/MasterInfoContext';
+import { useJob } from '../../state/JobContext';
+import { sendBlockers } from '../../prompt/sendBlockers';
 import { visibleTabs } from '../../generation/visibleTabs';
 import { formatGapsNotice } from '../../generation/gaps';
 import { splitLinkedInVariants, hasEmailSubject } from '../../generation/variants';
@@ -170,7 +173,32 @@ function TabBody({
   onEdit,
   announceStatus,
 }: TabBodyProps) {
-  const { settings, setPaperSize } = useSettings();
+  const { settings, apiKeys, models, setPaperSize } = useSettings();
+  const { effectiveMasterInfo, hasUnsavedChanges: hasUnsavedMasterInfo } = useMasterInfo();
+  const { jobInputs } = useJob();
+
+  const selectedProvider = settings.selectedProvider;
+  const currentKey = apiKeys[selectedProvider];
+  const hasApiKey = Boolean(currentKey && currentKey.trim());
+  const selectedModel = settings.selectedModel[selectedProvider] || null;
+  const currentModels = models[selectedProvider] || [];
+  const modelInfo = currentModels.find((m) => m.id === selectedModel) || null;
+
+  const { blocker: tabBlocker } = sendBlockers({
+    selectedOutputs: [tab.kind],
+    effectiveMasterInfo,
+    pastedText: jobInputs.pastedText,
+    questions: jobInputs.questions,
+    customInstructions: jobInputs.customInstructions,
+    attachments: jobInputs.attachments,
+    provider: selectedProvider,
+    hasApiKey,
+    selectedModel,
+    modelInfo,
+    hasUnsavedMasterInfo,
+  });
+  const isBlocked = tabBlocker !== null;
+
   const regenerateButtonRef = useRef<HTMLButtonElement | null>(null);
   const [showWaitingHint, setShowWaitingHint] = useState(false);
   const announcedHintRef = useRef(false);
@@ -244,6 +272,9 @@ function TabBody({
               type="button"
               size="sm"
               variant="default"
+              disabled={isBlocked}
+              aria-describedby={isBlocked ? 'send-blocker-reason' : undefined}
+              title={isBlocked ? tabBlocker.message : undefined}
               onClick={onRetry}
             >
               <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
@@ -255,6 +286,9 @@ function TabBody({
               type="button"
               size="sm"
               variant="outline"
+              disabled={isBlocked}
+              aria-describedby={isBlocked ? 'send-blocker-reason' : undefined}
+              title={isBlocked ? tabBlocker.message : undefined}
               onClick={onRetry}
             >
               <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
