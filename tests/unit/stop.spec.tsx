@@ -623,7 +623,7 @@ describe('Stop generation UI & integration (SPEC §14.8, §17.3, §17.7)', () =>
     expect(screen.queryByText(/Generating…/i)).toBeNull();
   });
 
-  it('stopped draft is marked stale when job inputs change during streaming (stopTab and stopAll)', async () => {
+  it('stopped draft is marked stale when job inputs change during streaming (stopTab)', async () => {
     const encoder = new TextEncoder();
     let streamController!: ReadableStreamDefaultController;
 
@@ -696,16 +696,49 @@ describe('Stop generation UI & integration (SPEC §14.8, §17.3, §17.7)', () =>
       },
       { timeout: 1500 },
     );
+  });
 
-    // Part 2: Test stopAll with input change during streaming
-    // Reset context to another value
+  it('stopped draft is marked stale when job inputs change during streaming (stopAll)', async () => {
+    const encoder = new TextEncoder();
+    let streamController!: ReadableStreamDefaultController;
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (_url: string | URL | Request, init?: RequestInit) => {
+        const signal = init?.signal as AbortSignal;
+        const stream = new ReadableStream({
+          start(controller) {
+            streamController = controller;
+            signal?.addEventListener('abort', () => {
+              try {
+                controller.error(new DOMException('Aborted', 'AbortError'));
+              } catch {
+                // ignore
+              }
+            });
+          },
+        });
+        return new Response(stream, {
+          status: 200,
+          headers: { 'Content-Type': 'text/event-stream' },
+        });
+      }),
+    );
+
+    render(<App />);
+
+    // Select Resume only
+    const coverLetterToggle = screen.getByRole('button', { name: /^Cover Letter$/i });
+    fireEvent.click(coverLetterToggle);
+
+    const contextInput = screen.getByLabelText(/Job context/i);
     fireEvent.change(contextInput, { target: { value: 'Initial context for stopAll test' } });
 
-    // Click Regenerate
-    fireEvent.click(screen.getByRole('button', { name: /Regenerate/i }));
+    // Send
+    fireEvent.click(screen.getByRole('button', { name: /^Send$/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Stop all outputs' })).toBeTruthy();
+      expect(streamController).toBeDefined();
     });
 
     // Stream partial delta
@@ -727,6 +760,9 @@ describe('Stop generation UI & integration (SPEC §14.8, §17.3, §17.7)', () =>
 
     // While streaming, modify Job context again
     fireEvent.change(contextInput, { target: { value: 'Modified context during stopAll stream' } });
+
+    // Assert the badge is ABSENT before pressing Stop all
+    expect(screen.queryByText(/Inputs changed since this was generated/i)).toBeNull();
 
     // Click Stop all outputs
     fireEvent.click(screen.getByRole('button', { name: 'Stop all outputs' }));
