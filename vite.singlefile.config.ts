@@ -43,8 +43,16 @@ export default defineConfig({
   build: {
     outDir: 'dist-single',
     emptyOutDir: true,
-    rollupOptions: {
+    rolldownOptions: {
       input: resolve(__dirname, 'index.html'),
+      output: {
+        minify: {
+          compress: {
+            dropConsole: true,
+            dropDebugger: true,
+          },
+        },
+      },
     },
   },
 });
