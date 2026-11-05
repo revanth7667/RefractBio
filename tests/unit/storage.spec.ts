@@ -224,6 +224,16 @@ describe('Storage Module', () => {
         expect(raw.data.showAllModels).toEqual({ anthropic: true });
       }
     });
+
+    it('preserves empty-string selectedModel in tolerant settings reader', () => {
+      const raw = {
+        selectedProvider: 'anthropic',
+        selectedModel: { anthropic: '', gemini: '' },
+        rememberKeys: false,
+      };
+      const normalized = storage.normalizeSettings(raw);
+      expect(normalized.selectedModel).toEqual({ anthropic: '', gemini: '' });
+    });
   });
 });
 

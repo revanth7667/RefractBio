@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { SettingsProvider } from '../../src/state/SettingsContext';
+import { SettingsProvider, useSettings } from '../../src/state/SettingsContext';
 import { ProvidersPanel } from '../../src/ui/settings/ProvidersPanel';
 import { ModelPicker } from '../../src/ui/inputs/ModelPicker';
 import App from '../../src/App';
@@ -209,6 +209,33 @@ describe('ProvidersPanel & ModelPicker (UI Settings → Providers)', () => {
 
       fireEvent.change(customInput, { target: { value: 'custom-model-id' } });
       expect(onSelect).toHaveBeenCalledWith('custom-model-id');
+    });
+
+    it('clears active model when choosing Other with empty field, and typing sets it', () => {
+      const onSelect = vi.fn();
+      render(
+        <ModelPicker
+          provider="anthropic"
+          models={mockModels}
+          selectedModel="claude-3-5-sonnet"
+          onSelectModel={onSelect}
+          showAllModels={false}
+          onToggleShowAll={vi.fn()}
+        />
+      );
+
+      const select = screen.getByRole('combobox');
+      fireEvent.change(select, { target: { value: '__manual__' } });
+
+      // Must call onSelect with empty string to clear the model so blocker 6 applies
+      expect(onSelect).toHaveBeenCalledWith('');
+
+      const customInput = screen.getByLabelText(/custom model id/i) as HTMLInputElement;
+      expect(customInput.value).toBe('');
+
+      // Typing then sets the custom model
+      fireEvent.change(customInput, { target: { value: 'custom-claude-v1' } });
+      expect(onSelect).toHaveBeenCalledWith('custom-claude-v1');
     });
   });
 
@@ -484,6 +511,53 @@ describe('ProvidersPanel & ModelPicker (UI Settings → Providers)', () => {
       // Anthropic in SendBar is still checked (true)
       const anthropicSendBarCheckbox = screen.getByLabelText(/show all models/i) as HTMLInputElement;
       expect(anthropicSendBarCheckbox.checked).toBe(true);
+    });
+
+    it('model-list reload while Other is active with an empty field does not re-select a default model', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            data: [{ id: 'claude-3-5-sonnet', display_name: 'Claude 3.5 Sonnet' }],
+            has_more: false,
+          }),
+          { status: 200 }
+        )
+      );
+      vi.stubGlobal('fetch', fetchMock);
+
+      function TestConsumer() {
+        const { settings, setSelectedModel, loadModels } = useSettings();
+        return (
+          <div>
+            <span id="selected-model-val">{settings.selectedModel.anthropic ?? 'none'}</span>
+            <button type="button" onClick={() => setSelectedModel('anthropic', '')}>
+              Set Empty Other
+            </button>
+            <button type="button" onClick={() => loadModels('anthropic', fakeKey)}>
+              Reload Models
+            </button>
+          </div>
+        );
+      }
+
+      render(
+        <SettingsProvider>
+          <TestConsumer />
+        </SettingsProvider>
+      );
+
+      // Set model to empty string (Other with empty field)
+      fireEvent.click(screen.getByText('Set Empty Other'));
+      expect(document.getElementById('selected-model-val')?.textContent).toBe('');
+
+      // Reload models
+      fireEvent.click(screen.getByText('Reload Models'));
+      await waitFor(() => {
+        expect(fetchMock).toHaveBeenCalled();
+      });
+
+      // Must remain empty string '', NOT overwritten by first default model ('claude-3-5-sonnet')
+      expect(document.getElementById('selected-model-val')?.textContent).toBe('');
     });
   });
 });
