@@ -1,18 +1,11 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
-import { execSync } from 'child_process';
 import { SINGLE_FILE_CSP_POLICY } from '../../scripts/csp';
 
 describe('Single-file build verification (§18.1, A24, V16)', () => {
   const distSingleDir = path.resolve(process.cwd(), 'dist-single');
   const distSingleHtml = path.join(distSingleDir, 'index.html');
-
-  beforeAll(() => {
-    if (!fs.existsSync(distSingleHtml)) {
-      execSync('npm run build:single', { stdio: 'pipe' });
-    }
-  });
 
   it('output directory contains exactly one file (index.html)', () => {
     expect(fs.existsSync(distSingleHtml)).toBe(true);

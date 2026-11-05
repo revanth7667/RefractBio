@@ -36,11 +36,10 @@ describe('CSP Plugin', () => {
   });
 
   it('built dist/index.html contains exactly one CSP meta tag', () => {
+    expect.assertions(1);
     const distHtmlPath = path.resolve(process.cwd(), 'dist/index.html');
-    if (fs.existsSync(distHtmlPath)) {
-      const distHtml = fs.readFileSync(distHtmlPath, 'utf-8');
-      const count = (distHtml.match(/http-equiv="Content-Security-Policy"/g) || []).length;
-      expect(count).toBe(1);
-    }
+    const distHtml = fs.readFileSync(distHtmlPath, 'utf-8');
+    const count = (distHtml.match(/http-equiv="Content-Security-Policy"/g) || []).length;
+    expect(count).toBe(1);
   });
 });

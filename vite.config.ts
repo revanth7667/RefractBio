@@ -35,6 +35,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
+    globalSetup: './tests/globalSetup.ts',
     exclude: [...configDefaults.exclude, 'tests/e2e/**'],
     alias: {
       mammoth: 'mammoth/mammoth.browser.js',
