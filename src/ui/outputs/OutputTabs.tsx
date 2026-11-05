@@ -113,7 +113,7 @@ export function OutputTabs() {
                   />
                 )}
                 {tab.status === 'generating' && (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" aria-label="Generating" />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none text-muted-foreground" aria-label="Generating" />
                 )}
                 {tab.status === 'done' && (
                   <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" aria-label="Done" />
