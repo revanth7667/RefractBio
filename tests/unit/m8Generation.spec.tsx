@@ -665,7 +665,7 @@ describe('Milestone M8 Multi-output Queue, Versions, Stale Badge, and Clear', ()
 
       // Regenerate button must be disabled and linked to blocker reason
       expect(regenBtn.hasAttribute('disabled')).toBe(true);
-      expect(regenBtn.getAttribute('aria-describedby')).toBe('send-blocker-reason');
+      expect(regenBtn.getAttribute('aria-describedby')).toBe('tab-blocker-reason-RESUME');
 
       // Attempting to click sends no request
       fireEvent.click(regenBtn);
@@ -717,7 +717,7 @@ describe('Milestone M8 Multi-output Queue, Versions, Stale Badge, and Clear', ()
 
       // Regenerate button on Answers must be disabled and linked to blocker reason
       expect(regenBtn.hasAttribute('disabled')).toBe(true);
-      expect(regenBtn.getAttribute('aria-describedby')).toBe('send-blocker-reason');
+      expect(regenBtn.getAttribute('aria-describedby')).toBe('tab-blocker-reason-ANSWERS');
 
       // Attempting to click sends no request
       fireEvent.click(regenBtn);
@@ -764,12 +764,12 @@ describe('Milestone M8 Multi-output Queue, Versions, Stale Badge, and Clear', ()
       fireEvent.change(fileInput, { target: { files: [badFile] } });
 
       await waitFor(() => {
-        expect(screen.getByText(/Remove the file marked with an error/i)).toBeTruthy();
+        expect(screen.getAllByText(/Remove the file marked with an error/i).length).toBeGreaterThan(0);
       });
 
       // Regenerate button must be disabled and linked to blocker reason
       expect(regenBtn.hasAttribute('disabled')).toBe(true);
-      expect(regenBtn.getAttribute('aria-describedby')).toBe('send-blocker-reason');
+      expect(regenBtn.getAttribute('aria-describedby')).toBe('tab-blocker-reason-RESUME');
 
       // Attempting to click sends no request
       fireEvent.click(regenBtn);
