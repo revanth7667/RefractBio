@@ -102,6 +102,39 @@ describe('Print export module (§16.3)', () => {
     expect(root.textContent).not.toContain('Distinctive Gaps note line');
   });
 
+  it('does not accumulate afterprint listeners across repeated prints without afterprint firing between them', () => {
+    // Ensure any leftover handler from prior test is cleared
+    window.dispatchEvent(new Event('afterprint'));
+
+    const addListenerSpy = vi.spyOn(window, 'addEventListener');
+    const removeListenerSpy = vi.spyOn(window, 'removeEventListener');
+
+    // First print call
+    printDocument('# First Print', 'letter', 'RESUME');
+    const firstAdds = addListenerSpy.mock.calls.filter((c) => c[0] === 'afterprint').length;
+    const firstRemoves = removeListenerSpy.mock.calls.filter((c) => c[0] === 'afterprint').length;
+    expect(firstAdds).toBe(1);
+    expect(firstRemoves).toBe(0);
+
+    // Second print call with NO afterprint firing in between
+    printDocument('# Second Print', 'letter', 'RESUME');
+    const secondAdds = addListenerSpy.mock.calls.filter((c) => c[0] === 'afterprint').length;
+    const secondRemoves = removeListenerSpy.mock.calls.filter((c) => c[0] === 'afterprint').length;
+
+    // A previous pending listener must be removed so listeners do not accumulate
+    expect(secondAdds).toBe(2);
+    expect(secondRemoves).toBe(1);
+    expect(secondAdds - secondRemoves).toBe(1);
+
+    // Now fire afterprint: the remaining listener fires and is cleaned up
+    window.dispatchEvent(new Event('afterprint'));
+    const finalRemoves = removeListenerSpy.mock.calls.filter((c) => c[0] === 'afterprint').length;
+    expect(finalRemoves).toBe(2);
+
+    addListenerSpy.mockRestore();
+    removeListenerSpy.mockRestore();
+  });
+
   it('verifies that print.css contains no @page, no url() and no @import', () => {
     const cssPath = path.resolve(__dirname, '../../src/export/print.css');
     const css = fs.readFileSync(cssPath, 'utf-8');
