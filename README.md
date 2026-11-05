@@ -4,16 +4,24 @@
 
 [![CI](https://github.com/revanth7667/RefractBio/actions/workflows/ci.yml/badge.svg)](https://github.com/revanth7667/RefractBio/actions/workflows/ci.yml)
 [![Deploy](https://github.com/revanth7667/RefractBio/actions/workflows/deploy.yml/badge.svg)](https://github.com/revanth7667/RefractBio/actions/workflows/deploy.yml)
+[![Release](https://github.com/revanth7667/RefractBio/actions/workflows/release.yml/badge.svg)](https://github.com/revanth7667/RefractBio/actions/workflows/release.yml)
+[![Live Demo](https://img.shields.io/badge/Live%20demo-visit-007ec6?style=flat)](https://refractbio.revanth7667.com/)
 
 **Live site: https://refractbio.revanth7667.com/**
 
-RefractBio is a client-side web application (Vite + React + TypeScript, zero backend) that helps you draft tailored resumes, cover letters, LinkedIn outreach messages, emails, and application answers from a single free-form Master Info file, using your own API key for Anthropic or Google Gemini. It operates exclusively in your browser: prompts are assembled deterministically from your facts, gaps are noted whenever a posting asks for background your Master Info does not verify, and no details are ever invented.
+RefractBio is a client-side web application (Vite + React + TypeScript, zero backend) that helps you draft tailored resumes, cover letters, LinkedIn outreach messages, emails, and application answers from a single free-form Master Info file, using your own API key for Anthropic or Google Gemini. It operates exclusively in your browser: prompts are assembled deterministically from your facts, gaps are noted whenever a posting asks for background your Master Info does not verify, and the fixed prompt rules tell the model never to invent facts. Models can still make mistakes, so always check every draft.
 
 ![RefractBio with a sample job posting attached on the left, and a drafted resume with its Gaps note on the right. All names and details are fictional sample data.](docs/screenshot.png)
 
 ## Privacy
 
-RefractBio has no backend servers, no analytics, no user accounts, no tracking cookies, and no third-party telemetry scripts. Network requests travel directly from your browser to your chosen AI provider endpoint over HTTPS, with credentials omitted and referrers stripped. Under Google's [Gemini API Additional Terms of Service](https://ai.google.dev/gemini-api/terms) (checked 2026-11-02), prompts, inputs, and generated content on the free/unpaid tier may be reviewed by human reviewers and used to improve Google products and AI models. Paid tiers (billing enabled) do not use your data for model training. Because resumes contain sensitive personal details, consider using a Paid Tier key or Anthropic.
+RefractBio has no server. Your Master Info, instructions and settings stay in this browser. When you press Send or Test connection, your content and API key go directly from your browser to the provider you selected. Nothing is sent to the RefractBio project. Job context, questions, files and drafts are kept only in memory and disappear when you close or reload the tab. Under Google's [Gemini API Additional Terms of Service](https://ai.google.dev/gemini-api/terms) (checked 2026-11-02), prompts, inputs, and generated content on the free/unpaid tier may be reviewed by human reviewers and used to improve Google products and AI models. Paid tiers (billing enabled) do not use your data for model training. Because resumes contain sensitive personal details, consider using a Paid Tier key or Anthropic.
+
+If saved settings or saved API keys cannot be read, the app shows a notice with a Reset button. Reset Settings restores default settings only, which also turns "Remember my API keys" back off. Reset API Keys deletes the stored keys only. Neither touches Master Info or instructions.
+
+### Untrusted job text
+
+Job postings, questions, and uploaded files are treated as untrusted data. The app wraps them as data and tells the model to ignore instructions inside them. This mitigation is not perfect, so review every draft.
 
 ## Quick Start
 
@@ -82,7 +90,7 @@ npm run build:single
 
 ## Project Structure
 
-For detailed architecture, state management, and file layout documentation, see [SPEC.md §7](SPEC.md#7-project-file-tree).
+For detailed architecture, state management, and file layout documentation, see [SPEC.md §7](SPEC.md#7-repository-structure).
 
 ## Contributing
 

@@ -133,6 +133,25 @@ RefractBio has no backend servers, no analytics, no tracking cookies, and no thi
 - Network requests travel strictly over HTTPS to your chosen AI provider endpoint.
 - Your Master Info, custom instructions, and preferences remain stored in your local browser profile.
 
+The browser warns you before leaving or reloading the page while drafts exist, generation is in progress, or you have edited a draft, though this warning is not guaranteed on every browser.
+
+---
+
+## Untrusted Job Text
+
+Job postings, questions, and uploaded files are treated as untrusted data. The app wraps them as data and tells the model to ignore instructions inside them. This mitigation is not perfect, so review every draft.
+
+---
+
+## If Saved Settings or Keys Cannot Be Read
+
+If saved settings or saved API keys cannot be read by the browser, the app displays an alert notice with a Reset button.
+
+- **Reset Settings**: Restores default settings only, which also turns "Remember my API keys" back off.
+- **Reset API Keys**: Deletes stored keys only.
+
+Neither action touches your Master Info or custom instructions, and nothing is overwritten or deleted until you confirm the reset.
+
 ---
 
 ## Using the Single-File Version
@@ -170,11 +189,16 @@ The table below describes common errors and recommended resolutions. Note that t
 
 | Error Category | Message / Symptom | How to Resolve |
 |---|---|---|
-| **Security Policy Blocked** | "This app's security policy blocked the request..." | The request attempted to reach an origin outside Anthropic and Google Gemini. Check your browser configuration. |
-| **Network or Extension Blocked** | "The request to {host} was blocked before it reached the provider." | Disable ad/privacy extensions for this page, check your VPN/firewall, or verify your internet connection. |
-| **Authentication Failed** | "The provider rejected your API key." | Open Settings → Providers, verify that the whole key was pasted correctly without missing characters, and test the connection. |
-| **Model Not Found** | "The model wasn't found or isn't available to your key." | Pick another model from the picker or check the custom model ID. |
-| **Request Too Large** | "The request is too large for this provider." | Remove or shrink image/PDF attachments, or shorten your Master Info and job context. |
-| **Rate Limit Reached** | "Rate limit reached for {provider}." | Wait a moment for your quota window to reset, or check your rate limits in the provider console. |
-| **Server Error** | "{provider} had a server problem." | The provider is experiencing an outage or temporary load spike. Click Retry in a moment. |
-| **Safety Blocked** | "The provider blocked this response." | Rephrase your job context or custom instructions to avoid provider content filter triggers. |
+| **Security Policy Blocked** | This app's security policy blocked the request to {host}. The hosted app only allows the Anthropic and Gemini addresses. | The request attempted to reach an origin outside Anthropic and Google Gemini. Check your browser configuration. |
+| **Network or Extension Blocked** | The request to {host} was blocked before it reached the provider. This is usually caused by a browser extension (ad or privacy blocker), a VPN, a firewall or a work network. Try turning extensions off for this page, switching networks, or using the other provider. If it keeps happening, the provider may no longer allow requests from web pages; see Help. | Disable ad/privacy extensions for this page, check your VPN/firewall, or verify your internet connection. |
+| **Offline** | You appear to be offline. Check your connection and try again. | Check your network connection and reconnect to the internet before retrying. |
+| **Authentication Failed** | The provider rejected your API key. Check that you pasted the whole key for {provider}. | Open Settings → Providers, verify that the whole key was pasted correctly without missing characters, and test the connection. |
+| **Model Not Found** | The model "{model}" wasn't found or isn't available to your key. Pick another model or check the ID. | Pick another model from the picker or check the custom model ID. |
+| **Request Too Large** | The request is too large for this provider. Remove or shrink attachments, or shorten your Master Info. | Remove or shrink image/PDF attachments, or shorten your Master Info and job context. |
+| **Unsupported Input** | This model may not read images or PDFs. Remove the file or pick another model. | Remove image or PDF attachments, or switch to a model that supports document and image inputs. |
+| **Bad Request** | The provider rejected the request. | Check the error detail message, adjust your prompt or attachments, and try again. |
+| **Rate Limit Reached (with wait time)** | Rate limit reached for {provider}. Try again in {seconds} seconds. | Wait the indicated number of seconds before pressing Retry. |
+| **Rate Limit Reached (without wait time)** | Rate limit reached for {provider}. Wait a moment and press Retry. | Wait a moment for your quota window to reset, or check your rate limits in the provider console. |
+| **Server Error** | {provider} had a server problem. Press Retry in a moment. | The provider is experiencing an outage or temporary load spike. Click Retry in a moment. |
+| **Safety Blocked** | The provider blocked this response. Try rephrasing your custom instructions or check the job context. | Rephrase your job context or custom instructions to avoid provider content filter triggers. |
+| **Unknown Error** | Something went wrong. (or Something went wrong: {detail}) Happens when the server returns an empty response, the stream produces no text, the stream ends without its final event, or the connection breaks mid-stream. | Check your connection, verify provider service availability, and press Retry. |
