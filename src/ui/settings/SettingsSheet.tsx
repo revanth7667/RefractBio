@@ -356,7 +356,7 @@ export function SettingsSheet({ open, onOpenChange, tab, onTabChange }: Settings
             </AlertDialogDescription>
           </AlertDialogHeader>
           {saveAllError && (
-            <p role="alert" className="text-xs text-destructive px-1">
+            <p className="text-xs text-destructive px-1">
               {saveAllError}
             </p>
           )}

@@ -117,7 +117,6 @@ export function MasterInfoPanel() {
       {/* Corrupt data notice (§9.2) */}
       {loadError && (
         <div
-          role="alert"
           className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive space-y-2"
         >
           <p>
@@ -137,7 +136,6 @@ export function MasterInfoPanel() {
       {/* Sample marker notice (§14.6 item 2, SPEC NOTE) */}
       {effectiveHasMarker && (
         <div
-          role="alert"
           className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300"
         >
           Your Master Info still contains the sample marker on its first line. Replace the sample

@@ -26,7 +26,6 @@ export function MainLayout({ children }: MainLayoutProps) {
       </div>
       {!storageAvailable && (
         <div
-          role="alert"
           className="bg-amber-500/15 border-b border-amber-500/30 px-4 py-3 text-sm text-amber-900 dark:text-amber-200"
         >
           <div className="mx-auto max-w-7xl">

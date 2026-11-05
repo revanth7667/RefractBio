@@ -127,7 +127,6 @@ export function InstructionsPanel() {
 
       {loadError && (
         <div
-          role="alert"
           className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-200 space-y-3"
         >
           <p>
@@ -148,7 +147,6 @@ export function InstructionsPanel() {
       {/* Amber notice for warnings computed from editor draft */}
       {resolvedDraft.warnings.length > 0 && (
         <div
-          role="alert"
           aria-label="Instructions warnings"
           className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200 space-y-1"
         >
@@ -189,19 +187,19 @@ export function InstructionsPanel() {
         />
 
         {saveError && (
-          <p role="alert" className="text-xs text-destructive">
+          <p className="text-xs text-destructive">
             {saveError}
           </p>
         )}
 
         {uploadError && (
-          <p role="alert" className="text-xs text-destructive">
+          <p className="text-xs text-destructive">
             {uploadError}
           </p>
         )}
 
         {savedSuccessMessage && (
-          <p role="status" className="text-xs text-emerald-600 dark:text-emerald-400">
+          <p className="text-xs text-emerald-600 dark:text-emerald-400">
             {savedSuccessMessage}
           </p>
         )}

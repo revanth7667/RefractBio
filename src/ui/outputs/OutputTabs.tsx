@@ -465,7 +465,6 @@ function TabBody({
       {/* Truncation notice (A21, §14.3) */}
       {tab.current?.truncated && (
         <div
-          role="alert"
           className="rounded-md border border-amber-500/40 bg-amber-500/15 p-3 text-xs font-medium text-amber-900 dark:text-amber-200"
         >
           This draft was cut off before the model finished. Press Regenerate, or choose a model or setting that allows longer output.
@@ -527,7 +526,6 @@ function TabBody({
       {/* Error Callout (§13.5, §17.3) */}
       {tab.status === 'error' && tab.error && (
         <div
-          role="alert"
           className="space-y-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive"
         >
           <div className="font-medium">{tab.error.message}</div>
