@@ -111,10 +111,14 @@ export class GenerationQueue<TKey = string> {
     (async () => {
       try {
         await run(controller.signal);
-        this.activeJobs.delete(key);
+        if (this.activeJobs.get(key)?.controller === controller) {
+          this.activeJobs.delete(key);
+        }
         resolve();
       } catch (err: unknown) {
-        this.activeJobs.delete(key);
+        if (this.activeJobs.get(key)?.controller === controller) {
+          this.activeJobs.delete(key);
+        }
         reject(err);
       } finally {
         this.pump();

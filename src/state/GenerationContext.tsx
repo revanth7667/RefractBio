@@ -17,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '../ui/components/ui/alert-dialog';
-import type { AppError, OutputKind, OutputTab } from '../types';
+import type { AppError, InputSnapshot, OutputKind, OutputTab } from '../types';
 import { OUTPUT_NAMES } from '../types';
 import {
   createInitialTabs,
@@ -91,7 +91,9 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
   const queueRef = useRef<GenerationQueue<OutputKind>>(new GenerationQueue<OutputKind>(2));
   const runIdRef = useRef<number>(0);
   const clearedRef = useRef<boolean>(false);
-  const stoppedKindsRef = useRef<Set<OutputKind>>(new Set());
+  const activeJobsRef = useRef<
+    Map<OutputKind, { signal: AbortSignal; snapshot: InputSnapshot; stopped: boolean }>
+  >(new Map());
   const totalJobsRef = useRef<number>(0);
   const completedJobsRef = useRef<number>(0);
 
@@ -174,7 +176,7 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
 
   const clearGeneration = useCallback(() => {
     clearedRef.current = true;
-    stoppedKindsRef.current.clear();
+    activeJobsRef.current.clear();
     runIdRef.current++;
     queueRef.current.abortAll();
     dispatch({ type: 'CLEAR_ALL' });
@@ -201,6 +203,18 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
       dispatch({ type: 'START', kind });
       announceStatus(`Generating ${OUTPUT_LABEL[kind]}…`);
 
+      const snapshot = createInputSnapshot({
+        kind,
+        masterInfo: effectiveMasterInfo.text,
+        instructions: resolvedSaved,
+        inputs: jobInputs,
+        provider: selectedProvider,
+        model: selectedModel,
+        generatedAt: new Date().toISOString(),
+      });
+      const activeJob = { signal, snapshot, stopped: false };
+      activeJobsRef.current.set(kind, activeJob);
+
       try {
         const today = formatLocalDate(new Date());
         const prompt = assemble(
@@ -210,15 +224,6 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
           resolvedSaved,
           today,
         );
-        const snapshot = createInputSnapshot({
-          kind,
-          masterInfo: effectiveMasterInfo.text,
-          instructions: resolvedSaved,
-          inputs: jobInputs,
-          provider: selectedProvider,
-          model: selectedModel,
-          generatedAt: new Date().toISOString(),
-        });
 
         const adapter = getAdapter(selectedProvider);
         const result = await adapter.generate({
@@ -227,12 +232,12 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
           prompt,
           signal,
           onDelta: (text) => {
-            if (signal.aborted || clearedRef.current || runIdRef.current !== runId || stoppedKindsRef.current.has(kind)) return;
+            if (signal.aborted || clearedRef.current || runIdRef.current !== runId || activeJob.stopped) return;
             dispatch({ type: 'DELTA', kind, text });
           },
         });
 
-        if (signal.aborted || clearedRef.current || runIdRef.current !== runId || stoppedKindsRef.current.has(kind)) return;
+        if (signal.aborted || clearedRef.current || runIdRef.current !== runId || activeJob.stopped) return;
 
         dispatch({
           type: 'SUCCESS',
@@ -244,8 +249,7 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
         announceStatus(`${OUTPUT_LABEL[kind]} generated.`);
       } catch (err: unknown) {
         if (signal.aborted || clearedRef.current || runIdRef.current !== runId) {
-          const wasStopped = stoppedKindsRef.current.has(kind);
-          stoppedKindsRef.current.delete(kind);
+          const wasStopped = activeJob.stopped;
           if (!clearedRef.current && runIdRef.current === runId && !wasStopped) {
             dispatch({ type: 'ABORT', kind });
           }
@@ -254,6 +258,10 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
 
         dispatch({ type: 'FAIL', kind, error: err as AppError });
         announceStatus(`Failed to generate ${OUTPUT_LABEL[kind]}.`);
+      } finally {
+        if (activeJobsRef.current.get(kind) === activeJob) {
+          activeJobsRef.current.delete(kind);
+        }
       }
     },
     [
@@ -400,16 +408,22 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
         return;
       }
 
-      stoppedKindsRef.current.add(kind);
-      const snapshot = createInputSnapshot({
-        kind,
-        masterInfo: effectiveMasterInfo.text,
-        instructions: resolvedSaved,
-        inputs: jobInputs,
-        provider: selectedProvider,
-        model: selectedModel,
-        generatedAt: new Date().toISOString(),
-      });
+      const activeJob = activeJobsRef.current.get(kind);
+      if (activeJob) {
+        activeJob.stopped = true;
+      }
+
+      const snapshot =
+        activeJob?.snapshot ??
+        createInputSnapshot({
+          kind,
+          masterInfo: effectiveMasterInfo.text,
+          instructions: resolvedSaved,
+          inputs: jobInputs,
+          provider: selectedProvider,
+          model: selectedModel,
+          generatedAt: new Date().toISOString(),
+        });
 
       dispatch({ type: 'STOP', kind, queued: isQueued, snapshot });
       queueRef.current.cancel(kind);
@@ -438,24 +452,32 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
     if (kindsToStop.length === 0) return;
 
     for (const kind of kindsToStop) {
-      stoppedKindsRef.current.add(kind);
       const isQueued = queueRef.current.isQueued(kind);
-      const snapshot = createInputSnapshot({
-        kind,
-        masterInfo: effectiveMasterInfo.text,
-        instructions: resolvedSaved,
-        inputs: jobInputs,
-        provider: selectedProvider,
-        model: selectedModel,
-        generatedAt: new Date().toISOString(),
-      });
+      const activeJob = activeJobsRef.current.get(kind);
+      if (activeJob) {
+        activeJob.stopped = true;
+      }
+
+      const snapshot =
+        activeJob?.snapshot ??
+        createInputSnapshot({
+          kind,
+          masterInfo: effectiveMasterInfo.text,
+          instructions: resolvedSaved,
+          inputs: jobInputs,
+          provider: selectedProvider,
+          model: selectedModel,
+          generatedAt: new Date().toISOString(),
+        });
       dispatch({ type: 'STOP', kind, queued: isQueued, snapshot });
     }
 
     queueRef.current.cancelAll();
     announceStatus('Stopped all outputs.');
-    setIsGenerating(false);
-    setGeneratingProgress(null);
+    if (queueRef.current.totalPending === 0) {
+      setIsGenerating(false);
+      setGeneratingProgress(null);
+    }
   }, [
     tabs,
     effectiveMasterInfo.text,
