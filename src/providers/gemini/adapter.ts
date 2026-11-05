@@ -15,7 +15,7 @@ import type {
 import { buildGeminiHeaders, buildGeminiGenerateBody, buildGeminiStreamUrl } from './wire';
 import { fetchGeminiModels } from './models';
 import { processGeminiStream } from './stream';
-import { mapProviderError } from '../errors';
+import { mapProviderError, isAppError } from '../errors';
 
 const SETUP_SUGGESTIONS = [
   'Check that your computer has an active internet connection.',
@@ -114,7 +114,27 @@ export class GeminiAdapter implements ProviderAdapter {
       });
     }
 
-    return processGeminiStream(res.body, req.onDelta, req.signal, req.config.apiKey);
+    try {
+      return await processGeminiStream(res.body, req.onDelta, req.signal, req.config.apiKey);
+    } catch (err) {
+      if (
+        (err instanceof DOMException && err.name === 'AbortError') ||
+        (err instanceof Error && err.name === 'AbortError') ||
+        req.signal.aborted
+      ) {
+        throw err;
+      }
+      if (isAppError(err)) {
+        throw err;
+      }
+      throw mapProviderError({
+        provider: this.displayName,
+        url,
+        key: req.config.apiKey,
+        model: req.model,
+        rawError: err,
+      });
+    }
   }
 }
 

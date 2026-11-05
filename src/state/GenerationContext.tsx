@@ -17,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '../ui/components/ui/alert-dialog';
-import type { AppError, InputSnapshot, OutputKind, OutputTab } from '../types';
+import type { InputSnapshot, OutputKind, OutputTab } from '../types';
 import { OUTPUT_NAMES } from '../types';
 import {
   createInitialTabs,
@@ -34,6 +34,7 @@ import { sendBlockers } from '../prompt/sendBlockers';
 import { computeSnapshotHash, createInputSnapshot } from '../prompt/snapshot';
 import { formatLocalDate } from '../prompt/formatDate';
 import { getAdapter } from '../providers/registry';
+import { toAppError } from '../providers/errors';
 import { useBeforeUnload } from './useBeforeUnload';
 
 export interface GenerationProgress {
@@ -252,7 +253,13 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
         });
         announceStatus(`${OUTPUT_LABEL[kind]} generated.`);
       } catch (err: unknown) {
-        if (signal.aborted || clearedRef.current || runIdRef.current !== runId) {
+        if (
+          signal.aborted ||
+          clearedRef.current ||
+          runIdRef.current !== runId ||
+          (err instanceof DOMException && err.name === 'AbortError') ||
+          (err instanceof Error && err.name === 'AbortError')
+        ) {
           const wasStopped = activeJob.stopped;
           if (!clearedRef.current && runIdRef.current === runId && !wasStopped) {
             dispatch({ type: 'ABORT', kind });
@@ -260,7 +267,7 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
           return;
         }
 
-        dispatch({ type: 'FAIL', kind, error: err as AppError });
+        dispatch({ type: 'FAIL', kind, error: toAppError(err) });
         announceStatus(`Failed to generate ${OUTPUT_LABEL[kind]}.`);
       } finally {
         if (activeJobsRef.current.get(kind) === activeJob) {

@@ -3,8 +3,52 @@
  * Spec §13.5.
  */
 
-import type { AppError } from '../types';
+import type { AppError, ErrorCategory } from '../types';
 import { redact } from './redact';
+
+const VALID_ERROR_CATEGORIES = new Set<ErrorCategory>([
+  'cors_or_network',
+  'csp_blocked',
+  'auth',
+  'rate_limit',
+  'bad_request',
+  'too_large',
+  'model_not_found',
+  'unsupported_input',
+  'safety_blocked',
+  'server',
+  'aborted',
+  'stopped',
+  'unknown',
+]);
+
+export function isAppError(err: unknown): err is AppError {
+  if (typeof err !== 'object' || err === null) return false;
+  const candidate = err as Record<string, unknown>;
+  return (
+    typeof candidate.category === 'string' &&
+    VALID_ERROR_CATEGORIES.has(candidate.category as ErrorCategory) &&
+    typeof candidate.message === 'string'
+  );
+}
+
+export function toAppError(err: unknown): AppError {
+  if (isAppError(err)) {
+    return err;
+  }
+  let rawDetail: string | undefined;
+  if (typeof err === 'string') {
+    rawDetail = err;
+  } else if (err instanceof Error) {
+    rawDetail = err.message;
+  }
+  const detail = rawDetail ? redact(rawDetail).slice(0, 500) : undefined;
+  return {
+    category: 'unknown',
+    message: detail ? `Something went wrong: ${detail}` : 'Something went wrong.',
+    detail,
+  };
+}
 
 const cspViolatedHosts = new Set<string>();
 
