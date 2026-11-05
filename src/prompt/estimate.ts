@@ -4,7 +4,6 @@ import type {
   Attachment,
   JobInputs,
   OutputKind,
-  PromptPart,
   ResolvedInstructions,
   TokenEstimate,
 } from '../types';
@@ -25,14 +24,14 @@ export interface ComputeEstimateParams {
  */
 export function computeEstimate(
   systemOrParams: string | ComputeEstimateParams,
-  partA?: string | readonly PromptPart[],
+  partA?: string,
   partC?: string,
   attachments?: readonly Attachment[],
 ): TokenEstimate {
   let system: string;
-  let textPartA = '';
-  let textPartC = '';
-  let attList: readonly Attachment[] = [];
+  let textPartA: string;
+  let textPartC: string;
+  let attList: readonly Attachment[];
 
   if (typeof systemOrParams === 'object' && systemOrParams !== null) {
     system = systemOrParams.system;
@@ -41,19 +40,9 @@ export function computeEstimate(
     attList = systemOrParams.attachments ?? [];
   } else {
     system = systemOrParams;
-    if (typeof partA === 'string') {
-      textPartA = partA;
-      textPartC = partC ?? '';
-      attList = attachments ?? [];
-    } else if (Array.isArray(partA)) {
-      // userParts array passed
-      const parts = partA as readonly PromptPart[];
-      const firstPart = parts[0];
-      const lastPart = parts[parts.length - 1];
-      textPartA = firstPart && firstPart.type === 'text' ? firstPart.text : '';
-      textPartC = lastPart && lastPart.type === 'text' ? lastPart.text : '';
-      attList = attachments ?? [];
-    }
+    textPartA = partA ?? '';
+    textPartC = partC ?? '';
+    attList = attachments ?? [];
   }
 
   const charsPerToken = estimates.charsPerToken;
@@ -82,8 +71,6 @@ export function computeEstimate(
     total,
   };
 }
-
-export const estimateTokens = computeEstimate;
 
 /**
  * Returns formatted estimate UI string per §12.6.

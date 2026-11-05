@@ -127,17 +127,6 @@ export function normalizeSettings(data: unknown): Settings {
   };
 }
 
-export function readSettings(stored?: unknown): Settings {
-  if (stored !== undefined) {
-    return normalizeSettings(stored);
-  }
-  const res = get<unknown>('settings');
-  if (res.ok) {
-    return normalizeSettings(res.value);
-  }
-  return normalizeSettings(null);
-}
-
 export function get<T>(key: StorageKey): StorageResult<T> {
   try {
     const storage = getStorage();

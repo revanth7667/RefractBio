@@ -20,7 +20,3 @@ export function getAdapter(id: ProviderId): ProviderAdapter {
   return adapter;
 }
 
-export function getAllAdapters(): ProviderAdapter[] {
-  return Object.values(adapters);
-}
-

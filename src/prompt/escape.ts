@@ -84,5 +84,3 @@ export function neutralizeTags(s: string): string {
 export function neutralizeFileName(name: string): string {
   return neutralizeTags(name).replace(/"/g, "'");
 }
-
-export const neutralizeFilename = neutralizeFileName;
