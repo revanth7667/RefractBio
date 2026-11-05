@@ -247,6 +247,66 @@ describe('Anthropic Adapter (tests/adapters/anthropic.spec.ts)', () => {
       });
     });
 
+    it('rejects with unknown AppError when stream ends without message_stop event', async () => {
+      const sseWithoutStop = [
+        'event: message_start',
+        'data: {"type":"message_start","message":{"id":"msg_01fake","type":"message","role":"assistant","content":[],"model":"claude-3-5-sonnet"}}',
+        '',
+        'event: content_block_delta',
+        'data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello unfinished"}}',
+        '',
+      ].join('\n');
+
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+        new Response(sseWithoutStop, {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream' },
+        })
+      ));
+
+      const req: GenerateRequest = {
+        config: { id: 'anthropic', apiKey: fakeKey },
+        model: 'claude-3-5-sonnet',
+        prompt: textPrompt,
+        signal: new AbortController().signal,
+        onDelta: () => {},
+      };
+
+      await expect(adapter.generate(req)).rejects.toMatchObject({
+        category: 'unknown',
+      });
+    });
+
+    it('rejects with unknown AppError when stream produces zero text', async () => {
+      const emptySse = [
+        'event: message_start',
+        'data: {"type":"message_start","message":{"id":"msg_01fake","type":"message","role":"assistant","content":[],"model":"claude-3-5-sonnet"}}',
+        '',
+        'event: message_stop',
+        'data: {"type":"message_stop"}',
+        '',
+      ].join('\n');
+
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+        new Response(emptySse, {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream' },
+        })
+      ));
+
+      const req: GenerateRequest = {
+        config: { id: 'anthropic', apiKey: fakeKey },
+        model: 'claude-3-5-sonnet',
+        prompt: textPrompt,
+        signal: new AbortController().signal,
+        onDelta: () => {},
+      };
+
+      await expect(adapter.generate(req)).rejects.toMatchObject({
+        category: 'unknown',
+      });
+    });
+
     it('maps HTTP errors (401, 404, 413, 429, 500)', async () => {
       const testStatus = async (status: number, body: string, retryAfter?: string) => {
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue(

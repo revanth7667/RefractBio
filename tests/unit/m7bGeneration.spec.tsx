@@ -660,6 +660,67 @@ describe('Milestone M7b Generation and Right Pane UI', () => {
     });
   });
 
+  it('dispatches FAIL and preserves previous draft when stream ends with zero text or without terminal event', async () => {
+    let callCount = 0;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string | URL | Request) => {
+        const urlStr = String(url);
+        if (urlStr.includes('/models')) {
+          return new Response(
+            JSON.stringify({
+              data: [{ id: 'claude-3-5-sonnet', display_name: 'Claude 3.5 Sonnet' }],
+            }),
+            { status: 200 },
+          );
+        }
+
+        callCount++;
+        if (callCount === 1) {
+          return new Response(makeAnthropicStream('Initial good draft content'), {
+            status: 200,
+            headers: { 'content-type': 'text/event-stream' },
+          });
+        }
+        // Second call (Regenerate) returns empty stream (zero text)
+        const emptyStream = [
+          'event: message_start',
+          'data: {"type":"message_start","message":{"id":"msg_01fake","type":"message","role":"assistant","content":[],"model":"claude-3-5-sonnet"}}',
+          '',
+          'event: message_stop',
+          'data: {"type":"message_stop"}',
+          '',
+        ].join('\n');
+        return new Response(emptyStream, {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream' },
+        });
+      }),
+    );
+
+    render(<App />);
+
+    // Unselect other tabs so only Resume is sent
+    fireEvent.click(screen.getByRole('button', { name: /cover letter/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^send$/i }));
+
+    await waitFor(() => {
+      const editor = screen.getByLabelText(/resume draft/i) as HTMLTextAreaElement;
+      expect(editor.value).toBe('Initial good draft content');
+    });
+
+    // Now click Regenerate
+    fireEvent.click(screen.getByRole('button', { name: /^regenerate$/i }));
+
+    // Should fail and show error alert, keeping the initial good draft content
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeTruthy();
+      expect(screen.getByText(/Something went wrong/i)).toBeTruthy();
+      const editor = screen.getByLabelText(/resume draft/i) as HTMLTextAreaElement;
+      expect(editor.value).toBe('Initial good draft content');
+    });
+  });
+
   it('displays "Sending… (n of m)" label and disables Send button while generating', async () => {
     let resolveCall1: (res: Response) => void;
     const promise1 = new Promise<Response>((resolve) => {

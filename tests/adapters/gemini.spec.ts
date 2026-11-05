@@ -271,6 +271,29 @@ describe('Gemini Adapter (tests/adapters/gemini.spec.ts)', () => {
       });
     });
 
+    it('rejects with unknown AppError when stream produces zero text', async () => {
+      const emptySse = 'data: {"candidates":[{"finishReason":"STOP","index":0}]}\n\n';
+
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+        new Response(emptySse, {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream' },
+        })
+      ));
+
+      const req: GenerateRequest = {
+        config: { id: 'gemini', apiKey: fakeKey },
+        model: 'gemini-1.5-pro',
+        prompt: textPrompt,
+        signal: new AbortController().signal,
+        onDelta: () => {},
+      };
+
+      await expect(adapter.generate(req)).rejects.toMatchObject({
+        category: 'unknown',
+      });
+    });
+
     it('maps HTTP error statuses', async () => {
       const testStatus = async (status: number, body: string, retryAfter?: string) => {
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
