@@ -235,5 +235,100 @@ describe('Storage Module', () => {
       expect(normalized.selectedModel).toEqual({ anthropic: '', gemini: '' });
     });
   });
+
+  describe('Stored item shape validation (§9.2, finding B2/B3)', () => {
+    it('returns schema_mismatch for masterInfo when data is null, primitive, or missing string text', () => {
+      const fullKey = getPrefixedKey('masterInfo');
+      const invalidPayloads = [
+        { schemaVersion: SCHEMA_VERSION, savedAt: new Date().toISOString(), data: null },
+        { schemaVersion: SCHEMA_VERSION, savedAt: new Date().toISOString(), data: 123 },
+        { schemaVersion: SCHEMA_VERSION, savedAt: new Date().toISOString(), data: 'plain string' },
+        { schemaVersion: SCHEMA_VERSION, savedAt: new Date().toISOString(), data: [] },
+        { schemaVersion: SCHEMA_VERSION, savedAt: new Date().toISOString(), data: {} },
+        { schemaVersion: SCHEMA_VERSION, savedAt: new Date().toISOString(), data: { text: 123 } },
+      ];
+
+      for (const payload of invalidPayloads) {
+        localStorage.setItem(fullKey, JSON.stringify(payload));
+        const res = storage.get('masterInfo');
+        expect(res.ok).toBe(false);
+        if (!res.ok) {
+          expect(res.reason).toBe('schema_mismatch');
+        }
+      }
+    });
+
+    it('returns schema_mismatch for instructions when data is null, primitive, or missing string text', () => {
+      const fullKey = getPrefixedKey('instructions');
+      const invalidPayloads = [
+        { schemaVersion: SCHEMA_VERSION, savedAt: new Date().toISOString(), data: null },
+        { schemaVersion: SCHEMA_VERSION, savedAt: new Date().toISOString(), data: 123 },
+        { schemaVersion: SCHEMA_VERSION, savedAt: new Date().toISOString(), data: 'plain string' },
+        { schemaVersion: SCHEMA_VERSION, savedAt: new Date().toISOString(), data: [] },
+        { schemaVersion: SCHEMA_VERSION, savedAt: new Date().toISOString(), data: {} },
+        { schemaVersion: SCHEMA_VERSION, savedAt: new Date().toISOString(), data: { text: 123 } },
+      ];
+
+      for (const payload of invalidPayloads) {
+        localStorage.setItem(fullKey, JSON.stringify(payload));
+        const res = storage.get('instructions');
+        expect(res.ok).toBe(false);
+        if (!res.ok) {
+          expect(res.reason).toBe('schema_mismatch');
+        }
+      }
+    });
+
+    it('returns schema_mismatch for apiKeys when data is null, primitive, array, or contains non-string values', () => {
+      const fullKey = getPrefixedKey('apiKeys');
+      const invalidPayloads = [
+        { schemaVersion: SCHEMA_VERSION, savedAt: new Date().toISOString(), data: null },
+        { schemaVersion: SCHEMA_VERSION, savedAt: new Date().toISOString(), data: 123 },
+        { schemaVersion: SCHEMA_VERSION, savedAt: new Date().toISOString(), data: 'plain string' },
+        { schemaVersion: SCHEMA_VERSION, savedAt: new Date().toISOString(), data: ['sk-test'] },
+        { schemaVersion: SCHEMA_VERSION, savedAt: new Date().toISOString(), data: { anthropic: 123 } },
+      ];
+
+      for (const payload of invalidPayloads) {
+        localStorage.setItem(fullKey, JSON.stringify(payload));
+        const res = storage.get('apiKeys');
+        expect(res.ok).toBe(false);
+        if (!res.ok) {
+          expect(res.reason).toBe('schema_mismatch');
+        }
+      }
+    });
+
+    it('returns schema_mismatch for settings when data is null, primitive, or array', () => {
+      const fullKey = getPrefixedKey('settings');
+      const invalidPayloads = [
+        { schemaVersion: SCHEMA_VERSION, savedAt: new Date().toISOString(), data: null },
+        { schemaVersion: SCHEMA_VERSION, savedAt: new Date().toISOString(), data: 123 },
+        { schemaVersion: SCHEMA_VERSION, savedAt: new Date().toISOString(), data: 'plain string' },
+        { schemaVersion: SCHEMA_VERSION, savedAt: new Date().toISOString(), data: [] },
+      ];
+
+      for (const payload of invalidPayloads) {
+        localStorage.setItem(fullKey, JSON.stringify(payload));
+        const res = storage.get('settings');
+        expect(res.ok).toBe(false);
+        if (!res.ok) {
+          expect(res.reason).toBe('schema_mismatch');
+        }
+      }
+    });
+
+    it('loads valid shapes for all four items successfully', () => {
+      storage.set('masterInfo', { text: 'my info', updatedAt: new Date().toISOString() });
+      storage.set('instructions', { text: 'my instructions', updatedAt: new Date().toISOString() });
+      storage.set('apiKeys', { anthropic: 'test-key' });
+      storage.set('settings', { theme: 'dark' });
+
+      expect(storage.get('masterInfo').ok).toBe(true);
+      expect(storage.get('instructions').ok).toBe(true);
+      expect(storage.get('apiKeys').ok).toBe(true);
+      expect(storage.get('settings').ok).toBe(true);
+    });
+  });
 });
 
