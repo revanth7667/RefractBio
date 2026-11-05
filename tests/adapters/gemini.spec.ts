@@ -271,6 +271,59 @@ describe('Gemini Adapter (tests/adapters/gemini.spec.ts)', () => {
       });
     });
 
+    it('rejects with safety_blocked when stream has promptFeedback.blockReason and no text', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+        new Response(readFixture('gemini-blocked.txt'), {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream' },
+        })
+      ));
+
+      const req: GenerateRequest = {
+        config: { id: 'gemini', apiKey: fakeKey },
+        model: 'gemini-1.5-pro',
+        prompt: textPrompt,
+        signal: new AbortController().signal,
+        onDelta: () => {},
+      };
+
+      await expect(adapter.generate(req)).rejects.toMatchObject({
+        category: 'safety_blocked',
+      });
+    });
+
+    it.each(['SAFETY', 'BLOCKLIST', 'PROHIBITED_CONTENT'] as const)(
+      'rejects with safety_blocked when candidate has blocking finishReason %s and no text',
+      async (finishReason) => {
+        const baseBlocked = JSON.parse(readFixture('gemini-blocked.txt').replace(/^data:\s*/, '')) as {
+          candidates: Array<{ finishReason: string; index: number; safetyRatings?: unknown[] }>;
+          promptFeedback?: unknown;
+        };
+        delete baseBlocked.promptFeedback;
+        baseBlocked.candidates[0].finishReason = finishReason;
+        const sse = `data: ${JSON.stringify(baseBlocked)}\n\n`;
+
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+          new Response(sse, {
+            status: 200,
+            headers: { 'content-type': 'text/event-stream' },
+          })
+        ));
+
+        const req: GenerateRequest = {
+          config: { id: 'gemini', apiKey: fakeKey },
+          model: 'gemini-1.5-pro',
+          prompt: textPrompt,
+          signal: new AbortController().signal,
+          onDelta: () => {},
+        };
+
+        await expect(adapter.generate(req)).rejects.toMatchObject({
+          category: 'safety_blocked',
+        });
+      }
+    );
+
     it('rejects with unknown AppError when stream produces zero text', async () => {
       const emptySse = 'data: {"candidates":[{"finishReason":"STOP","index":0}]}\n\n';
 
