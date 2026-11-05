@@ -356,5 +356,60 @@ describe('GenerationQueue (pure module §14.2)', () => {
       await p1;
       expect(job2Started).toBe(false);
     });
+
+    it('retains active job and cancellability when a new job with same key is enqueued while previous is settling', async () => {
+      const queue = new GenerationQueue<string>(2);
+      let job1ResolveSettling!: () => void;
+      const job1SettlingPromise = new Promise<void>((r) => {
+        job1ResolveSettling = r;
+      });
+
+      let job2Started = false;
+      let job2ResolveSettling!: () => void;
+      const job2SettlingPromise = new Promise<void>((r) => {
+        job2ResolveSettling = r;
+      });
+
+      // Start job 1
+      const p1 = queue.enqueue('task1', async (signal) => {
+        await new Promise<void>((_, reject) => {
+          signal.addEventListener('abort', async () => {
+            await job1SettlingPromise;
+            reject(new DOMException('Aborted', 'AbortError'));
+          });
+        });
+      });
+
+      expect(queue.isRunning('task1')).toBe(true);
+
+      // Cancel job 1 so it is aborted and begins settling
+      const cancelled1 = queue.cancel('task1');
+      expect(cancelled1).toBe(true);
+
+      // Enqueue job 2 with the same key while job 1 is still settling
+      const p2 = queue.enqueue('task1', async (signal) => {
+        job2Started = true;
+        await new Promise<void>((_, reject) => {
+          signal.addEventListener('abort', async () => {
+            await job2SettlingPromise;
+            reject(new DOMException('Aborted', 'AbortError'));
+          });
+        });
+      });
+
+      expect(job2Started).toBe(true);
+
+      // Now let job 1 finish settling
+      job1ResolveSettling();
+      await p1.catch(() => {});
+
+      // Assert job 2 is still running/pending and cancellable
+      expect(queue.isRunning('task1')).toBe(true);
+      expect(queue.isPending('task1')).toBe(true);
+      expect(queue.cancel('task1')).toBe(true);
+
+      job2ResolveSettling();
+      await p2.catch(() => {});
+    });
   });
 });
