@@ -8,6 +8,8 @@ const md = new MarkdownIt({
   typographer: false,
 });
 
+let pendingAfterPrintHandler: (() => void) | null = null;
+
 /**
  * Creates or retrieves the dedicated #print-root element.
  */
@@ -60,11 +62,18 @@ export function printDocument(
   const pageRule = paperSize === 'a4' ? 'A4' : 'letter';
   styleEl.textContent = `@page { size: ${pageRule}; margin: 1.9cm; }`;
 
+  if (pendingAfterPrintHandler) {
+    window.removeEventListener('afterprint', pendingAfterPrintHandler);
+    pendingAfterPrintHandler = null;
+  }
+
   const handleAfterPrint = () => {
     printRoot.innerHTML = '';
     window.removeEventListener('afterprint', handleAfterPrint);
+    pendingAfterPrintHandler = null;
   };
-  window.addEventListener('afterprint', handleAfterPrint);
+  pendingAfterPrintHandler = handleAfterPrint;
+  window.addEventListener('afterprint', handleAfterPrint, { once: true });
 
   invokePrint();
 }
