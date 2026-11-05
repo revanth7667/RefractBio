@@ -494,6 +494,172 @@ describe('Milestone M7b Generation and Right Pane UI', () => {
     expect(generateCallCount).toBe(2);
   });
 
+  it('produces a mapped AppError in the tab (not a raw message) when Anthropic stream drops mid-stream with TypeError', async () => {
+    const encoder = new TextEncoder();
+    let sentChunk = false;
+    const stream = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (!sentChunk) {
+          sentChunk = true;
+          controller.enqueue(
+            encoder.encode(
+              'event: content_block_delta\ndata: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Partial Anthropic text"}}\n\n'
+            )
+          );
+        } else {
+          controller.error(new TypeError('Connection reset mid-stream'));
+        }
+      },
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string | URL | Request) => {
+        const urlStr = String(url);
+        if (urlStr.includes('/messages')) {
+          return new Response(stream, {
+            status: 200,
+            headers: { 'content-type': 'text/event-stream' },
+          });
+        }
+        return Promise.reject(new Error(`Unhandled URL: ${urlStr}`));
+      })
+    );
+
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: /cover letter/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^send$/i }));
+
+    await waitFor(() => {
+      const alert = screen.getByRole('alert');
+      const mainMsg = alert.querySelector('.font-medium');
+      expect(mainMsg?.textContent).toContain('was blocked before it reached the provider');
+      expect(mainMsg?.textContent).not.toBe('Connection reset mid-stream');
+    });
+  });
+
+  it('produces a mapped AppError in the tab (not a raw message) when Gemini stream drops mid-stream with TypeError', async () => {
+    storage.set('settings', {
+      selectedProvider: 'gemini',
+      selectedModel: { anthropic: 'claude-3-5-sonnet', gemini: 'gemini-1.5-flash' },
+      rememberKeys: true,
+      theme: 'system',
+      paperSize: 'letter',
+      showAllModels: false,
+    });
+
+    const encoder = new TextEncoder();
+    let sentChunk = false;
+    const stream = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (!sentChunk) {
+          sentChunk = true;
+          controller.enqueue(
+            encoder.encode(
+              'data: {"candidates":[{"content":{"parts":[{"text":"Partial Gemini text"}]}}]}\n\n'
+            )
+          );
+        } else {
+          controller.error(new TypeError('Socket abruptly closed'));
+        }
+      },
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string | URL | Request) => {
+        const urlStr = String(url);
+        if (urlStr.includes('streamGenerateContent')) {
+          return new Response(stream, {
+            status: 200,
+            headers: { 'content-type': 'text/event-stream' },
+          });
+        }
+        return Promise.reject(new Error(`Unhandled URL: ${urlStr}`));
+      })
+    );
+
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: /cover letter/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^send$/i }));
+
+    await waitFor(() => {
+      const alert = screen.getByRole('alert');
+      const mainMsg = alert.querySelector('.font-medium');
+      expect(mainMsg?.textContent).toContain('was blocked before it reached the provider');
+      expect(mainMsg?.textContent).not.toBe('Socket abruptly closed');
+    });
+  });
+
+  it('yields the abort path and not an error when abort occurs during stream read', async () => {
+    const encoder = new TextEncoder();
+    let streamController!: ReadableStreamDefaultController;
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (_url: string | URL | Request, init?: RequestInit) => {
+        const signal = init?.signal as AbortSignal;
+        const stream = new ReadableStream({
+          start(controller) {
+            streamController = controller;
+            signal?.addEventListener('abort', () => {
+              try {
+                controller.error(new DOMException('The operation was aborted.', 'AbortError'));
+              } catch {
+                // Ignore if already closed
+              }
+            });
+          },
+        });
+        return new Response(stream, {
+          status: 200,
+          headers: { 'Content-Type': 'text/event-stream' },
+        });
+      }),
+    );
+
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: /cover letter/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^send$/i }));
+
+    // Wait for stream to start and Stop button to appear
+    await waitFor(() => {
+      expect(streamController).toBeDefined();
+      expect(screen.getByRole('button', { name: 'Stop Resume' })).toBeTruthy();
+    });
+
+    // Push partial delta so editor has streaming text
+    const sseChunk = [
+      'event: content_block_delta',
+      'data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Partial text"}}',
+      '',
+      '',
+    ].join('\n');
+
+    act(() => {
+      streamController.enqueue(encoder.encode(sseChunk));
+    });
+
+    await waitFor(() => {
+      const editor = screen.getByLabelText(/resume draft/i) as HTMLTextAreaElement;
+      expect(editor.value).toContain('Partial text');
+    });
+
+    // Click Stop Resume during read
+    fireEvent.click(screen.getByRole('button', { name: 'Stop Resume' }));
+
+    // Abort path taken: status is done (or idle), partial text kept with stopped notice, NOT error callout
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: /^retry$/i })).toBeNull();
+      expect(screen.queryByText(/was blocked before it reached/i)).toBeNull();
+      expect(screen.queryByText(/something went wrong/i)).toBeNull();
+      expect(screen.getByText(/Stopped early\. This draft is incomplete\./i)).toBeTruthy();
+    });
+  });
+
   it('displays "Sending… (n of m)" label and disables Send button while generating', async () => {
     let resolveCall1: (res: Response) => void;
     const promise1 = new Promise<Response>((resolve) => {

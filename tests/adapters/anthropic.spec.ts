@@ -93,6 +93,84 @@ describe('Anthropic Adapter (tests/adapters/anthropic.spec.ts)', () => {
       expect(result.truncated).toBe(false);
     });
 
+    it('maps mid-stream read TypeError to cors_or_network AppError', async () => {
+      const encoder = new TextEncoder();
+      let sentChunk = false;
+      const stream = new ReadableStream<Uint8Array>({
+        pull(controller) {
+          if (!sentChunk) {
+            sentChunk = true;
+            controller.enqueue(
+              encoder.encode('event: content_block_delta\ndata: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"hello"}}\n\n')
+            );
+          } else {
+            controller.error(new TypeError('Mid-stream network drop'));
+          }
+        },
+      });
+
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+        new Response(stream, {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream' },
+        })
+      ));
+
+      const deltas: string[] = [];
+      const req: GenerateRequest = {
+        config: { id: 'anthropic', apiKey: fakeKey },
+        model: 'claude-3-5-sonnet',
+        prompt: textPrompt,
+        signal: new AbortController().signal,
+        onDelta: (text) => deltas.push(text),
+      };
+
+      await expect(adapter.generate(req)).rejects.toMatchObject({
+        category: 'cors_or_network',
+      });
+      expect(deltas).toEqual(['hello']);
+    });
+
+    it('re-throws mid-stream abort error as an abort, never as an error', async () => {
+      const encoder = new TextEncoder();
+      let sentChunk = false;
+      const stream = new ReadableStream<Uint8Array>({
+        pull(controller) {
+          if (!sentChunk) {
+            sentChunk = true;
+            controller.enqueue(
+              encoder.encode('event: content_block_delta\ndata: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"hello"}}\n\n')
+            );
+          } else {
+            controller.error(new DOMException('The operation was aborted.', 'AbortError'));
+          }
+        },
+      });
+
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+        new Response(stream, {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream' },
+        })
+      ));
+
+      const req: GenerateRequest = {
+        config: { id: 'anthropic', apiKey: fakeKey },
+        model: 'claude-3-5-sonnet',
+        prompt: textPrompt,
+        signal: new AbortController().signal,
+        onDelta: () => {},
+      };
+
+      const errPromise = adapter.generate(req);
+      await expect(errPromise).rejects.toSatisfy((err: unknown) => {
+        return (
+          (err instanceof DOMException && err.name === 'AbortError') ||
+          (err instanceof Error && err.name === 'AbortError')
+        );
+      });
+    });
+
     it('formats image and PDF parts correctly in payload', async () => {
       let capturedBodyJson: { messages: Array<{ role: string; content: unknown[] }> } | null = null;
 

@@ -3,6 +3,8 @@ import {
   mapProviderError,
   extractHost,
   parseRetryAfter,
+  isAppError,
+  toAppError,
 } from '../../src/providers/errors';
 
 describe('Error Mapping & Host Extraction (src/providers/errors.ts)', () => {
@@ -267,6 +269,36 @@ describe('Error Mapping & Host Extraction (src/providers/errors.ts)', () => {
       expect(err.category).toBe('bad_request');
       expect(err.httpStatus).toBe(400);
       expect(err.message).toBe('The provider rejected the request: Invalid safety configuration requested');
+    });
+
+    it('isAppError accepts real AppError shapes and rejects non-AppError shapes', () => {
+      expect(isAppError({ category: 'rate_limit', message: 'Rate limited' })).toBe(true);
+      expect(isAppError({ category: 'unknown', message: 'Unknown error', detail: 'foo' })).toBe(true);
+      expect(isAppError(null)).toBe(false);
+      expect(isAppError(undefined)).toBe(false);
+      expect(isAppError('just a string')).toBe(false);
+      expect(isAppError(new Error('plain error'))).toBe(false);
+      expect(isAppError({ category: 'invalid_category', message: 'test' })).toBe(false);
+      expect(isAppError({ category: 'rate_limit' })).toBe(false);
+    });
+
+    it('toAppError preserves real AppError shapes identically', () => {
+      const realErr = { category: 'auth' as const, message: 'Auth failed', httpStatus: 401 };
+      expect(toAppError(realErr)).toBe(realErr);
+    });
+
+    it('toAppError maps a thrown string to generic unknown AppError with detail', () => {
+      const err = toAppError('unexpected string error');
+      expect(err.category).toBe('unknown');
+      expect(err.message).toBe('Something went wrong: unexpected string error');
+      expect(err.detail).toBe('unexpected string error');
+    });
+
+    it('toAppError maps a thrown plain Error to generic unknown AppError with detail', () => {
+      const err = toAppError(new Error('plain Error message'));
+      expect(err.category).toBe('unknown');
+      expect(err.message).toBe('Something went wrong: plain Error message');
+      expect(err.detail).toBe('plain Error message');
     });
   });
 });

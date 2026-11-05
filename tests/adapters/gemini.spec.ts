@@ -90,6 +90,84 @@ describe('Gemini Adapter (tests/adapters/gemini.spec.ts)', () => {
       expect(result.truncated).toBe(false);
     });
 
+    it('maps mid-stream read TypeError to cors_or_network AppError', async () => {
+      const encoder = new TextEncoder();
+      let sentChunk = false;
+      const stream = new ReadableStream<Uint8Array>({
+        pull(controller) {
+          if (!sentChunk) {
+            sentChunk = true;
+            controller.enqueue(
+              encoder.encode('data: {"candidates":[{"content":{"parts":[{"text":"hello"}]}}]}\n\n')
+            );
+          } else {
+            controller.error(new TypeError('Mid-stream network drop'));
+          }
+        },
+      });
+
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+        new Response(stream, {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream' },
+        })
+      ));
+
+      const deltas: string[] = [];
+      const req: GenerateRequest = {
+        config: { id: 'gemini', apiKey: fakeKey },
+        model: 'gemini-1.5-pro',
+        prompt: textPrompt,
+        signal: new AbortController().signal,
+        onDelta: (text) => deltas.push(text),
+      };
+
+      await expect(adapter.generate(req)).rejects.toMatchObject({
+        category: 'cors_or_network',
+      });
+      expect(deltas).toEqual(['hello']);
+    });
+
+    it('re-throws mid-stream abort error as an abort, never as an error', async () => {
+      const encoder = new TextEncoder();
+      let sentChunk = false;
+      const stream = new ReadableStream<Uint8Array>({
+        pull(controller) {
+          if (!sentChunk) {
+            sentChunk = true;
+            controller.enqueue(
+              encoder.encode('data: {"candidates":[{"content":{"parts":[{"text":"hello"}]}}]}\n\n')
+            );
+          } else {
+            controller.error(new DOMException('The operation was aborted.', 'AbortError'));
+          }
+        },
+      });
+
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+        new Response(stream, {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream' },
+        })
+      ));
+
+      const req: GenerateRequest = {
+        config: { id: 'gemini', apiKey: fakeKey },
+        model: 'gemini-1.5-pro',
+        prompt: textPrompt,
+        signal: new AbortController().signal,
+        onDelta: () => {},
+      };
+
+      const errPromise = adapter.generate(req);
+      await expect(errPromise).rejects.toSatisfy((err: unknown) => {
+        return (
+          (err instanceof DOMException && err.name === 'AbortError') ||
+          (err instanceof Error && err.name === 'AbortError')
+        );
+      });
+    });
+
     it('concatenates text from all parts of each candidate chunk and keeps raw finishReason', async () => {
       const multiPartSse = [
         'data: {"candidates":[{"content":{"parts":[{"text":"Hello "},{"text":"world!"}]}}]}',
