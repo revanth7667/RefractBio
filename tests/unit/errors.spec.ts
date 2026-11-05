@@ -224,5 +224,49 @@ describe('Error Mapping & Host Extraction (src/providers/errors.ts)', () => {
       expect(err.category).toBe('bad_request');
       expect(err.message).toBe('The provider rejected the request: Input was blocked by schema validation');
     });
+
+    it('maps HTTP 429 mentioning safety or blocked to rate_limit, not safety_blocked', () => {
+      const err = mapProviderError({
+        provider: 'Anthropic',
+        httpStatus: 429,
+        bodyText: JSON.stringify({ error: { message: 'Rate limit blocked: safety tier quota exceeded' } }),
+      });
+      expect(err.category).toBe('rate_limit');
+      expect(err.httpStatus).toBe(429);
+      expect(err.message).toContain('Rate limit reached for Anthropic');
+    });
+
+    it('maps HTTP 500 mentioning safety or blocked to server, not safety_blocked', () => {
+      const err = mapProviderError({
+        provider: 'Anthropic',
+        httpStatus: 500,
+        bodyText: JSON.stringify({ error: { message: 'Internal server error: safety check service blocked' } }),
+      });
+      expect(err.category).toBe('server');
+      expect(err.httpStatus).toBe(500);
+      expect(err.message).toBe('Anthropic had a server problem. Press Retry in a moment.');
+    });
+
+    it('maps HTTP 503 mentioning safety or blocked to server, not safety_blocked', () => {
+      const err = mapProviderError({
+        provider: 'Gemini',
+        httpStatus: 503,
+        bodyText: JSON.stringify({ error: { message: 'Service unavailable: blocked request during failover' } }),
+      });
+      expect(err.category).toBe('server');
+      expect(err.httpStatus).toBe(503);
+      expect(err.message).toBe('Gemini had a server problem. Press Retry in a moment.');
+    });
+
+    it('maps HTTP 400 mentioning safety to bad_request, not safety_blocked per SPEC §13.5', () => {
+      const err = mapProviderError({
+        provider: 'Anthropic',
+        httpStatus: 400,
+        bodyText: JSON.stringify({ error: { message: 'Invalid safety configuration requested' } }),
+      });
+      expect(err.category).toBe('bad_request');
+      expect(err.httpStatus).toBe(400);
+      expect(err.message).toBe('The provider rejected the request: Invalid safety configuration requested');
+    });
   });
 });
