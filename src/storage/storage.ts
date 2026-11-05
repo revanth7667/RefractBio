@@ -174,7 +174,36 @@ export function get<T>(key: StorageKey): StorageResult<T> {
       };
     }
 
-    if (key === 'settings') {
+    if (key === 'masterInfo') {
+      if (!parsed.data || typeof parsed.data !== 'object' || Array.isArray(parsed.data)) {
+        return { ok: false, reason: 'schema_mismatch', message: 'Invalid masterInfo data shape' };
+      }
+      const dataObj = parsed.data as Record<string, unknown>;
+      if (typeof dataObj.text !== 'string') {
+        return { ok: false, reason: 'schema_mismatch', message: 'Invalid masterInfo data shape' };
+      }
+    } else if (key === 'instructions') {
+      if (!parsed.data || typeof parsed.data !== 'object' || Array.isArray(parsed.data)) {
+        return { ok: false, reason: 'schema_mismatch', message: 'Invalid instructions data shape' };
+      }
+      const dataObj = parsed.data as Record<string, unknown>;
+      if (typeof dataObj.text !== 'string') {
+        return { ok: false, reason: 'schema_mismatch', message: 'Invalid instructions data shape' };
+      }
+    } else if (key === 'apiKeys') {
+      if (!parsed.data || typeof parsed.data !== 'object' || Array.isArray(parsed.data)) {
+        return { ok: false, reason: 'schema_mismatch', message: 'Invalid apiKeys data shape' };
+      }
+      const dataObj = parsed.data as Record<string, unknown>;
+      for (const val of Object.values(dataObj)) {
+        if (typeof val !== 'string') {
+          return { ok: false, reason: 'schema_mismatch', message: 'Invalid apiKeys data shape' };
+        }
+      }
+    } else if (key === 'settings') {
+      if (!parsed.data || typeof parsed.data !== 'object' || Array.isArray(parsed.data)) {
+        return { ok: false, reason: 'schema_mismatch', message: 'Invalid settings data shape' };
+      }
       return { ok: true, value: normalizeSettings(parsed.data) as T };
     }
 

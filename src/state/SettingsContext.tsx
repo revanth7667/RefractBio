@@ -46,6 +46,22 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<string>('providers');
 
+  const [settingsLoadError] = useState<'parse_error' | 'schema_mismatch' | null>(() => {
+    const res = storage.get<Settings>('settings');
+    if (!res.ok && (res.reason === 'parse_error' || res.reason === 'schema_mismatch')) {
+      return res.reason;
+    }
+    return null;
+  });
+
+  const [apiKeysLoadError] = useState<'parse_error' | 'schema_mismatch' | null>(() => {
+    const res = storage.get<Partial<Record<ProviderId, string>>>('apiKeys');
+    if (!res.ok && (res.reason === 'parse_error' || res.reason === 'schema_mismatch')) {
+      return res.reason;
+    }
+    return null;
+  });
+
   const openSettings = (tab?: string) => {
     if (tab) {
       setSettingsTab(tab);
@@ -104,7 +120,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         if (firstDefault) {
           const nextSelected = { ...prevSettings.selectedModel, [providerId]: firstDefault.id };
           const next = { ...prevSettings, selectedModel: nextSelected };
-          storage.set('settings', next);
+          if (!settingsLoadError) {
+            storage.set('settings', next);
+          }
           return next;
         }
       }
@@ -148,7 +166,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const updateSettings = (updates: Partial<Settings>) => {
     setSettingsState((prev) => {
       const next = { ...prev, ...updates };
-      storage.set('settings', next);
+      if (!settingsLoadError) {
+        storage.set('settings', next);
+      }
       return next;
     });
   };
@@ -169,7 +189,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       }
       const nextShowAll = { ...prev.showAllModels, [provider]: show };
       const next = { ...prev, showAllModels: nextShowAll };
-      storage.set('settings', next);
+      if (!settingsLoadError) {
+        storage.set('settings', next);
+      }
       return next;
     });
   };
@@ -178,7 +200,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     setSettingsState((prev) => {
       const nextSelected = { ...prev.selectedModel, [provider]: model };
       const next = { ...prev, selectedModel: nextSelected };
-      storage.set('settings', next);
+      if (!settingsLoadError) {
+        storage.set('settings', next);
+      }
       return next;
     });
   };
@@ -186,7 +210,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const setApiKey = (provider: ProviderId, key: string) => {
     setApiKeysState((prev) => {
       const next = { ...prev, [provider]: key };
-      if (settings.rememberKeys) {
+      if (settings.rememberKeys && !apiKeysLoadError) {
         storage.set('apiKeys', next);
       }
       return next;
@@ -196,7 +220,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const setRememberKeys = (remember: boolean) => {
     updateSettings({ rememberKeys: remember });
     if (remember) {
-      storage.set('apiKeys', apiKeys);
+      if (!apiKeysLoadError) {
+        storage.set('apiKeys', apiKeys);
+      }
     } else {
       storage.remove('apiKeys');
     }
