@@ -44,7 +44,9 @@ test.describe('E2E smoke test (§19.5)', () => {
       if (
         !url.startsWith('http://localhost') &&
         !url.startsWith('http://127.0.0.1') &&
-        !url.startsWith('https://api.anthropic.com')
+        !url.startsWith('https://api.anthropic.com') &&
+        !url.startsWith('blob:') &&
+        !url.startsWith('data:')
       ) {
         externalRequests.push(url);
       }
@@ -202,6 +204,13 @@ test.describe('E2E smoke test (§19.5)', () => {
     await linkedinTab.click();
     await expect(page.getByRole('button', { name: /copy connection note/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /copy direct message/i })).toBeVisible();
+    await page.getByRole('button', { name: /copy connection note/i }).click();
+
+    // Trigger download .md per SPEC §18.3 end-of-flow requirements
+    await resumeTab.click();
+    const downloadPromise = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Download .md' }).click();
+    await downloadPromise;
 
     // Answers tab shows ### headings
     await answersTab.click();
@@ -299,5 +308,9 @@ test.describe('E2E smoke test (§19.5)', () => {
 
     const cspViolations = await page.evaluate(() => window.__cspViolations || []);
     expect(cspViolations).toEqual([]);
+
+    // Assert at the end of the full flow (after generation, copy, download, clear, reload)
+    // that the only external hosts contacted are the mocked provider endpoints (SPEC §18.3)
+    expect(externalRequests).toEqual([]);
   });
 });
