@@ -607,4 +607,204 @@ describe('Milestone M8 Multi-output Queue, Versions, Stale Badge, and Clear', ()
       expect(removes.length).toBe(adds.length);
     });
   });
+
+  describe('Per-tab Regenerate/Retry Send-Blocker Gating (§17.3, §14.3)', () => {
+    it('(i) with Master Info unedited sample, Regenerate of an existing draft sends no request and the button is disabled', async () => {
+      let callCount = 0;
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockImplementation(async (url: string) => {
+          if (url.includes('/models')) {
+            return new Response(JSON.stringify({ data: [{ id: 'claude-3-5-sonnet', display_name: 'Claude 3.5 Sonnet' }] }), {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            });
+          }
+          callCount++;
+          return new Response(makeAnthropicStream(`Resume version ${callCount}`), {
+            status: 200,
+            headers: { 'content-type': 'text/event-stream' },
+          });
+        }),
+      );
+
+      render(<App />);
+
+      // Only Resume selected
+      fireEvent.click(screen.getByRole('button', { name: /cover letter/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^send$/i }));
+
+      await waitFor(() => {
+        expect(callCount).toBe(1);
+        expect(screen.getByLabelText(/resume draft/i)).toBeTruthy();
+      });
+
+      const regenBtn = screen.getByRole('button', { name: /regenerate/i });
+      expect(regenBtn.hasAttribute('disabled')).toBe(false);
+
+      // Re-introduce unedited sample marker into Master Info
+      fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+      const masterInfoTab = await screen.findByRole('tab', { name: /master info/i });
+      fireEvent.keyDown(masterInfoTab, { key: 'Enter', code: 'Enter' });
+      const editor = await screen.findByRole('textbox', { name: 'Master Info' });
+      fireEvent.change(editor, {
+        target: { value: '<!-- TEMPLATE-UNEDITED: delete this line -->\n# Jordan Smith\nSenior Data Analyst' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /^save$/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^close$/i }));
+
+      // Regenerate button must be disabled and linked to blocker reason
+      expect(regenBtn.hasAttribute('disabled')).toBe(true);
+      expect(regenBtn.getAttribute('aria-describedby')).toBe('send-blocker-reason');
+
+      // Attempting to click sends no request
+      fireEvent.click(regenBtn);
+      expect(callCount).toBe(1);
+    });
+
+    it('(ii) same with empty job context on Answers draft, Regenerate sends no request and the button is disabled', async () => {
+      let callCount = 0;
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockImplementation(async (url: string) => {
+          if (url.includes('/models')) {
+            return new Response(JSON.stringify({ data: [{ id: 'claude-3-5-sonnet', display_name: 'Claude 3.5 Sonnet' }] }), {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            });
+          }
+          callCount++;
+          return new Response(makeAnthropicStream(`Answers version ${callCount}`), {
+            status: 200,
+            headers: { 'content-type': 'text/event-stream' },
+          });
+        }),
+      );
+
+      render(<App />);
+
+      // Unselect Resume and Cover Letter, select Answers
+      fireEvent.click(screen.getByRole('button', { name: /resume/i }));
+      fireEvent.click(screen.getByRole('button', { name: /cover letter/i }));
+      fireEvent.click(screen.getByRole('button', { name: /application answers/i }));
+
+      // Provide questions so Send is not blocked initially
+      const questionsArea = screen.getByLabelText(/application questions/i);
+      fireEvent.change(questionsArea, { target: { value: '1. Why RefractBio?' } });
+
+      fireEvent.click(screen.getByRole('button', { name: /^send$/i }));
+
+      await waitFor(() => {
+        expect(callCount).toBe(1);
+        expect(screen.getByLabelText(/answers draft/i)).toBeTruthy();
+      });
+
+      const regenBtn = screen.getByRole('button', { name: /regenerate/i });
+      expect(regenBtn.hasAttribute('disabled')).toBe(false);
+
+      // Clear questions and ensure no attachments exist (empty job context for Answers)
+      fireEvent.change(questionsArea, { target: { value: '   ' } });
+
+      // Regenerate button on Answers must be disabled and linked to blocker reason
+      expect(regenBtn.hasAttribute('disabled')).toBe(true);
+      expect(regenBtn.getAttribute('aria-describedby')).toBe('send-blocker-reason');
+
+      // Attempting to click sends no request
+      fireEvent.click(regenBtn);
+      expect(callCount).toBe(1);
+    });
+
+    it('(iii) with an attachment in an error state, Regenerate sends no request and the button is disabled', async () => {
+      let callCount = 0;
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockImplementation(async (url: string) => {
+          if (url.includes('/models')) {
+            return new Response(JSON.stringify({ data: [{ id: 'claude-3-5-sonnet', display_name: 'Claude 3.5 Sonnet' }] }), {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            });
+          }
+          callCount++;
+          return new Response(makeAnthropicStream(`Resume version ${callCount}`), {
+            status: 200,
+            headers: { 'content-type': 'text/event-stream' },
+          });
+        }),
+      );
+
+      render(<App />);
+
+      // Only Resume selected
+      fireEvent.click(screen.getByRole('button', { name: /cover letter/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^send$/i }));
+
+      await waitFor(() => {
+        expect(callCount).toBe(1);
+        expect(screen.getByLabelText(/resume draft/i)).toBeTruthy();
+      });
+
+      const regenBtn = screen.getByRole('button', { name: /regenerate/i });
+      expect(regenBtn.hasAttribute('disabled')).toBe(false);
+
+      // Add a file that enters error status during reading
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      const badText = 'a'.repeat(98) + '\uFFFD\uFFFD';
+      const badFile = new File([badText], 'bad.txt', { type: 'text/plain' });
+      fireEvent.change(fileInput, { target: { files: [badFile] } });
+
+      await waitFor(() => {
+        expect(screen.getByText(/Remove the file marked with an error/i)).toBeTruthy();
+      });
+
+      // Regenerate button must be disabled and linked to blocker reason
+      expect(regenBtn.hasAttribute('disabled')).toBe(true);
+      expect(regenBtn.getAttribute('aria-describedby')).toBe('send-blocker-reason');
+
+      // Attempting to click sends no request
+      fireEvent.click(regenBtn);
+      expect(callCount).toBe(1);
+    });
+
+    it('(iv) when no blocker applies, Regenerate still works', async () => {
+      let callCount = 0;
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockImplementation(async (url: string) => {
+          if (url.includes('/models')) {
+            return new Response(JSON.stringify({ data: [{ id: 'claude-3-5-sonnet', display_name: 'Claude 3.5 Sonnet' }] }), {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            });
+          }
+          callCount++;
+          return new Response(makeAnthropicStream(`Resume version ${callCount}`), {
+            status: 200,
+            headers: { 'content-type': 'text/event-stream' },
+          });
+        }),
+      );
+
+      render(<App />);
+
+      // Only Resume selected
+      fireEvent.click(screen.getByRole('button', { name: /cover letter/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^send$/i }));
+
+      await waitFor(() => {
+        expect(callCount).toBe(1);
+        expect(screen.getByLabelText(/resume draft/i)).toBeTruthy();
+      });
+
+      const regenBtn = screen.getByRole('button', { name: /regenerate/i });
+      expect(regenBtn.hasAttribute('disabled')).toBe(false);
+
+      // Click Regenerate
+      fireEvent.click(regenBtn);
+
+      await waitFor(() => {
+        expect(callCount).toBe(2);
+      });
+    });
+  });
 });
