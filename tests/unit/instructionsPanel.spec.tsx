@@ -101,7 +101,7 @@ describe('Instructions Panel & State (§11.3, §17.4)', () => {
       expect(textarea.value).toBe(defaultInstructionsRaw);
 
       // No amber notice
-      expect(screen.queryByRole('alert', { name: /instructions warnings/i })).toBeNull();
+      expect(screen.queryByLabelText(/instructions warnings/i)).toBeNull();
 
       // Nothing written to storage
       expect(storage.get('instructions').ok).toBe(false);
@@ -206,7 +206,7 @@ describe('Instructions Panel & State (§11.3, §17.4)', () => {
       const textarea = screen.getByRole('textbox', { name: /instructions editor/i });
       fireEvent.change(textarea, { target: { value: misspelledText } });
 
-      const notice = screen.getByRole('alert', { name: /instructions warnings/i });
+      const notice = screen.getByLabelText(/instructions warnings/i);
       expect(notice).toBeTruthy();
       expect(notice.textContent).toContain('(unsaved draft)');
       expect(notice.textContent).toContain('Heading "# COVER LETTER" isn\'t recognised');

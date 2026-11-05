@@ -532,10 +532,9 @@ describe('Milestone M7b Generation and Right Pane UI', () => {
     fireEvent.click(screen.getByRole('button', { name: /^send$/i }));
 
     await waitFor(() => {
-      const alert = screen.getByRole('alert');
-      const mainMsg = alert.querySelector('.font-medium');
-      expect(mainMsg?.textContent).toContain('was blocked before it reached the provider');
-      expect(mainMsg?.textContent).not.toBe('Connection reset mid-stream');
+      const mainMsg = screen.getByText(/was blocked before it reached the provider/i);
+      expect(mainMsg.textContent).toContain('was blocked before it reached the provider');
+      expect(mainMsg.textContent).not.toBe('Connection reset mid-stream');
     });
   });
 
@@ -586,10 +585,9 @@ describe('Milestone M7b Generation and Right Pane UI', () => {
     fireEvent.click(screen.getByRole('button', { name: /^send$/i }));
 
     await waitFor(() => {
-      const alert = screen.getByRole('alert');
-      const mainMsg = alert.querySelector('.font-medium');
-      expect(mainMsg?.textContent).toContain('was blocked before it reached the provider');
-      expect(mainMsg?.textContent).not.toBe('Socket abruptly closed');
+      const mainMsg = screen.getByText(/was blocked before it reached the provider/i);
+      expect(mainMsg.textContent).toContain('was blocked before it reached the provider');
+      expect(mainMsg.textContent).not.toBe('Socket abruptly closed');
     });
   });
 
@@ -714,7 +712,6 @@ describe('Milestone M7b Generation and Right Pane UI', () => {
 
     // Should fail and show error alert, keeping the initial good draft content
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toBeTruthy();
       expect(screen.getByText(/Something went wrong/i)).toBeTruthy();
       const editor = screen.getByLabelText(/resume draft/i) as HTMLTextAreaElement;
       expect(editor.value).toBe('Initial good draft content');

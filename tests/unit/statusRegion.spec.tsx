@@ -1,7 +1,10 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, act, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, act, fireEvent, waitFor, within } from '@testing-library/react';
 import App from '../../src/App';
 import * as storage from '../../src/storage/storage';
+import { getPrefixedKey } from '../../src/storage/keys';
 import { SettingsProvider } from '../../src/state/SettingsContext';
 import { MasterInfoProvider } from '../../src/state/MasterInfoContext';
 import { InstructionsProvider } from '../../src/state/InstructionsContext';
@@ -242,5 +245,158 @@ describe('App-wide Status Region (SPEC §17.7)', () => {
     expect(draftsLiveElements).toHaveLength(2);
     expect(draftsLiveElements[0].getAttribute('aria-live')).toBe('polite');
     expect(draftsLiveElements[1].getAttribute('aria-label')).toBe('File upload notices');
+  });
+
+  it('shows exactly two allowed live regions when storage is unavailable banner is displayed', () => {
+    vi.spyOn(storage, 'isAvailable').mockReturnValue(false);
+    render(<App />);
+
+    expect(screen.getByText(/isn't letting RefractBio save anything/i)).toBeTruthy();
+
+    const liveElements = getLiveElements(document.body);
+    expect(liveElements).toHaveLength(2);
+    expect(liveElements[0].getAttribute('aria-live')).toBe('polite');
+    expect(liveElements[1].getAttribute('aria-label')).toBe('File upload notices');
+  });
+
+  it('shows exactly two allowed live regions when a generation error callout is displayed', async () => {
+    storage.set('settings', {
+      selectedProvider: 'anthropic',
+      selectedModel: { anthropic: 'claude-3-5-sonnet', gemini: 'gemini-1.5-flash' },
+      rememberKeys: true,
+      paperSize: 'letter',
+      theme: 'system',
+      showAllModels: false,
+    });
+    storage.set('apiKeys', { anthropic: fakeKey });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (url: string | URL | Request) => {
+        const urlStr = String(url);
+        if (urlStr.includes('/messages')) {
+          return Promise.reject(new Error('Network failure'));
+        }
+        return new Response(
+          JSON.stringify({
+            data: [{ id: 'claude-3-5-sonnet', display_name: 'Claude 3.5 Sonnet' }],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        );
+      })
+    );
+
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: /cover letter/i }));
+    fireEvent.change(screen.getByLabelText(/job context/i), {
+      target: { value: 'Looking for a Senior Data Analyst.' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /^send$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Something went wrong|Could not connect/i)).toBeTruthy();
+    });
+
+    const liveElements = getLiveElements(document.body);
+    expect(liveElements).toHaveLength(2);
+    expect(liveElements[0].getAttribute('aria-live')).toBe('polite');
+    expect(liveElements[1].getAttribute('aria-label')).toBe('File upload notices');
+  });
+
+  it('shows exactly two allowed live regions when a truncation notice is displayed', async () => {
+    storage.set('settings', {
+      selectedProvider: 'anthropic',
+      selectedModel: { anthropic: 'claude-3-5-sonnet', gemini: 'gemini-1.5-flash' },
+      rememberKeys: true,
+      paperSize: 'letter',
+      theme: 'system',
+      showAllModels: false,
+    });
+    storage.set('apiKeys', { anthropic: fakeKey });
+
+    const truncatedBody = fs.readFileSync(
+      path.resolve(__dirname, '../fixtures/sse/anthropic-truncated.txt'),
+      'utf-8'
+    );
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async () => {
+        return new Response(truncatedBody, {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream' },
+        });
+      })
+    );
+
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: /cover letter/i }));
+    fireEvent.change(screen.getByLabelText(/job context/i), {
+      target: { value: 'Looking for a Senior Data Analyst.' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /^send$/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/This draft was cut off/i)).toBeTruthy();
+    });
+
+    const liveElements = getLiveElements(document.body);
+    expect(liveElements).toHaveLength(2);
+    expect(liveElements[0].getAttribute('aria-live')).toBe('polite');
+    expect(liveElements[1].getAttribute('aria-label')).toBe('File upload notices');
+  });
+
+  it('shows exactly two allowed live regions in Settings sheet with Master Info tab (sample marker and corrupt stored value)', async () => {
+    localStorage.setItem(getPrefixedKey('masterInfo'), '{ corrupt json');
+
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+
+    const masterTab = await screen.findByRole('tab', { name: /master info/i });
+    fireEvent.keyDown(masterTab, { key: 'Enter', code: 'Enter' });
+
+    const dialog = screen.getByRole('dialog');
+    await waitFor(() => {
+      expect(within(dialog).getByText(/Your saved Master Info could not be loaded/i)).toBeTruthy();
+      expect(within(dialog).getByText(/still contains the sample marker/i)).toBeTruthy();
+    });
+
+    const liveElements = getLiveElements(document.body);
+    expect(liveElements).toHaveLength(2);
+    expect(liveElements[0].getAttribute('aria-live')).toBe('polite');
+    expect(liveElements[1].getAttribute('aria-label')).toBe('File upload notices');
+  });
+
+  it('shows exactly two allowed live regions in Settings sheet with Instructions tab (warning-producing draft)', async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('tab', { name: /instructions/i })).toBeTruthy();
+    });
+    const instTab = screen.getByRole('tab', { name: /instructions/i });
+    fireEvent.keyDown(instTab, { key: 'Enter', code: 'Enter' });
+    fireEvent.click(instTab);
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox', { name: /instructions editor/i })).toBeTruthy();
+    });
+    const editor = screen.getByRole('textbox', { name: /instructions editor/i });
+    fireEvent.change(editor, { target: { value: '# INVALID_SECTION\nSome content' } });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Heading "# INVALID_SECTION" isn't recognised/i)).toBeTruthy();
+    });
+
+    const liveElements = getLiveElements(document.body);
+    expect(liveElements).toHaveLength(2);
+    expect(liveElements[0].getAttribute('aria-live')).toBe('polite');
+    expect(liveElements[1].getAttribute('aria-label')).toBe('File upload notices');
   });
 });
