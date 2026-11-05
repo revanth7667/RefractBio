@@ -166,7 +166,7 @@ describe('App & Hash Routing & Settings', () => {
       render(<App />);
 
       // Type in the job input (an unrelated action)
-      const jobInput = screen.getByRole('textbox', { name: /job description/i });
+      const jobInput = screen.getByRole('textbox', { name: /job context/i });
       fireEvent.change(jobInput, { target: { value: 'Software engineer at Example Corp' } });
 
       // Corrupt stored values must remain unchanged
