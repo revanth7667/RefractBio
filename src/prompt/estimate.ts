@@ -1,4 +1,5 @@
 import estimates from '../data/estimates.json';
+import { NUMBER_LOCALE } from '../config';
 import type {
   Attachment,
   JobInputs,
@@ -96,15 +97,15 @@ export function formatEstimate(
   pdfCount: number,
   totalTokens?: number,
 ): string {
-  const perOutputStr = perOutputTotal.toLocaleString('en-US');
+  const perOutputStr = perOutputTotal.toLocaleString(NUMBER_LOCALE);
   const grandTotal = totalTokens !== undefined ? totalTokens : perOutputTotal * outputCount;
-  const grandTotalStr = grandTotal.toLocaleString('en-US');
+  const grandTotalStr = grandTotal.toLocaleString(NUMBER_LOCALE);
   const outputsWord = outputCount === 1 ? 'output' : 'outputs';
 
   let result = `≈ ${perOutputStr} tokens per output × ${outputCount} ${outputsWord} ≈ ${grandTotalStr} tokens. Rough estimate; actual usage and cost depend on the provider and model.`;
 
   if (pdfCount > 0) {
-    result += ` Includes a size-based guess for ${pdfCount.toLocaleString('en-US')} PDF(s).`;
+    result += ` Includes a size-based guess for ${pdfCount.toLocaleString(NUMBER_LOCALE)} PDF(s).`;
   }
 
   return result;

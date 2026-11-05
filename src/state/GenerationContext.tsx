@@ -24,6 +24,7 @@ import {
   tabsReducer,
 } from '../generation/tabReducer';
 import { GenerationQueue } from '../generation/queue';
+import { MAX_CONCURRENT_GENERATIONS } from '../config';
 import { useSettings } from './SettingsContext';
 import { useMasterInfo } from './MasterInfoContext';
 import { useInstructions } from './InstructionsContext';
@@ -89,7 +90,9 @@ export function GenerationProvider({ children }: { children: React.ReactNode }) 
   });
 
   // Track active/queued state across renders
-  const queueRef = useRef<GenerationQueue<OutputKind>>(new GenerationQueue<OutputKind>(2));
+  const queueRef = useRef<GenerationQueue<OutputKind>>(
+    new GenerationQueue<OutputKind>(MAX_CONCURRENT_GENERATIONS),
+  );
   const runIdRef = useRef<number>(0);
   const clearedRef = useRef<boolean>(false);
   const activeJobsRef = useRef<
