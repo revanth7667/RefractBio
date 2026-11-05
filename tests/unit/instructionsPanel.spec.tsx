@@ -121,7 +121,7 @@ describe('Instructions Panel & State (§11.3, §17.4)', () => {
       expect(state.editorDraft).toBe(customText);
       expect(state.hasUnsavedChanges).toBe(true);
       expect(state.savedText).toBeNull();
-      expect(screen.getByTestId('unsaved-dot')).toBeTruthy();
+      expect(screen.getByText('Unsaved changes')).toBeTruthy();
 
       const saveBtn = screen.getByRole('button', { name: /^save$/i });
       act(() => {
@@ -130,7 +130,7 @@ describe('Instructions Panel & State (§11.3, §17.4)', () => {
 
       expect(state.savedText).toBe(customText);
       expect(state.hasUnsavedChanges).toBe(false);
-      expect(screen.queryByTestId('unsaved-dot')).toBeNull();
+      expect(screen.queryByText('Unsaved changes')).toBeNull();
 
       const stored = storage.get<{ text: string }>('instructions');
       expect(stored.ok).toBe(true);
@@ -294,8 +294,8 @@ describe('Instructions Panel & State (§11.3, §17.4)', () => {
 
   describe('Upload (.md / .txt)', () => {
     it('rejects files with invalid extensions', async () => {
-      render(<TestPanel />);
-      const input = screen.getByTestId('instructions-upload-input');
+      const { container } = render(<TestPanel />);
+      const input = container.querySelector('input[type="file"]') as HTMLInputElement;
 
       const badFile = new File(['content'], 'test.pdf', { type: 'application/pdf' });
       await act(async () => {
@@ -306,8 +306,8 @@ describe('Instructions Panel & State (§11.3, §17.4)', () => {
     });
 
     it('rejects files exceeding masterInfoMaxBytes', async () => {
-      render(<TestPanel />);
-      const input = screen.getByTestId('instructions-upload-input');
+      const { container } = render(<TestPanel />);
+      const input = container.querySelector('input[type="file"]') as HTMLInputElement;
 
       const bigFile = new File(['x'.repeat(limits.masterInfoMaxBytes + 10)], 'big.md', {
         type: 'text/markdown',
@@ -325,12 +325,12 @@ describe('Instructions Panel & State (§11.3, §17.4)', () => {
 
     it('requires confirmation, and confirming fills editor only and does NOT save', async () => {
       let state!: InstructionsContextValue;
-      render(<TestPanel onState={(val) => { state = val; }} />);
+      const { container } = render(<TestPanel onState={(val) => { state = val; }} />);
 
       const uploadedText = '# GLOBAL\nUploaded content';
       const file = new File([uploadedText], 'uploaded.md', { type: 'text/markdown' });
 
-      const input = screen.getByTestId('instructions-upload-input');
+      const input = container.querySelector('input[type="file"]') as HTMLInputElement;
       fireEvent.change(input, { target: { files: [file] } });
 
       // Confirm dialog appears

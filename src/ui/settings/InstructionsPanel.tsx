@@ -171,10 +171,7 @@ export function InstructionsPanel() {
           </label>
           <div className="flex items-center gap-2">
             {hasUnsavedChanges && (
-              <span
-                data-testid="unsaved-dot"
-                className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium"
-              >
+              <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium">
                 <span className="h-2 w-2 rounded-full bg-amber-500" />
                 Unsaved changes
               </span>
@@ -222,7 +219,6 @@ export function InstructionsPanel() {
           onChange={handleFileChange}
           accept=".md,.txt,text/markdown,text/plain"
           className="hidden"
-          data-testid="instructions-upload-input"
         />
         <Button
           variant="outline"

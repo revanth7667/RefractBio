@@ -112,8 +112,6 @@ export function MasterInfoPanel() {
         <p className="text-sm text-muted-foreground">
           Your Master Info is the single source of truth for all drafted documents.
         </p>
-        {/* Phase 2 toolbar slot: Import from my existing resume */}
-        <div data-testid="phase2-toolbar" className="flex items-center gap-2" />
       </div>
 
       {/* Corrupt data notice (§9.2) */}
@@ -184,10 +182,7 @@ export function MasterInfoPanel() {
       <div className="flex flex-wrap items-center gap-2 pt-1">
         <Button onClick={handleSave} size="sm" className="relative">
           {hasUnsavedChanges && (
-            <span
-              data-testid="unsaved-dot"
-              className="mr-1.5 h-2 w-2 rounded-full bg-amber-300 inline-block"
-            />
+            <span className="mr-1.5 h-2 w-2 rounded-full bg-amber-300 inline-block" />
           )}
           Save
         </Button>

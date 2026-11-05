@@ -80,7 +80,7 @@ describe('Master Info Panel & State (§10.4, §10.5, §17.4)', () => {
       ).toBeTruthy();
 
       // No unsaved changes dot initially
-      expect(screen.queryByTestId('unsaved-dot')).toBeNull();
+      expect(screen.getByRole('button', { name: /save/i }).querySelector('span')).toBeNull();
     });
   });
 
@@ -101,10 +101,10 @@ describe('Master Info Panel & State (§10.4, §10.5, §17.4)', () => {
       expect(state.effectiveMasterInfo.text).toBe(sampleRaw);
 
       // Unsaved dot is visible
-      expect(screen.getByTestId('unsaved-dot')).toBeTruthy();
+      const saveBtn = screen.getByRole('button', { name: /save/i });
+      expect(saveBtn.querySelector('span')).toBeTruthy();
 
       // Click Save
-      const saveBtn = screen.getByRole('button', { name: /save/i });
       act(() => {
         fireEvent.click(saveBtn);
       });
@@ -113,7 +113,7 @@ describe('Master Info Panel & State (§10.4, §10.5, §17.4)', () => {
       expect(state.effectiveMasterInfo.source).toBe('stored');
       expect(state.effectiveMasterInfo.text).toBe(editedRaw);
       expect(state.hasUnsavedChanges).toBe(false);
-      expect(screen.queryByTestId('unsaved-dot')).toBeNull();
+      expect(saveBtn.querySelector('span')).toBeNull();
 
       // Notice is gone because edited.md has no template marker
       expect(

@@ -107,7 +107,6 @@ export function OutputTabs() {
                 <span>{OUTPUT_TAB_LABELS[tab.kind]}</span>
                 {stale && (
                   <span
-                    data-testid={`stale-dot-${tab.kind}`}
                     className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0"
                     title="Inputs changed since this was generated"
                     aria-label="Inputs changed"

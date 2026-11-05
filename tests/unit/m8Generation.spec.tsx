@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react';
 import App from '../../src/App';
 import * as storage from '../../src/storage/storage';
 import { APP_ID } from '../../src/config';
@@ -120,14 +120,20 @@ describe('Milestone M8 Multi-output Queue, Versions, Stale Badge, and Clear', ()
     });
 
     // Resume tab was regenerated with new draft, so Resume is NOT stale
-    expect(screen.queryByTestId('stale-dot-RESUME')).toBeNull();
+    const resumeTab = screen.getByRole('tab', { name: /^resume/i });
+    expect(within(resumeTab).queryByLabelText('Inputs changed')).toBeNull();
 
     // The other 4 tabs show the stale amber dot on their tab trigger
+    const coverLetterTabTrigger = screen.getByRole('tab', { name: /cover letter/i });
+    const linkedinTabTrigger = screen.getByRole('tab', { name: /linkedin/i });
+    const emailTabTrigger = screen.getByRole('tab', { name: /email/i });
+    const answersTabTrigger = screen.getByRole('tab', { name: /answers/i });
+
     await waitFor(() => {
-      expect(screen.getByTestId('stale-dot-COVER_LETTER')).toBeTruthy();
-      expect(screen.getByTestId('stale-dot-LINKEDIN_MESSAGE')).toBeTruthy();
-      expect(screen.getByTestId('stale-dot-EMAIL')).toBeTruthy();
-      expect(screen.getByTestId('stale-dot-ANSWERS')).toBeTruthy();
+      expect(within(coverLetterTabTrigger).getByLabelText('Inputs changed')).toBeTruthy();
+      expect(within(linkedinTabTrigger).getByLabelText('Inputs changed')).toBeTruthy();
+      expect(within(emailTabTrigger).getByLabelText('Inputs changed')).toBeTruthy();
+      expect(within(answersTabTrigger).getByLabelText('Inputs changed')).toBeTruthy();
     });
 
     // Switching to Cover Letter tab shows the visible stale badge with title and details
@@ -177,9 +183,13 @@ describe('Milestone M8 Multi-output Queue, Versions, Stale Badge, and Clear', ()
     });
 
     // No stale dots initially
-    expect(screen.queryByTestId('stale-dot-RESUME')).toBeNull();
-    expect(screen.queryByTestId('stale-dot-COVER_LETTER')).toBeNull();
-    expect(screen.queryByTestId('stale-dot-ANSWERS')).toBeNull();
+    const initialResumeTab = screen.getByRole('tab', { name: /^resume/i });
+    const initialCoverLetterTab = screen.getByRole('tab', { name: /cover letter/i });
+    const initialAnswersTab = screen.getByRole('tab', { name: /answers/i });
+
+    expect(within(initialResumeTab).queryByLabelText('Inputs changed')).toBeNull();
+    expect(within(initialCoverLetterTab).queryByLabelText('Inputs changed')).toBeNull();
+    expect(within(initialAnswersTab).queryByLabelText('Inputs changed')).toBeNull();
 
     // Switch to fake timers for debounced stale badge recomputation (300 ms)
     vi.useFakeTimers();
@@ -188,18 +198,18 @@ describe('Milestone M8 Multi-output Queue, Versions, Stale Badge, and Clear', ()
       fireEvent.change(questionsArea, { target: { value: 'Modified question 1 with extra details' } });
 
       // Before 300 ms debounce fires, stale dot is not yet present
-      expect(screen.queryByTestId('stale-dot-ANSWERS')).toBeNull();
+      expect(within(initialAnswersTab).queryByLabelText('Inputs changed')).toBeNull();
 
       act(() => {
         vi.advanceTimersByTime(300);
       });
 
       // Debounced stale badge recomputed (300ms)
-      expect(screen.getByTestId('stale-dot-ANSWERS')).toBeTruthy();
+      expect(within(initialAnswersTab).getByLabelText('Inputs changed')).toBeTruthy();
 
       // Resume and Cover Letter MUST NOT be marked stale
-      expect(screen.queryByTestId('stale-dot-RESUME')).toBeNull();
-      expect(screen.queryByTestId('stale-dot-COVER_LETTER')).toBeNull();
+      expect(within(initialResumeTab).queryByLabelText('Inputs changed')).toBeNull();
+      expect(within(initialCoverLetterTab).queryByLabelText('Inputs changed')).toBeNull();
     } finally {
       vi.useRealTimers();
     }
