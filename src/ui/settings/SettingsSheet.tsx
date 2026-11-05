@@ -200,13 +200,19 @@ export function SettingsSheet({ open, onOpenChange, tab, onTabChange }: Settings
                 <TabsTrigger value="masterInfo" className="relative shrink-0">
                   Master Info
                   {hasUnsavedMasterInfo && (
-                    <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-amber-500" />
+                    <>
+                      <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-amber-500" aria-hidden="true" />
+                      <span className="sr-only"> (unsaved changes)</span>
+                    </>
                   )}
                 </TabsTrigger>
                 <TabsTrigger value="instructions" className="relative shrink-0">
                   Instructions
                   {hasUnsavedInstructions && (
-                    <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-amber-500" />
+                    <>
+                      <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-amber-500" aria-hidden="true" />
+                      <span className="sr-only"> (unsaved changes)</span>
+                    </>
                   )}
                 </TabsTrigger>
                 <TabsTrigger value="appearance" className="shrink-0">
@@ -234,10 +240,10 @@ export function SettingsSheet({ open, onOpenChange, tab, onTabChange }: Settings
 
               <TabsContent value="appearance" className="mt-6 space-y-6">
                 <div className="space-y-3">
-                  <Label htmlFor="theme-select" className="text-sm font-medium">
+                  <Label id="theme-label" className="text-sm font-medium">
                     Theme
                   </Label>
-                  <div className="flex gap-2">
+                  <div role="group" aria-labelledby="theme-label" className="flex gap-2">
                     {(['system', 'light', 'dark'] as Theme[]).map((t) => (
                       <Button
                         key={t}

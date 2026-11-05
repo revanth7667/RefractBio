@@ -249,8 +249,15 @@ function TabBody({
     ? new Date(snapshot.generatedAt).toLocaleTimeString()
     : '';
 
+  const blockerId = `tab-blocker-reason-${tab.kind}`;
+
   return (
     <div className="space-y-4">
+      {isBlocked && (
+        <span id={blockerId} className="sr-only">
+          {tabBlocker.message}
+        </span>
+      )}
       {/* Tab Toolbar (§17.3) */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3">
         <div className="flex flex-wrap items-center gap-2">
@@ -272,7 +279,7 @@ function TabBody({
               size="sm"
               variant="default"
               disabled={isBlocked}
-              aria-describedby={isBlocked ? 'send-blocker-reason' : undefined}
+              aria-describedby={isBlocked ? blockerId : undefined}
               title={isBlocked ? tabBlocker.message : undefined}
               onClick={onRetry}
             >
@@ -286,7 +293,7 @@ function TabBody({
               size="sm"
               variant="outline"
               disabled={isBlocked}
-              aria-describedby={isBlocked ? 'send-blocker-reason' : undefined}
+              aria-describedby={isBlocked ? blockerId : undefined}
               title={isBlocked ? tabBlocker.message : undefined}
               onClick={onRetry}
             >

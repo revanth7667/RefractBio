@@ -36,12 +36,12 @@ export function HelpPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
       <div className="mb-6">
-        <a href="#/">
-          <Button variant="ghost" size="sm" className="gap-2">
+        <Button asChild variant="ghost" size="sm" className="gap-2">
+          <a href="#/">
             <ArrowLeft className="h-4 w-4" />
             Back to drafts
-          </Button>
-        </a>
+          </a>
+        </Button>
       </div>
 
       <div
