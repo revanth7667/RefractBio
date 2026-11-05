@@ -98,7 +98,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     // If no model is currently selected, select the first default model or first available model
     setSettingsState((prevSettings) => {
       const currentSelected = prevSettings.selectedModel[providerId];
-      if (!currentSelected && fetchedModels.length > 0) {
+      if (currentSelected === undefined && fetchedModels.length > 0) {
         const defaultList = getDefaultModels(fetchedModels, providerId);
         const firstDefault = defaultList[0] || fetchedModels.find((m) => m.likelyChat) || fetchedModels[0];
         if (firstDefault) {

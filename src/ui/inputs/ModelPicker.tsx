@@ -31,7 +31,10 @@ export function ModelPicker({
     if (!selectedModel) return false;
     return !models.some((m) => m.id === selectedModel);
   });
-  const [manualValue, setManualValue] = useState<string>(selectedModel);
+  const [manualValue, setManualValue] = useState<string>(() => {
+    if (!selectedModel) return '';
+    return models.some((m) => m.id === selectedModel) ? '' : selectedModel;
+  });
 
   // Filter models based on showAllModels:
   // When false: default choices from hints; if selectedModel is in models but not in default list, append it.
@@ -66,9 +69,9 @@ export function ModelPicker({
     const val = e.target.value;
     if (val === '__manual__') {
       setIsManual(true);
-      if (manualValue) {
-        onSelectModel(manualValue);
-      }
+      const nextVal = models.some((m) => m.id === manualValue) ? '' : manualValue;
+      setManualValue(nextVal);
+      onSelectModel(nextVal);
     } else {
       setIsManual(false);
       onSelectModel(val);
