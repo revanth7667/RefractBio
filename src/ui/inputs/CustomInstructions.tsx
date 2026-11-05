@@ -6,9 +6,7 @@ export function CustomInstructions() {
   return (
     <details className="group rounded-md border border-border p-3 [&_summary::-webkit-details-marker]:hidden">
       <summary className="flex cursor-pointer items-center justify-between font-medium text-sm text-foreground">
-        <label htmlFor="custom-instructions-input" className="cursor-pointer">
-          Custom instructions (this job only)
-        </label>
+        <span id="custom-instructions-label">Custom instructions (this job only)</span>
         <span className="text-xs text-muted-foreground group-open:rotate-180 transition-transform">
           ▼
         </span>
@@ -16,6 +14,7 @@ export function CustomInstructions() {
       <div className="mt-3 space-y-1.5">
         <textarea
           id="custom-instructions-input"
+          aria-labelledby="custom-instructions-label"
           rows={3}
           value={jobInputs.customInstructions}
           onChange={(e) => setCustomInstructions(e.target.value)}
