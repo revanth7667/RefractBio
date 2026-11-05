@@ -187,16 +187,6 @@ export function mapProviderError(opts: ErrorMappingOptions): AppError {
     };
   }
 
-  // Safety blocked
-  if (detailLower.includes('safety') || detailLower.includes('blocked') || detailLower.includes('harm_category')) {
-    return {
-      category: 'safety_blocked',
-      httpStatus: status,
-      message: 'The provider blocked this response. Try rephrasing your custom instructions or check the job context.',
-      detail,
-    };
-  }
-
   if (status === 429) {
     const retryAfterSeconds = parseRetryAfter(opts.retryAfterHeader);
     const retryMsg =
@@ -217,6 +207,16 @@ export function mapProviderError(opts: ErrorMappingOptions): AppError {
       category: 'server',
       httpStatus: status,
       message: `${provider} had a server problem. Press Retry in a moment.`,
+      detail,
+    };
+  }
+
+  // Safety blocked (text heuristic when no status-based row matched, SPEC §13.5)
+  if (detailLower.includes('safety') || detailLower.includes('blocked') || detailLower.includes('harm_category')) {
+    return {
+      category: 'safety_blocked',
+      httpStatus: status,
+      message: 'The provider blocked this response. Try rephrasing your custom instructions or check the job context.',
       detail,
     };
   }
